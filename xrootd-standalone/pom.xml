@@ -4,14 +4,14 @@
 
   <parent>
       <groupId>org.dcache</groupId>
-      <artifactId>xrootd-parent</artifactId>
+      <artifactId>xrootd4j-parent</artifactId>
       <version>1.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>xrootd-standalone</artifactId>
+  <artifactId>xrootd4j-standalone</artifactId>
   <packaging>jar</packaging>
 
-  <name>xrootd data server</name>
+  <name>xrootd4j standalone data server</name>
 
   <dependencies>
     <dependency>
