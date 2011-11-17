@@ -70,8 +70,8 @@ Authors
 -------
 
 The code was originally written by Martin Radicke and sponsored by
-[DESY]. It has since been maintained by Gerd Behrmann and sponsored by
-[NDGF].
+[DESY]. It has since been maintained by Gerd Behrmann and Thomas
+Zangerl sponsored by [NDGF].
 
 [dCache]: http://www.dcache.org/
 [xrootd]: http://xrootd.slac.stanford.edu/
