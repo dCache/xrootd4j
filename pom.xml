@@ -153,7 +153,7 @@
   </build>
 
   <modules>
-    <module>xrootd4j-lib</module>
+    <module>xrootd4j</module>
     <module>xrootd4j-standalone</module>
   </modules>
 </project>

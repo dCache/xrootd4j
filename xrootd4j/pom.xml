@@ -8,7 +8,7 @@
       <version>1.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>xrootd4j-lib</artifactId>
+  <artifactId>xrootd4j</artifactId>
   <packaging>jar</packaging>
 
   <name>xrootd4j core protocol</name>
