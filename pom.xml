@@ -38,7 +38,7 @@
   <pluginRepositories>
       <pluginRepository>
           <id>mc-release</id>
-          <name>Local Maven repository of releases</name>
+          <name>Maven repository of releases</name>
           <url>http://mc-repo.googlecode.com/svn/maven2/releases</url>
           <snapshots>
               <enabled>false</enabled>
@@ -137,9 +137,15 @@
           <plugin>
               <groupId>com.mycila.maven-license-plugin</groupId>
               <artifactId>maven-license-plugin</artifactId>
+              <version>1.9.0</version>
               <configuration>
                   <header>src/etc/header.txt</header>
                   <strictCheck>true</strictCheck>
+                  <excludes>
+                      <exclude>.gitignore</exclude>
+                      <exclude>LICENSE.txt</exclude>
+                      <exclude>README.md</exclude>
+                  </excludes>
               </configuration>
               <executions>
                   <execution>
