@@ -9,12 +9,12 @@ About the library
 -----------------
 
 [xrootd] is the native data access protocol of the [ROOT] data
-analysis framework. The official implementation of the protocol is
+analysis framework. The reference implementation of the protocol is
 provided by SLAC National Accelerator Laboratory.
 
 [dCache] is a distributed storage system frequently used in the
 [Worldwide LHC Computing Grid][WLCG], high energy physics, photon
-sciences, and a couple of other communities.
+sciences, and other communities.
 
 This project provides our implementation of the xrootd data access
 protocol in Java. The library is used to implement the xrootd support
@@ -24,8 +24,11 @@ A standalone data server is provided. The primary purpose of the
 standalone data server is for testing, both interoperability testing
 and as a platform to test plugins without having to install dCache.
 
-Compilation
------------
+xrootd4j heavily depends on [Netty], a high performance asynchronous
+event-drive network application framework.
+
+Compiling the project
+---------------------
 
 To compile the project simply execute:
 
@@ -70,9 +73,10 @@ The code was originally written by Martin Radicke and sponsored by
 [DESY]. It has since been maintained by Gerd Behrmann and sponsored by
 [NDGF].
 
-[ALICE]:  http://aliweb.cern.ch/
 [dCache]: http://www.dcache.org/
 [xrootd]: http://xrootd.slac.stanford.edu/
 [WLCG]: http://lcg.web.cern.ch/lcg/
 [NDGF]: http://www.ndgf.org/
 [DESY]: http://www.desy.de/
+[ROOT]: http://root.cern.ch/
+[Netty]: http://www.jboss.org/netty
