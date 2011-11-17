@@ -41,7 +41,7 @@
     </dependency>
     <dependency>
         <groupId>org.dcache</groupId>
-        <artifactId>xrootd-lib</artifactId>
+        <artifactId>xrootd4j</artifactId>
     </dependency>
   </dependencies>
 
