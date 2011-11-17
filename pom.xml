@@ -145,7 +145,7 @@
   </build>
 
   <modules>
-    <module>xrootd-lib</module>
-    <module>xrootd-standalone</module>
+    <module>xrootd4j-lib</module>
+    <module>xrootd4j-standalone</module>
   </modules>
 </project>
