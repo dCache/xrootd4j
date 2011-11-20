@@ -33,6 +33,10 @@
       <id>jboss-netty.repository</id>
       <url>http://repository.jboss.org/nexus/content/groups/public/</url>
     </repository>
+    <repository>
+        <id>dcache.repository</id>
+        <url>http://www.dcache.org/nexus/content/groups/public</url>
+    </repository>
   </repositories>
 
   <pluginRepositories>
@@ -86,6 +90,16 @@
           <groupId>commons-io</groupId>
           <artifactId>commons-io</artifactId>
           <version>2.1</version>
+      </dependency>
+      <dependency>
+          <groupId>commons-codec</groupId>
+          <artifactId>commons-codec</artifactId>
+          <version>1.5</version>
+      </dependency>
+      <dependency>
+          <groupId>org.dcache</groupId>
+          <artifactId>cog-jglobus</artifactId>
+          <version>1.8.0-1</version>
       </dependency>
       <dependency>
           <groupId>org.dcache</groupId>
@@ -161,5 +175,6 @@
   <modules>
     <module>xrootd4j</module>
     <module>xrootd4j-standalone</module>
+    <module>xrootd4j-gsi</module>
   </modules>
 </project>
