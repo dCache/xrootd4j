@@ -1,3 +1,4 @@
 /target/
-/xrootd4j/target/
-/xrootd4j-standalone/target/
+/*/target/
+*~
+
