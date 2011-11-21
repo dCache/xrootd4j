@@ -19,23 +19,22 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import java.util.List;
+import java.util.Iterator;
 import org.dcache.xrootd.protocol.XrootdProtocol;
 
 public class DirListResponse extends AbstractResponseMessage
 {
-    public DirListResponse(int streamid, int statusCode, List<String> names)
+    public DirListResponse(int streamid, int statusCode, Iterable<String> names)
     {
         super(streamid, statusCode, computeResponseSize(names));
 
-        for (int i = 0; i < names.size() - 1; i++) {
-            putCharSequence(names.get(i));
-            putUnsignedChar('\n');
-        }
-
-        if (!names.isEmpty()) {
-            putCharSequence(names.get(names.size() - 1));
-
+        Iterator<String> i = names.iterator();
+        if (i.hasNext()) {
+            putCharSequence(i.next());
+            while (i.hasNext()) {
+                putUnsignedChar('\n');
+                putCharSequence(i.next());
+            }
             /* Last entry in the list is terminated by a 0 rather than by
              * a \n, if not more entries follow because the message is an
              * intermediate message */
@@ -47,7 +46,7 @@ public class DirListResponse extends AbstractResponseMessage
         }
     }
 
-    public DirListResponse(int streamid, List<String> names)
+    public DirListResponse(int streamid, Iterable<String> names)
     {
         this(streamid, XrootdProtocol.kXR_ok, names);
     }
@@ -59,7 +58,7 @@ public class DirListResponse extends AbstractResponseMessage
      * @param names The collection from which the size is computed
      * @return The size of the response
      */
-    private static int computeResponseSize(List<String> names)
+    private static int computeResponseSize(Iterable<String> names)
     {
         int length = 0;
         for (String name: names) {
