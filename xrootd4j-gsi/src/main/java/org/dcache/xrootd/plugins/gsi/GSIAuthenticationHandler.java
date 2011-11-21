@@ -17,7 +17,7 @@
  * License along with xrootd4j.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
-package org.dcache.xrootd.security.plugins.authn.gsi;
+package org.dcache.xrootd.plugins.gsi;
 
 import java.io.IOException;
 import java.io.StringReader;
