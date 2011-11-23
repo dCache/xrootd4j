@@ -9,7 +9,7 @@
   <packaging>pom</packaging>
 
   <name>xrootd4j parent</name>
-  <url>http://www.dcache.org/</url>
+  <url>http://github.com/gbehrmann/xrootd4j/</url>
 
   <licenses>
       <license>
@@ -44,6 +44,31 @@
         <url>http://www.dcache.org/nexus/content/groups/public</url>
     </repository>
   </repositories>
+
+  <distributionManagement>
+    <downloadUrl>http://www.dcache.org/nexus/content/groups/public</downloadUrl>
+
+    <site>
+      <id>github</id>
+      <name>xrootd4j</name>
+      <url>http://github.com/gbehrmann/xrootd4j/</url>
+    </site>
+  </distributionManagement>
+
+  <issueManagement>
+      <system>GitHub</system>
+      <url>http://github.com/gbehrmann/xrootd4j/issues/</url>
+  </issueManagement>
+
+  <mailingLists>
+    <mailingList>
+      <name>dCache user form</name>
+      <subscribe>mailto:sympa@dcache.org?subject=subscribe%20user-forum</subscribe>
+      <unsubscribe>mailto:sympa@dcache.org?subject=signoff%20user-forum</unsubscribe>
+      <post>user-forum@dcache.org</post>
+      <archive>http://www.dcache.org/archive/user-forum/</archive>
+    </mailingList>
+  </mailingLists>
 
   <pluginRepositories>
       <pluginRepository>
@@ -188,6 +213,35 @@
           </plugin>
       </plugins>
   </build>
+
+  <reporting>
+      <plugins>
+          <plugin>
+              <artifactId>maven-javadoc-plugin</artifactId>
+              <version>2.8</version>
+          </plugin>
+          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-jxr-plugin</artifactId>
+              <version>2.3</version>
+          </plugin>
+          <plugin>
+              <groupId>org.codehaus.mojo</groupId>
+              <artifactId>findbugs-maven-plugin</artifactId>
+              <version>2.3.2</version>
+          </plugin>
+          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-pmd-plugin</artifactId>
+              <version>2.6</version>
+              <configuration>
+                  <sourceEncoding>utf-8</sourceEncoding>
+                  <minimumTokens>100</minimumTokens>
+                  <targetJdk>1.5</targetJdk>
+              </configuration>
+          </plugin>
+      </plugins>
+  </reporting>
 
   <modules>
     <module>xrootd4j</module>
