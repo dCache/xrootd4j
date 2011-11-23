@@ -31,8 +31,6 @@ import org.dcache.xrootd.core.XrootdEncoder;
 import org.dcache.xrootd.core.XrootdDecoder;
 import org.dcache.xrootd.core.XrootdHandshakeHandler;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import org.dcache.xrootd.security.AuthenticationFactory;
-import org.dcache.xrootd.security.AuthorizationFactory;
 
 public class DataServerPipelineFactory implements ChannelPipelineFactory
 {
@@ -40,11 +38,6 @@ public class DataServerPipelineFactory implements ChannelPipelineFactory
     private static final int THREADS = 16;
     private static final int CHANNEL_MEMORY = 16 * MB;
     private static final int TOTAL_MEMORY = 65 * MB;
-
-    private final AuthenticationFactory _authenticationFactory =
-        new org.dcache.xrootd.security.plugins.authn.none.NoAuthenticationFactory();
-    private final AuthorizationFactory _authorizationFactory =
-        new org.dcache.xrootd.security.plugins.authz.NoAuthorizationFactory();
 
     private final ExecutionHandler _executionHandler =
         new ExecutionHandler(new OrderedMemoryAwareThreadPoolExecutor(THREADS, CHANNEL_MEMORY, TOTAL_MEMORY));

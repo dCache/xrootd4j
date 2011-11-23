@@ -34,10 +34,10 @@ import java.net.URLClassLoader;
 
 import joptsimple.OptionSet;
 
-import org.dcache.xrootd.security.AuthenticationFactory;
-import org.dcache.xrootd.security.AuthenticationProvider;
-import org.dcache.xrootd.security.AuthorizationFactory;
-import org.dcache.xrootd.security.AuthorizationProvider;
+import org.dcache.xrootd.plugins.AuthenticationFactory;
+import org.dcache.xrootd.plugins.AuthenticationProvider;
+import org.dcache.xrootd.plugins.AuthorizationFactory;
+import org.dcache.xrootd.plugins.AuthorizationProvider;
 
 import com.google.common.io.PatternFilenameFilter;
 

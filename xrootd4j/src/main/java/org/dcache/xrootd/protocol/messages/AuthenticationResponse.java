@@ -21,8 +21,8 @@ package org.dcache.xrootd.protocol.messages;
 
 import java.util.List;
 
-import org.dcache.xrootd.security.plugins.authn.XrootdBucket;
-import org.dcache.xrootd.security.plugins.authn.XrootdSecurityProtocol.BucketType;
+import org.dcache.xrootd.security.XrootdBucket;
+import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
 public class AuthenticationResponse extends AbstractResponseMessage
 {

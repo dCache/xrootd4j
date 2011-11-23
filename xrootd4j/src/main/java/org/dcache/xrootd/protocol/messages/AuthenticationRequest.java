@@ -18,15 +18,15 @@
  * <http://www.gnu.org/licenses/>.
  */
 package org.dcache.xrootd.protocol.messages;
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.EnumMap;
 import java.util.Map;
 
-import org.dcache.xrootd.security.plugins.authn.XrootdBucket;
-import org.dcache.xrootd.security.plugins.authn.XrootdSecurityProtocol.BucketType;
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import org.dcache.xrootd.security.XrootdBucket;
+import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
