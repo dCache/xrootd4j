@@ -21,42 +21,40 @@ package org.dcache.xrootd.plugins;
 
 import javax.security.auth.Subject;
 
+import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 
-public interface AuthenticationHandler {
-
+public interface AuthenticationHandler
+{
     /**
      * Authenticate method, parsing the requests and creating adequate
-     * responses. The internal state of the handler might be changed by this
-     * method.
+     * responses. The internal state of the handler might be changed
+     * by this method.
      *
      * @param request Request received from client
      * @return Response to be sent to the client
      */
-    public AbstractResponseMessage authenticate(AuthenticationRequest request);
+    public AbstractResponseMessage authenticate(AuthenticationRequest request)
+        throws XrootdException;
 
     /**
-     * @return the protocol that is implemented by the authentication handler
+     * @return the protocol that is implemented by the authentication
+     * handler
      */
     public String getProtocol();
 
     /**
-     * Get the subject containing the credentials/principals found during
-     * authentication. It is recommended to check whether authentication is
-     * completed before calling this method, or otherwise the subject may
-     * contain no or partial information.
-     * @return Subject populated during authentication
+     * Get the subject containing the credentials/principals found
+     * during authentication. The method MUST return null if no user
+     * has been authenticated yet. The method MAY return null even if
+     * the authentication step has completed - this indicates an
+     * anonymous user.
      */
     public Subject getSubject();
 
     /**
-     * @return true if the authentication process is completed, false otherwise
+     * Indicates if the authentication process completed successfully.
      */
-    public boolean isAuthenticationCompleted();
-
-    /**
-     * @return true if the provided authentication is strong
-     */
-    public boolean isStrongAuthentication();
+    public boolean isCompleted();
 }

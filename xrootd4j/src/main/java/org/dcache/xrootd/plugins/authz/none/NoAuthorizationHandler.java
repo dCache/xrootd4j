@@ -21,6 +21,7 @@ package org.dcache.xrootd.plugins.authz.none;
 
 import java.util.Map;
 import java.net.InetSocketAddress;
+import javax.security.auth.Subject;
 
 import org.dcache.xrootd.protocol.XrootdProtocol.FilePerm;
 import org.dcache.xrootd.plugins.AuthorizationHandler;
@@ -28,7 +29,8 @@ import org.dcache.xrootd.plugins.AuthorizationHandler;
 public class NoAuthorizationHandler implements AuthorizationHandler
 {
     @Override
-    public void check(int requestId,
+    public void check(Subject subject,
+                      int requestId,
                       String pathToOpen,
                       Map<String,String> opaque,
                       FilePerm mode,
@@ -37,19 +39,13 @@ public class NoAuthorizationHandler implements AuthorizationHandler
     }
 
     @Override
-    public boolean providesPFN()
-    {
-        return false;
-    }
-
-    @Override
-    public String getPFN()
+    public String getPath()
     {
         return null;
     }
 
     @Override
-    public String getUser()
+    public Subject getSubject()
     {
         return null;
     }

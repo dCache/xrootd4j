@@ -577,12 +577,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
     }
 
     @Override
-    public boolean isAuthenticationCompleted() {
+    public boolean isCompleted() {
         return _finished;
-    }
-
-    @Override
-    public boolean isStrongAuthentication() {
-        return true;
     }
 }
