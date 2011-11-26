@@ -26,7 +26,6 @@ import java.net.InetSocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileChannel;
 import java.security.GeneralSecurityException;
-import java.security.SecureRandom;
 import javax.security.auth.Subject;
 
 import java.util.List;
@@ -42,13 +41,10 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 import org.dcache.xrootd.protocol.XrootdProtocol.FilePerm;
 import org.dcache.xrootd.protocol.messages.XrootdRequest;
 import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
-import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
 import org.dcache.xrootd.protocol.messages.DirListRequest;
 import org.dcache.xrootd.protocol.messages.DirListResponse;
 import org.dcache.xrootd.protocol.messages.GenericReadRequestMessage.EmbeddedReadRequest;
-import org.dcache.xrootd.protocol.messages.LoginRequest;
-import org.dcache.xrootd.protocol.messages.LoginResponse;
 import org.dcache.xrootd.protocol.messages.MkDirRequest;
 import org.dcache.xrootd.protocol.messages.MvRequest;
 import org.dcache.xrootd.protocol.messages.OKResponse;
@@ -88,23 +84,9 @@ public class DataServerHandler extends XrootdRequestHandler
 
     private final ChannelGroup _allChannels;
 
-    /** variables needed for session-tracking */
-    private static final int SESSION_ID_BYTES = 16;
-    private static final SecureRandom _random = new SecureRandom();
-    private byte[] _sessionBytes = new byte[SESSION_ID_BYTES];
-
-    /** class used for creating authentication handler.
-     *  FIXME: Support more than just one authentication plugin
-     */
-    private AuthenticationHandler _authenticationHandler;
-
     private final List<RandomAccessFile> _openFiles =
         new ArrayList<RandomAccessFile>();
 
-    private boolean _hasLoggedIn = false;
-
-    /** empty subject before login has been called */
-    private Subject _subject = new Subject();
     private final DataServerConfiguration _configuration;
 
     public DataServerHandler(DataServerConfiguration configuration,
@@ -140,57 +122,6 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected LoginResponse doOnLogin(ChannelHandlerContext context,
-                                      MessageEvent event,
-                                      LoginRequest msg)
-        throws XrootdException
-    {
-        _random.nextBytes(_sessionBytes);
-
-        try {
-            if (_authenticationHandler == null) {
-                _authenticationHandler = _configuration.authenticationFactory.createHandler();
-            }
-
-            LoginResponse response =
-                new LoginResponse(msg.getStreamID(),
-                                  _sessionBytes,
-                                  _authenticationHandler.getProtocol());
-            if (_authenticationHandler.isCompleted()) {
-                authorizeUser(_authenticationHandler.getSubject());
-            }
-            return response;
-        } catch (InvalidHandlerConfigurationException e) {
-            _log.error("Could not instantiate authN handler: {}", e);
-            throw new XrootdException(kXR_ServerError, "Internal server error");
-        }
-    }
-
-    @Override
-    protected AbstractResponseMessage
-        doOnAuthentication(ChannelHandlerContext context,
-                           MessageEvent event,
-                           AuthenticationRequest msg)
-        throws XrootdException
-    {
-        try {
-            if (_authenticationHandler == null) {
-                _authenticationHandler = _configuration.authenticationFactory.createHandler();
-            }
-
-            AbstractResponseMessage response =
-                _authenticationHandler.authenticate(msg);
-            if (_authenticationHandler.isCompleted()) {
-                authorizeUser(_authenticationHandler.getSubject());
-            }
-            return response;
-        } catch (InvalidHandlerConfigurationException e) {
-            _log.error("Could not instantiate authN handler: {}", e);
-            throw new XrootdException(kXR_ServerError, "Internal server error");
-        }
-    }
-
-    @Override
     protected StatResponse doOnStat(ChannelHandlerContext ctx,
                                     MessageEvent event,
                                     StatRequest req)
@@ -199,12 +130,6 @@ public class DataServerHandler extends XrootdRequestHandler
         Channel channel = event.getChannel();
         InetSocketAddress localAddress =
             (InetSocketAddress) channel.getLocalAddress();
-
-        if (!_hasLoggedIn) {
-            respondWithError(ctx, event, req,
-                             kXR_NotAuthorized,
-                             "Please call login/auth first.");
-        }
 
         String path = req.getPath();
         File file = authorize(req,
@@ -230,11 +155,6 @@ public class DataServerHandler extends XrootdRequestHandler
         Channel channel = event.getChannel();
         InetSocketAddress localAddress =
             (InetSocketAddress) channel.getLocalAddress();
-
-        if (!_hasLoggedIn) {
-            throw new XrootdException(kXR_NotAuthorized,
-                                      "Please call login/auth first.");
-        }
 
         if (req.getPaths().length == 0) {
             throw new XrootdException(kXR_ArgMissing, "no paths specified");
@@ -726,18 +646,13 @@ public class DataServerHandler extends XrootdRequestHandler
         throws XrootdException
     {
         try {
-            if (!_hasLoggedIn) {
-                throw new XrootdException(kXR_NotAuthorized,
-                                          "Permission denied: Complete kXR_login/kXR_auth first.");
-            }
-
             AuthorizationHandler authzHandler =
                 _configuration.authorizationFactory.createHandler();
 
             if (authzHandler != null) {
                 Map<String, String> opaqueMap =
                     OpaqueStringParser.getOpaqueMap(opaque);
-                authzHandler.check(_subject,
+                authzHandler.check(request.getSubject(),
                                    request.getRequestId(),
                                    path,
                                    opaqueMap,
@@ -802,15 +717,5 @@ public class DataServerHandler extends XrootdRequestHandler
                               file.length(),
                               flags,
                               file.lastModified() / 1000);
-    }
-
-    private void authorizeUser(Subject subject)
-    {
-        if (subject == null) {
-            _subject = new Subject();
-        } else {
-            _subject = subject;
-        }
-        _hasLoggedIn = true;
     }
 }
