@@ -22,16 +22,12 @@ package org.dcache.xrootd.standalone;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.net.InetSocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileChannel;
-import java.security.GeneralSecurityException;
-import javax.security.auth.Subject;
 
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Map;
 
 import org.apache.commons.io.FilenameUtils;
 
@@ -39,41 +35,16 @@ import org.dcache.xrootd.core.XrootdRequestHandler;
 import org.dcache.xrootd.core.XrootdException;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 import org.dcache.xrootd.protocol.XrootdProtocol.FilePerm;
-import org.dcache.xrootd.protocol.messages.XrootdRequest;
-import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
-import org.dcache.xrootd.protocol.messages.CloseRequest;
-import org.dcache.xrootd.protocol.messages.DirListRequest;
-import org.dcache.xrootd.protocol.messages.DirListResponse;
+import org.dcache.xrootd.protocol.messages.*;
 import org.dcache.xrootd.protocol.messages.GenericReadRequestMessage.EmbeddedReadRequest;
-import org.dcache.xrootd.protocol.messages.MkDirRequest;
-import org.dcache.xrootd.protocol.messages.MvRequest;
-import org.dcache.xrootd.protocol.messages.OKResponse;
-import org.dcache.xrootd.protocol.messages.OpenRequest;
-import org.dcache.xrootd.protocol.messages.OpenResponse;
-import org.dcache.xrootd.protocol.messages.PrepareRequest;
-import org.dcache.xrootd.protocol.messages.ReadRequest;
-import org.dcache.xrootd.protocol.messages.ReadResponse;
-import org.dcache.xrootd.protocol.messages.ReadVRequest;
-import org.dcache.xrootd.protocol.messages.RmDirRequest;
-import org.dcache.xrootd.protocol.messages.RmRequest;
-import org.dcache.xrootd.protocol.messages.StatRequest;
-import org.dcache.xrootd.protocol.messages.StatResponse;
-import org.dcache.xrootd.protocol.messages.StatxRequest;
-import org.dcache.xrootd.protocol.messages.StatxResponse;
-import org.dcache.xrootd.protocol.messages.SyncRequest;
-import org.dcache.xrootd.protocol.messages.WriteRequest;
-import org.dcache.xrootd.plugins.AuthenticationHandler;
-import org.dcache.xrootd.plugins.AuthorizationHandler;
-import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
 import org.dcache.xrootd.util.FileStatus;
-import org.dcache.xrootd.util.OpaqueStringParser;
-import org.dcache.xrootd.util.ParseException;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.group.ChannelGroup;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,16 +98,7 @@ public class DataServerHandler extends XrootdRequestHandler
                                     StatRequest req)
         throws XrootdException
     {
-        Channel channel = event.getChannel();
-        InetSocketAddress localAddress =
-            (InetSocketAddress) channel.getLocalAddress();
-
-        String path = req.getPath();
-        File file = authorize(req,
-                              FilePerm.READ,
-                              path,
-                              req.getOpaque(),
-                              localAddress);
+        File file = getFile(req.getPath());
         if (!file.exists()) {
             return new StatResponse(req.getStreamId(),
                                     FileStatus.FILE_NOT_FOUND);
@@ -152,10 +114,6 @@ public class DataServerHandler extends XrootdRequestHandler
                                       StatxRequest req)
         throws XrootdException
     {
-        Channel channel = event.getChannel();
-        InetSocketAddress localAddress =
-            (InetSocketAddress) channel.getLocalAddress();
-
         if (req.getPaths().length == 0) {
             throw new XrootdException(kXR_ArgMissing, "no paths specified");
         }
@@ -164,11 +122,7 @@ public class DataServerHandler extends XrootdRequestHandler
         String[] opaques = req.getOpaques();
         int[] flags = new int[paths.length];
         for (int i = 0; i < paths.length; i++) {
-            File file = authorize(req,
-                                  FilePerm.READ,
-                                  paths[i],
-                                  opaques[i],
-                                  localAddress);
+            File file = getFile(paths[i]);
             if (!file.exists()) {
                 flags[i] = kXR_other;
             } else {
@@ -185,20 +139,11 @@ public class DataServerHandler extends XrootdRequestHandler
                                 RmRequest req)
         throws XrootdException
     {
-        Channel channel = e.getChannel();
-        InetSocketAddress localAddress =
-            (InetSocketAddress) channel.getLocalAddress();
         if (req.getPath().isEmpty()) {
             throw new XrootdException(kXR_ArgMissing, "no path specified");
         }
 
-        _log.info("Trying to delete {}", req.getPath());
-
-        File file = authorize(req,
-                              FilePerm.DELETE,
-                              req.getPath(),
-                              req.getOpaque(),
-                              localAddress);
+        File file = getFile(req.getPath());
         if (!file.exists()) {
             throw new XrootdException(kXR_NotFound,
                                       "No such directory or file: " + file);
@@ -217,20 +162,11 @@ public class DataServerHandler extends XrootdRequestHandler
                                    RmDirRequest req)
         throws XrootdException
     {
-        Channel channel = e.getChannel();
-        InetSocketAddress localAddress =
-                            (InetSocketAddress) channel.getLocalAddress();
         if (req.getPath().isEmpty()) {
             throw new XrootdException(kXR_ArgMissing, "no path specified");
         }
 
-        _log.info("Trying to delete directory {}", req.getPath());
-
-        File file = authorize(req,
-                              FilePerm.DELETE,
-                              req.getPath(),
-                              req.getOpaque(),
-                              localAddress);
+        File file = getFile(req.getPath());
         if (!file.exists()) {
             throw new XrootdException(kXR_NotFound,
                                       "No such directory or file: " + file);
@@ -250,20 +186,11 @@ public class DataServerHandler extends XrootdRequestHandler
                                    MkDirRequest req)
         throws XrootdException
     {
-        Channel channel = e.getChannel();
-        InetSocketAddress localAddress =
-                            (InetSocketAddress) channel.getLocalAddress();
         if (req.getPath().isEmpty()) {
             throw new XrootdException(kXR_ArgMissing, "no path specified");
         }
 
-        _log.info("Trying to create directory {}", req.getPath());
-
-        File file = authorize(req,
-                              FilePerm.WRITE,
-                              req.getPath(),
-                              req.getOpaque(),
-                              localAddress);
+        File file = getFile(req.getPath());
         if (file.exists()) {
             throw new XrootdException(kXR_IOError, "Path exists: " + file);
         }
@@ -286,10 +213,6 @@ public class DataServerHandler extends XrootdRequestHandler
                                 MvRequest req)
         throws XrootdException
     {
-        Channel channel = e.getChannel();
-        InetSocketAddress localAddress =
-                            (InetSocketAddress) channel.getLocalAddress();
-
         String sourcePath = req.getSourcePath();
         if (sourcePath.isEmpty()) {
             throw new XrootdException(kXR_ArgMissing, "No source path specified");
@@ -300,18 +223,8 @@ public class DataServerHandler extends XrootdRequestHandler
             throw new XrootdException(kXR_ArgMissing, "No target path specified");
         }
 
-        _log.info("Trying to rename {} to {}", req.getSourcePath(),
-                                               req.getTargetPath());
-        File sourceFile = authorize(req,
-                                    FilePerm.DELETE,
-                                    req.getSourcePath(),
-                                    req.getOpaque(),
-                                    localAddress);
-        File targetFile = authorize(req,
-                                    FilePerm.WRITE,
-                                    req.getTargetPath(),
-                                    req.getOpaque(),
-                                    localAddress);
+        File sourceFile = getFile(req.getSourcePath());
+        File targetFile = getFile(req.getTargetPath());
         if (!sourceFile.renameTo(targetFile)) {
             throw new XrootdException(kXR_IOError, "Failed to move file");
         }
@@ -324,20 +237,12 @@ public class DataServerHandler extends XrootdRequestHandler
                                           DirListRequest request)
         throws XrootdException
     {
-        Channel channel = event.getChannel();
-        InetSocketAddress localAddress =
-                            (InetSocketAddress) channel.getLocalAddress();
-
         String listPath = request.getPath();
-
         if (listPath.isEmpty()) {
             throw new XrootdException(kXR_ArgMissing, "no source path specified");
         }
 
-        File dir = authorize(request,
-                             FilePerm.READ, listPath,
-                             request.getOpaque(),
-                             localAddress);
+        File dir = getFile(listPath);
         String[] list = dir.list();
         if (list == null) {
             throw new XrootdException(kXR_NotFound, "No such directory: " + dir);
@@ -365,28 +270,10 @@ public class DataServerHandler extends XrootdRequestHandler
                                     OpenRequest msg)
         throws XrootdException
     {
-        Channel channel = event.getChannel();
-        InetSocketAddress localAddress =
-            (InetSocketAddress) channel.getLocalAddress();
-        InetSocketAddress remoteAddress =
-            (InetSocketAddress) channel.getRemoteAddress();
         int options = msg.getOptions();
 
-        FilePerm neededPerm;
-        if (msg.isNew() || msg.isReadWrite()) {
-            neededPerm = FilePerm.WRITE;
-        } else {
-            neededPerm = FilePerm.READ;
-        }
-
-        _log.info("Opening {} for {}", msg.getPath(), neededPerm.xmlText());
-
         try {
-            File file = authorize(msg,
-                                  neededPerm,
-                                  msg.getPath(),
-                                  msg.getOpaque(),
-                                  localAddress);
+            File file = getFile(msg.getPath());
             if (file.isDirectory()) {
                 throw new XrootdException(kXR_isDirectory, "Not a file: " + file);
             }
@@ -623,70 +510,14 @@ public class DataServerHandler extends XrootdRequestHandler
         _openFiles.set(fd, null);
     }
 
-    /**
-     * Check if the permissions on the path sent along with the
-     * request message satisfy the required permission level.
-     *
-     * @param neededPerm The permission level that is required for the operation
-     * @param req The actual request, containing path and authZ token
-     * @param localAddress The local address, needed for token endpoint
-     *        verification
-     * @return The path referring to the LFN in the request, if the request
-     *         contained a LFN. The path from the request, if the request
-     *         contained an absolute path.
-     * @throws PermissionDeniedCacheException The needed permissions are not
-     *         present in the authZ token, the authZ token is not present or
-     *         the format is corrupted.
-     */
-    private File authorize(XrootdRequest request,
-                           FilePerm neededPerm,
-                           String path,
-                           String opaque,
-                           InetSocketAddress localAddress)
+    private File getFile(String path)
         throws XrootdException
     {
-        try {
-            AuthorizationHandler authzHandler =
-                _configuration.authorizationFactory.createHandler();
-
-            if (authzHandler != null) {
-                Map<String, String> opaqueMap =
-                    OpaqueStringParser.getOpaqueMap(opaque);
-                authzHandler.check(request.getSubject(),
-                                   request.getRequestId(),
-                                   path,
-                                   opaqueMap,
-                                   neededPerm,
-                                   localAddress);
-
-                String pfn = authzHandler.getPath();
-                if (pfn != null) {
-                    _log.debug("{} mapped to {}", path, pfn);
-                    path = pfn;
-                }
-                Subject subject = authzHandler.getSubject();
-                if (subject != null) {
-                    _log.info("Authorized subject is {}", subject);
-                }
-            }
-
-            String normalized = FilenameUtils.normalize(path);
-            if (normalized == null) {
-                throw new XrootdException(kXR_ArgInvalid, "Invalid path: " + path);
-            }
-            return new File(_configuration.root, normalized);
-        } catch (GeneralSecurityException e) {
-            throw new XrootdException(kXR_NotAuthorized,
-                                      "Authorization check failed: " +
-                                      e.getMessage());
-        } catch (SecurityException e) {
-            throw new XrootdException(kXR_NotAuthorized,
-                                      "Permission denied: " + e.getMessage());
-        } catch (ParseException e) {
-            throw new XrootdException(kXR_NotAuthorized,
-                                      "Invalid opaque data: " + e.getMessage() +
-                                      " (opaque=" + opaque + ")");
+        String normalized = FilenameUtils.normalize(path);
+        if (normalized == null) {
+            throw new XrootdException(kXR_ArgInvalid, "Invalid path: " + path);
         }
+        return new File(_configuration.root, normalized);
     }
 
     private int getFileStatusFlagsOf(File file)

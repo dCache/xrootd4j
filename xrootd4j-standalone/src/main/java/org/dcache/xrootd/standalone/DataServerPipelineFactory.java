@@ -31,6 +31,7 @@ import org.dcache.xrootd.core.XrootdEncoder;
 import org.dcache.xrootd.core.XrootdDecoder;
 import org.dcache.xrootd.core.XrootdHandshakeHandler;
 import org.dcache.xrootd.core.XrootdAuthenticationHandler;
+import org.dcache.xrootd.core.XrootdAuthorizationHandler;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 public class DataServerPipelineFactory implements ChannelPipelineFactory
@@ -62,6 +63,7 @@ public class DataServerPipelineFactory implements ChannelPipelineFactory
         pipeline.addLast("logger", new LoggingHandler(DataServer.class));
         pipeline.addLast("handshaker", new XrootdHandshakeHandler(DATA_SERVER));
         pipeline.addLast("authenticator", new XrootdAuthenticationHandler(_options.authenticationFactory));
+        pipeline.addLast("authorizer", new XrootdAuthorizationHandler(_options.authorizationFactory));
         pipeline.addLast("executor", _executionHandler);
         pipeline.addLast("data-server",
                          new DataServerHandler(_options,

@@ -28,13 +28,11 @@ import javax.security.auth.Subject;
 import org.dcache.xrootd.protocol.XrootdProtocol.FilePerm;
 
 /**
- * The interface to different authorization and path mapping plugins.
- *
- * @author radicke
+ * The interface to authorization and path mapping plugins.
  */
 public interface AuthorizationHandler
 {
-   /**
+    /**
      * Authorization and path mapping hook.
      *
      * Called upon any xrootd door operation.
@@ -43,42 +41,21 @@ public interface AuthorizationHandler
      * requested operation.
      *
      * @param subject the user
-     * @param requestId xrootd requestId of the operation
+     * @param localAddress local socket address of client connection
+     * @param remoteAddress remote socket address of client connection
      * @param path the file which is checked
      * @param opaque the opaque data from the request
+     * @param request xrootd request id of the operation
      * @param mode the requested mode
-     * @param localAddress local socket address of client connection
      * @throws AccessControlException when the requested access is
      * denied
      * @throws GeneralSecurityException when the process of
      * authorizing fails
      */
-    void check(Subject subject,
-               int requestId,
-               String path,
-               Map<String,String> opaque,
-               FilePerm mode,
-               InetSocketAddress localAddress)
+    String authorize(Subject subject,
+                     InetSocketAddress localAddress,
+                     InetSocketAddress remoteAddress,
+                     String path, Map<String,String> opaque,
+                     int request, FilePerm mode)
         throws SecurityException, GeneralSecurityException;
-
-    /**
-     * If authorization plugin provides the LFN-to-PFN-mapping, this
-     * method will return the PFN.
-     *
-     * @return the PFN or null if no mapping is done by the underlying
-     * authorization plugin.
-     */
-    String getPath();
-
-    /**
-     * Returns the authorized subject.
-     *
-     * SHOULD return null if authorized subject is the same as
-     * provided to the check method. If not null then the caller may
-     * have to reapply expensive internal mapping and authorization
-     * rules.
-     *
-     * @return the subject or null if not supported
-     */
-    Subject getSubject();
 }

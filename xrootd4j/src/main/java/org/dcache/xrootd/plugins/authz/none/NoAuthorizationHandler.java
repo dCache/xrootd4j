@@ -29,24 +29,12 @@ import org.dcache.xrootd.plugins.AuthorizationHandler;
 public class NoAuthorizationHandler implements AuthorizationHandler
 {
     @Override
-    public void check(Subject subject,
-                      int requestId,
-                      String pathToOpen,
-                      Map<String,String> opaque,
-                      FilePerm mode,
-                      InetSocketAddress endpoint)
+    public String authorize(Subject subject,
+                            InetSocketAddress local,
+                            InetSocketAddress remote,
+                            String path, Map<String,String> opaque,
+                            int request, FilePerm mode)
     {
-    }
-
-    @Override
-    public String getPath()
-    {
-        return null;
-    }
-
-    @Override
-    public Subject getSubject()
-    {
-        return null;
+        return path;
     }
 }
