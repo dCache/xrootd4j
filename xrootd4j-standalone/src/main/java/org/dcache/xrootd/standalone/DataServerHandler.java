@@ -800,7 +800,7 @@ public class DataServerHandler extends XrootdRequestHandler
         return new FileStatus(0,
                               file.length(),
                               flags,
-                              file.lastModified());
+                              file.lastModified() / 1000);
     }
 
     private void authorizeUser(Subject subject)
