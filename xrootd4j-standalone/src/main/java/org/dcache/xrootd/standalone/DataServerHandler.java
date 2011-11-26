@@ -40,6 +40,7 @@ import org.dcache.xrootd.core.XrootdRequestHandler;
 import org.dcache.xrootd.core.XrootdException;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 import org.dcache.xrootd.protocol.XrootdProtocol.FilePerm;
+import org.dcache.xrootd.protocol.messages.XrootdRequest;
 import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
@@ -206,17 +207,17 @@ public class DataServerHandler extends XrootdRequestHandler
         }
 
         String path = req.getPath();
-        File file = authorize(req.getRequestID(),
+        File file = authorize(req,
                               FilePerm.READ,
                               path,
                               req.getOpaque(),
                               localAddress);
         if (!file.exists()) {
-            return new StatResponse(req.getStreamID(),
+            return new StatResponse(req.getStreamId(),
                                     FileStatus.FILE_NOT_FOUND);
         } else {
             FileStatus fs = getFileStatusOf(file);
-            return new StatResponse(req.getStreamID(), fs);
+            return new StatResponse(req.getStreamId(), fs);
         }
     }
 
@@ -243,7 +244,7 @@ public class DataServerHandler extends XrootdRequestHandler
         String[] opaques = req.getOpaques();
         int[] flags = new int[paths.length];
         for (int i = 0; i < paths.length; i++) {
-            File file = authorize(req.getRequestID(),
+            File file = authorize(req,
                                   FilePerm.READ,
                                   paths[i],
                                   opaques[i],
@@ -255,11 +256,11 @@ public class DataServerHandler extends XrootdRequestHandler
             }
         }
 
-        return new StatxResponse(req.getStreamID(), flags);
+        return new StatxResponse(req.getStreamId(), flags);
     }
 
     @Override
-    protected OKResponse doOnRm(ChannelHandlerContext ctx,
+    protected OkResponse doOnRm(ChannelHandlerContext ctx,
                                 MessageEvent e,
                                 RmRequest req)
         throws XrootdException
@@ -273,7 +274,7 @@ public class DataServerHandler extends XrootdRequestHandler
 
         _log.info("Trying to delete {}", req.getPath());
 
-        File file = authorize(req.getRequestID(),
+        File file = authorize(req,
                               FilePerm.DELETE,
                               req.getPath(),
                               req.getOpaque(),
@@ -288,11 +289,11 @@ public class DataServerHandler extends XrootdRequestHandler
             throw new XrootdException(kXR_IOError,
                                       "Failed to delete file: " + file);
         }
-        return new OKResponse(req.getStreamID());
+        return withOk(req);
     }
 
     @Override
-    protected OKResponse doOnRmDir(ChannelHandlerContext ctx, MessageEvent e,
+    protected OkResponse doOnRmDir(ChannelHandlerContext ctx, MessageEvent e,
                                    RmDirRequest req)
         throws XrootdException
     {
@@ -305,7 +306,7 @@ public class DataServerHandler extends XrootdRequestHandler
 
         _log.info("Trying to delete directory {}", req.getPath());
 
-        File file = authorize(req.getRequestID(),
+        File file = authorize(req,
                               FilePerm.DELETE,
                               req.getPath(),
                               req.getOpaque(),
@@ -320,11 +321,11 @@ public class DataServerHandler extends XrootdRequestHandler
             throw new XrootdException(kXR_IOError,
                                       "Failed to delete dirctory: " + file);
         }
-        return new OKResponse(req.getStreamID());
+        return withOk(req);
     }
 
     @Override
-    protected OKResponse doOnMkDir(ChannelHandlerContext ctx,
+    protected OkResponse doOnMkDir(ChannelHandlerContext ctx,
                                    MessageEvent e,
                                    MkDirRequest req)
         throws XrootdException
@@ -338,7 +339,7 @@ public class DataServerHandler extends XrootdRequestHandler
 
         _log.info("Trying to create directory {}", req.getPath());
 
-        File file = authorize(req.getRequestID(),
+        File file = authorize(req,
                               FilePerm.WRITE,
                               req.getPath(),
                               req.getOpaque(),
@@ -357,11 +358,11 @@ public class DataServerHandler extends XrootdRequestHandler
                                           "Failed to create directory: " + file);
             }
         }
-        return new OKResponse(req.getStreamID());
+        return withOk(req);
     }
 
     @Override
-    protected OKResponse doOnMv(ChannelHandlerContext ctx, MessageEvent e,
+    protected OkResponse doOnMv(ChannelHandlerContext ctx, MessageEvent e,
                                 MvRequest req)
         throws XrootdException
     {
@@ -381,12 +382,12 @@ public class DataServerHandler extends XrootdRequestHandler
 
         _log.info("Trying to rename {} to {}", req.getSourcePath(),
                                                req.getTargetPath());
-        File sourceFile = authorize(req.getRequestID(),
+        File sourceFile = authorize(req,
                                     FilePerm.DELETE,
                                     req.getSourcePath(),
                                     req.getOpaque(),
                                     localAddress);
-        File targetFile = authorize(req.getRequestID(),
+        File targetFile = authorize(req,
                                     FilePerm.WRITE,
                                     req.getTargetPath(),
                                     req.getOpaque(),
@@ -394,7 +395,7 @@ public class DataServerHandler extends XrootdRequestHandler
         if (!sourceFile.renameTo(targetFile)) {
             throw new XrootdException(kXR_IOError, "Failed to move file");
         }
-        return new OKResponse(req.getStreamID());
+        return withOk(req);
     }
 
     @Override
@@ -413,7 +414,7 @@ public class DataServerHandler extends XrootdRequestHandler
             throw new XrootdException(kXR_ArgMissing, "no source path specified");
         }
 
-        File dir = authorize(request.getRequestID(),
+        File dir = authorize(request,
                              FilePerm.READ, listPath,
                              request.getOpaque(),
                              localAddress);
@@ -421,15 +422,15 @@ public class DataServerHandler extends XrootdRequestHandler
         if (list == null) {
             throw new XrootdException(kXR_NotFound, "No such directory: " + dir);
         }
-        return new DirListResponse(request.getStreamID(),
+        return new DirListResponse(request.getStreamId(),
                                    kXR_ok, Arrays.asList(list));
     }
 
     @Override
-    protected OKResponse doOnPrepare(ChannelHandlerContext ctx, MessageEvent e,
+    protected OkResponse doOnPrepare(ChannelHandlerContext ctx, MessageEvent e,
                                      PrepareRequest msg)
     {
-        return new OKResponse(msg.getStreamID());
+        return withOk(msg);
     }
 
     /**
@@ -461,7 +462,7 @@ public class DataServerHandler extends XrootdRequestHandler
         _log.info("Opening {} for {}", msg.getPath(), neededPerm.xmlText());
 
         try {
-            File file = authorize(msg.getRequestID(),
+            File file = authorize(msg,
                                   neededPerm,
                                   msg.getPath(),
                                   msg.getOpaque(),
@@ -497,7 +498,7 @@ public class DataServerHandler extends XrootdRequestHandler
 
                 int fd = addOpenFile(raf);
                 raf = null;
-                return new OpenResponse(msg.getStreamID(),
+                return new OpenResponse(msg.getStreamId(),
                                         fd,
                                         null,
                                         null,
@@ -528,7 +529,7 @@ public class DataServerHandler extends XrootdRequestHandler
         throws XrootdException
     {
         try {
-            int id = msg.getStreamID();
+            int id = msg.getStreamId();
             int fd = msg.getFileHandle();
             long offset = msg.getReadOffset();
             int length = msg.bytesToRead();
@@ -577,7 +578,7 @@ public class DataServerHandler extends XrootdRequestHandler
                                           "Request contains no vector");
             }
 
-            ReadResponse response = new ReadResponse(msg.getStreamID(), 0);
+            ReadResponse response = new ReadResponse(msg.getStreamId(), 0);
 
             for (EmbeddedReadRequest request: requests) {
                 response.writeBytes(request);
@@ -610,7 +611,7 @@ public class DataServerHandler extends XrootdRequestHandler
      * @param msg the actual request
      */
     @Override
-    protected OKResponse doOnWrite(ChannelHandlerContext ctx,
+    protected OkResponse doOnWrite(ChannelHandlerContext ctx,
                                    MessageEvent event,
                                    WriteRequest msg)
         throws XrootdException
@@ -620,7 +621,7 @@ public class DataServerHandler extends XrootdRequestHandler
                 getOpenFile(msg.getFileHandle()).getChannel();
             channel.position(msg.getWriteOffset());
             msg.getData(channel);
-            return new OKResponse(msg.getStreamID());
+            return withOk(msg);
         } catch (IOException e) {
             throw new XrootdException(kXR_IOError, e.getMessage());
         }
@@ -635,14 +636,14 @@ public class DataServerHandler extends XrootdRequestHandler
      * @param msg The actual request
      */
     @Override
-    protected OKResponse doOnSync(ChannelHandlerContext ctx,
+    protected OkResponse doOnSync(ChannelHandlerContext ctx,
                                   MessageEvent event,
                                   SyncRequest msg)
         throws XrootdException
     {
         try {
             getOpenFile(msg.getFileHandle()).getFD().sync();
-            return new OKResponse(msg.getStreamID());
+            return withOk(msg);
         } catch (IOException e) {
             throw new XrootdException(kXR_IOError, e.getMessage());
         }
@@ -657,14 +658,14 @@ public class DataServerHandler extends XrootdRequestHandler
      * @param msg The actual request
      */
     @Override
-    protected OKResponse doOnClose(ChannelHandlerContext ctx,
+    protected OkResponse doOnClose(ChannelHandlerContext ctx,
                                    MessageEvent event,
                                    CloseRequest msg)
         throws XrootdException
     {
         try {
             closeOpenFile(msg.getFileHandle());
-            return new OKResponse(msg.getStreamID());
+            return withOk(msg);
         } catch (IOException e) {
             throw new XrootdException(kXR_IOError, e.getMessage());
         }
@@ -717,7 +718,7 @@ public class DataServerHandler extends XrootdRequestHandler
      *         present in the authZ token, the authZ token is not present or
      *         the format is corrupted.
      */
-    private File authorize(int requestId,
+    private File authorize(XrootdRequest request,
                            FilePerm neededPerm,
                            String path,
                            String opaque,
@@ -737,7 +738,7 @@ public class DataServerHandler extends XrootdRequestHandler
                 Map<String, String> opaqueMap =
                     OpaqueStringParser.getOpaqueMap(opaque);
                 authzHandler.check(_subject,
-                                   requestId,
+                                   request.getRequestId(),
                                    path,
                                    opaqueMap,
                                    neededPerm,

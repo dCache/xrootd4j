@@ -19,76 +19,30 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import java.util.zip.Adler32;
-
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 import org.jboss.netty.buffer.ChannelBuffer;
 
-public class OpenRequest extends AbstractRequestMessage
+public class OpenRequest extends PathRequest
 {
-    private final int mode;
-    private final int options;
-    private final String path;
-    private final String opaque;
-    private final long checksum;
+    private final int _mode;
+    private final int _options;
 
     public OpenRequest(ChannelBuffer buffer)
     {
-        super(buffer);
+        super(buffer, kXR_open);
 
-        if (getRequestID() != kXR_open)
-            throw new IllegalArgumentException("doesn't seem to be a kXR_open message");
-
-        mode = buffer.getUnsignedShort(4);
-        options = buffer.getUnsignedShort(6);
-
-        // look for '?' character, indicating beginning of optional
-        // opaque information (see xrootd-protocol spec.)
-        int dlen = buffer.getInt(20);
-        int end = 24 + dlen;
-
-        int pos = buffer.indexOf(24, end, (byte)0x3f);
-        if (pos > -1) {
-            path = buffer.toString(24,
-                                   pos - 24,
-                                   XROOTD_CHARSET);
-            opaque = buffer.toString(pos + 1,
-                                     end - (pos + 1),
-                                     XROOTD_CHARSET);
-        } else {
-            path = buffer.toString(24,
-                                   end - 24,
-                                   XROOTD_CHARSET);
-            opaque = null;
-        }
-
-        byte[] a = new byte[8 + dlen];
-        buffer.getBytes(4, a, 0, 4); // mode field + options
-        buffer.getBytes(20, a, 4, 4 + dlen); // dlen + data
-
-        Adler32 adler32 = new Adler32();
-        adler32.update(a);
-        checksum = adler32.getValue();
+        _mode = buffer.getUnsignedShort(4);
+        _options = buffer.getUnsignedShort(6);
     }
 
     public int getUMask()
     {
-        return mode;
+        return _mode;
     }
 
     public int getOptions()
     {
-        return options;
-    }
-
-    public String getPath()
-    {
-        return path;
-    }
-
-    public String getOpaque()
-    {
-        return opaque;
+        return _options;
     }
 
     public boolean isAsync() {
@@ -131,21 +85,10 @@ public class OpenRequest extends AbstractRequestMessage
         return (getOptions() & kXR_mkpath) == kXR_mkpath;
     }
 
-    /**
-     * Calculates the Adler32 checksum over the binary content of the
-     * OpenRequest.  The checksum covers the following fields: mode,
-     * options, plen, path (with opaque included) The StreamID is NOT
-     * considered.
-     * @return the Adler32-bit checksum
-     */
-    public long calcChecksum()
-    {
-        return checksum;
-    }
-
     @Override
     public String toString()
     {
-        return String.format("open[%d,%d,%s,%s]", mode, options, path, opaque);
+        return String.format("open[%d,%d,%s,%s]",
+                             getUMask(), getOptions(), getPath(), getOpaque());
     }
 }

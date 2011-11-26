@@ -21,7 +21,7 @@ package org.dcache.xrootd.protocol.messages;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
-public class UnknownRequest extends AbstractRequestMessage
+public class UnknownRequest extends XrootdRequest
 {
     public UnknownRequest(ChannelBuffer buffer)
     {
@@ -31,6 +31,6 @@ public class UnknownRequest extends AbstractRequestMessage
     @Override
     public String toString()
     {
-        return String.format("unknown[%d,%d]", streamId, requestId);
+        return String.format("unknown[%d,%d]", getStreamId(), getRequestId());
     }
 }

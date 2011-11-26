@@ -23,18 +23,14 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mv;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
-public class MvRequest extends AbstractRequestMessage
+public class MvRequest extends XrootdRequest
 {
-    private final String sourcePath;
-    private final String targetPath;
-    private final String opaque;
+    private String _sourcePath;
+    private String _targetPath;
+    private String _opaque;
 
     public MvRequest(ChannelBuffer buffer) {
-        super(buffer);
-
-        if (getRequestID() != kXR_mv) {
-            throw new IllegalArgumentException("doesn't seem to be a kXR_mv message");
-        }
+        super(buffer, kXR_mv);
 
         int dlen = buffer.getInt(20);
         int end = 24 + dlen;
@@ -47,35 +43,53 @@ public class MvRequest extends AbstractRequestMessage
         }
 
         if (osep > -1) {
-            sourcePath = buffer.toString(24,
-                                         psep - 24,
-                                         XROOTD_CHARSET);
-            targetPath = buffer.toString(psep+1,
-                                         osep - (psep + 1),
-                                         XROOTD_CHARSET);
-            opaque = buffer.toString(osep + 1,
-                                     end - (osep + 1),
-                                     XROOTD_CHARSET);
+            _sourcePath = buffer.toString(24,
+                                          psep - 24,
+                                          XROOTD_CHARSET);
+            _targetPath = buffer.toString(psep+1,
+                                          osep - (psep + 1),
+                                          XROOTD_CHARSET);
+            _opaque = buffer.toString(osep + 1,
+                                      end - (osep + 1),
+                                      XROOTD_CHARSET);
         } else {
-            sourcePath = buffer.toString(24,
-                                         psep - 24,
-                                         XROOTD_CHARSET);
-            targetPath = buffer.toString(psep+1,
-                                         end - (psep + 1),
-                                         XROOTD_CHARSET);
-            opaque = null;
+            _sourcePath = buffer.toString(24,
+                                          psep - 24,
+                                          XROOTD_CHARSET);
+            _targetPath = buffer.toString(psep+1,
+                                          end - (psep + 1),
+                                          XROOTD_CHARSET);
+            _opaque = null;
         }
     }
 
-    public String getOpaque() {
-        return opaque;
+    public void setOpaque(String opaque)
+    {
+        _opaque = opaque;
     }
 
-    public String getSourcePath() {
-        return sourcePath;
+    public String getOpaque()
+    {
+        return _opaque;
     }
 
-    public String getTargetPath() {
-        return targetPath;
+    public void setSourcePath(String sourcePath)
+    {
+        _sourcePath = sourcePath;
+    }
+
+    public String getSourcePath()
+    {
+        return _sourcePath;
+    }
+
+    public void setTargetPath(String targetPath)
+    {
+        _targetPath = targetPath;
+    }
+
+    public String getTargetPath()
+    {
+        return _targetPath;
     }
 }

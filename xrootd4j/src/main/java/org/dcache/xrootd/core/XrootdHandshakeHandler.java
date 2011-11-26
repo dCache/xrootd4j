@@ -24,14 +24,13 @@ import java.util.Arrays;
 
 import static org.jboss.netty.channel.Channels.*;
 import static org.jboss.netty.buffer.ChannelBuffers.*;
-import org.jboss.netty.channel.SimpleChannelHandler;
+import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
 
-import org.dcache.xrootd.protocol.messages.AbstractRequestMessage;
+import org.dcache.xrootd.protocol.messages.XrootdRequest;
 import org.dcache.xrootd.protocol.messages.HandshakeRequest;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import org.jboss.netty.channel.ChannelHandler.Sharable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,8 +41,7 @@ import org.slf4j.LoggerFactory;
  * are passed on. Failure to handshake causes the channel to be
  * closed.
  */
-@Sharable
-public class XrootdHandshakeHandler extends SimpleChannelHandler
+public class XrootdHandshakeHandler extends SimpleChannelUpstreamHandler
 {
     private final static Logger _log =
         LoggerFactory.getLogger(XrootdHandshakeHandler.class);
@@ -61,7 +59,7 @@ public class XrootdHandshakeHandler extends SimpleChannelHandler
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e)
         throws Exception
     {
-        AbstractRequestMessage msg = (AbstractRequestMessage) e.getMessage();
+        XrootdRequest msg = (XrootdRequest) e.getMessage();
 
         if (!_isHandshaked) {
             if (!(msg instanceof HandshakeRequest)) {

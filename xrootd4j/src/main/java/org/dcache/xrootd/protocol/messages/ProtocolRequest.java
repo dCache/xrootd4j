@@ -19,18 +19,13 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import org.dcache.xrootd.protocol.XrootdProtocol;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
 import org.jboss.netty.buffer.ChannelBuffer;
 
-public class ProtocolRequest extends AbstractRequestMessage
+public class ProtocolRequest extends XrootdRequest
 {
     public ProtocolRequest(ChannelBuffer buffer)
     {
-        super(buffer);
-
-        if (getRequestID() != XrootdProtocol.kXR_protocol) {
-            throw new IllegalArgumentException("doesn't seem to be a kXR_protocol message");
-        }
+        super(buffer, kXR_protocol);
     }
-
 }

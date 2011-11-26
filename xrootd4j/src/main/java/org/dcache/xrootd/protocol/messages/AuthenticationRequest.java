@@ -31,7 +31,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AuthenticationRequest extends AbstractRequestMessage
+public class AuthenticationRequest extends XrootdRequest
 {
     private final static Logger _logger =
         LoggerFactory.getLogger(AuthenticationRequest.class);
@@ -55,11 +55,7 @@ public class AuthenticationRequest extends AbstractRequestMessage
      */
     public AuthenticationRequest(ChannelBuffer buffer)
     {
-        super(buffer);
-
-        if (getRequestID() != kXR_auth) {
-            throw new IllegalArgumentException("doesn't seem to be a kXR_auth message");
-        }
+        super(buffer, kXR_auth);
 
         /* skip reserved bytes and credlen */
         buffer.readerIndex(24);

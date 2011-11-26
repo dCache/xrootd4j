@@ -19,53 +19,56 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_read;
+import java.nio.charset.Charset;
+import javax.security.auth.Subject;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 
-public class ReadRequest extends GenericReadRequestMessage
+import static com.google.common.base.Preconditions.checkState;
+
+public abstract class XrootdRequest
 {
-    private final int fhandle;
-    private final long offset;
-    private final int rlen;
+    protected final static Charset XROOTD_CHARSET = Charset.forName("ASCII");
 
-    public ReadRequest(ChannelBuffer buffer)
+    protected final int _streamId;
+    protected final int _requestId;
+    protected Subject _subject;
+
+    public XrootdRequest()
     {
-        super(buffer, kXR_read);
-
-        fhandle = buffer.getInt(4);
-        offset = buffer.getLong(8);
-        rlen = buffer.getInt(16);
+        _streamId = 0;
+        _requestId = 0;
     }
 
-    public int getFileHandle()
+    public XrootdRequest(ChannelBuffer buffer, int requestId)
     {
-        return fhandle;
+        this(buffer);
+        checkState(_requestId == requestId);
     }
 
-    public long getReadOffset()
+    public XrootdRequest(ChannelBuffer buffer)
     {
-        return offset;
+        _streamId = buffer.getUnsignedShort(0);
+        _requestId = buffer.getUnsignedShort(2);
     }
 
-    public int bytesToRead()
+    public int getStreamId()
     {
-        return rlen;
+        return _streamId;
     }
 
-    public int NumberOfPreReads()
+    public int getRequestId()
     {
-        return getSizeOfList();
+        return _requestId;
     }
 
-    public EmbeddedReadRequest[] getPreReadRequestList()
+    public void setSubject(Subject subject)
     {
-        return getReadRequestList();
+        _subject = subject;
     }
 
-    @Override
-    public String toString()
+    public Subject getSubject()
     {
-        return String.format("read[handle=%d,offset=%d,length=%d]",
-                             fhandle, offset, rlen);
+        return _subject;
     }
 }

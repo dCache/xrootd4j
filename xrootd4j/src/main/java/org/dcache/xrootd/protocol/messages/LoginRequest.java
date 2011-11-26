@@ -19,72 +19,64 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import org.dcache.xrootd.protocol.XrootdProtocol;
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 import org.jboss.netty.buffer.ChannelBuffer;
 
-public class LoginRequest extends AbstractRequestMessage
+public class LoginRequest extends XrootdRequest
 {
-    private final String username;
-    private final short role;
-    private final short capver;
-    private final int pid;
-    private final String token;
+    private final String _username;
+    private final short _role;
+    private final short _capver;
+    private final int _pid;
+    private final String _token;
 
     public LoginRequest(ChannelBuffer buffer)
     {
-        super(buffer);
-
-        if (getRequestID() != XrootdProtocol.kXR_login)
-            throw new IllegalArgumentException("doesn't seem to be a kXR_login message");
+        super(buffer, kXR_login);
 
         int pos =
-            buffer.indexOf(8, 16, (byte)0); // User name is padded with '\0'
+            buffer.indexOf(8, 16, (byte) 0); // User name is padded with '\0'
         if (pos > -1) {
-            username = buffer.toString(8,
-                                       pos - 8,
-                                       XROOTD_CHARSET);
+            _username = buffer.toString(8, pos - 8, XROOTD_CHARSET);
         } else {
-            username = buffer.toString(8,
-                                       8,
-                                       XROOTD_CHARSET);
+            _username = buffer.toString(8, 8, XROOTD_CHARSET);
         }
 
-        pid = buffer.getInt(4);
-        capver = buffer.getUnsignedByte(18);
-        role = buffer.getUnsignedByte(19);
+        _pid = buffer.getInt(4);
+        _capver = buffer.getUnsignedByte(18);
+        _role = buffer.getUnsignedByte(19);
 
         int tlen = buffer.getInt(20);
-        token = buffer.toString(24, tlen, XROOTD_CHARSET);
+        _token = buffer.toString(24, tlen, XROOTD_CHARSET);
     }
 
     public String getUserName()
     {
-        return username;
+        return _username;
     }
 
     public boolean supportsAsyn()
     {
-        return (capver & 0x80) == 0x80 ? true : false;
+        return (_capver & 0x80) == 0x80 ? true : false;
     }
 
     public int getClientProtocolVersion()
     {
-        return capver & 0x3f;
+        return _capver & 0x3f;
     }
 
     public boolean isAdmin()
     {
-        return role == XrootdProtocol.kXR_useradmin ? true : false;
+        return _role == kXR_useradmin ? true : false;
     }
 
     public int getPID()
     {
-        return pid;
+        return _pid;
     }
 
     public String getToken()
     {
-        return token;
+        return _token;
     }
-
 }

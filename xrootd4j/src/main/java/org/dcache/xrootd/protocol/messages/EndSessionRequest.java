@@ -19,12 +19,13 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_endsess;
 import org.jboss.netty.buffer.ChannelBuffer;
 
-public class EndSessionRequest extends AbstractRequestMessage
+public class EndSessionRequest extends XrootdRequest
 {
     public EndSessionRequest(ChannelBuffer buffer)
     {
-        super(buffer);
+        super(buffer, kXR_endsess);
     }
 }

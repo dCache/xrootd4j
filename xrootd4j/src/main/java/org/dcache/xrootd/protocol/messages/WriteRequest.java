@@ -22,52 +22,48 @@ package org.dcache.xrootd.protocol.messages;
 import java.io.IOException;
 import java.nio.channels.GatheringByteChannel;
 
-import org.dcache.xrootd.protocol.XrootdProtocol;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_write;
 import org.jboss.netty.buffer.ChannelBuffer;
 
-public class WriteRequest extends AbstractRequestMessage
+public class WriteRequest extends XrootdRequest
 {
-    private final int fhandle;
-    private final long offset;
-    private final int dlen;
-    private final ChannelBuffer buffer;
+    private final int _fhandle;
+    private final long _offset;
+    private final int _dlen;
+    private final ChannelBuffer _buffer;
 
     public WriteRequest(ChannelBuffer buffer)
     {
-        super(buffer);
+        super(buffer, kXR_write);
 
-        if (getRequestID() != XrootdProtocol.kXR_write)
-            throw new IllegalArgumentException("doesn't seem to be a kXR_write message");
-
-        fhandle = buffer.getInt(4);
-        offset = buffer.getLong(8);
-        dlen = buffer.getInt(20);
-
-        this.buffer = buffer;
+        _fhandle = buffer.getInt(4);
+        _offset = buffer.getLong(8);
+        _dlen = buffer.getInt(20);
+        _buffer = buffer;
     }
 
     public int getFileHandle()
     {
-        return fhandle;
+        return _fhandle;
     }
 
     public long getWriteOffset()
     {
-        return offset;
+        return _offset;
     }
 
     public int getDataLength()
     {
-        return dlen;
+        return _dlen;
     }
 
     public void getData(GatheringByteChannel out)
         throws IOException
     {
         int index = 24;
-        int len = dlen;
+        int len = _dlen;
         while (len > 0) {
-            int written = buffer.getBytes(index, out, len);
+            int written = _buffer.getBytes(index, out, len);
             index += written;
             len -= written;
         }
@@ -76,6 +72,7 @@ public class WriteRequest extends AbstractRequestMessage
     @Override
     public String toString()
     {
-        return String.format("write[handle=%d,offset=%d,length=%d]", fhandle, offset, dlen);
+        return String.format("write[handle=%d,offset=%d,length=%d]",
+                             _fhandle, _offset, _dlen);
     }
 }

@@ -45,7 +45,7 @@ import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.AuthenticationResponse;
 import org.dcache.xrootd.protocol.messages.ErrorResponse;
-import org.dcache.xrootd.protocol.messages.OKResponse;
+import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
 import org.dcache.xrootd.security.RawBucket;
 import org.dcache.xrootd.security.XrootdBucket;
@@ -191,7 +191,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
 
         switch(request.getStep()) {
         case kXGC_none:
-            return new OKResponse(request.getStreamID());
+            return new OkResponse(request.getStreamId());
         case kXGC_certreq:
             return handleCertReqStep(request);
         case kXGC_cert:
@@ -258,7 +258,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                                                  SUPPORTED_DIGESTS,
                                                  hostCertificateString);
 
-            return new AuthenticationResponse(request.getStreamID(),
+            return new AuthenticationResponse(request.getStreamId(),
                                               XrootdProtocol.kXR_authmore,
                                               responseBuckets.getSize(),
                                               PROTOCOL,
@@ -301,7 +301,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
      * installed on the server.
      *
      * @param request AuthenticationRequest received by the client
-     * @return OKResponse (verification is okay)
+     * @return OkResponse (verification is okay)
      */
     private AbstractResponseMessage
         handleCertStep(AuthenticationRequest request)
@@ -390,7 +390,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
 
             _finished = true;
 
-            return new OKResponse(request.getStreamID());
+            return new OkResponse(request.getStreamId());
         } catch (InvalidKeyException ikex) {
             _logger.error("The key negotiated by DH key exchange appears to " +
                           "be invalid: {}", ikex);

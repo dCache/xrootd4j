@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.jboss.netty.buffer.ChannelBuffer;
 
-public abstract class GenericReadRequestMessage extends AbstractRequestMessage
+public abstract class GenericReadRequestMessage extends XrootdRequest
 {
     public static class EmbeddedReadRequest
     {
@@ -66,9 +66,9 @@ public abstract class GenericReadRequestMessage extends AbstractRequestMessage
     private final int pathid;
     private final EmbeddedReadRequest[] readList;
 
-    public GenericReadRequestMessage(ChannelBuffer buffer)
+    public GenericReadRequestMessage(ChannelBuffer buffer, int requestId)
     {
-        super(buffer);
+        super(buffer, requestId);
 
         int alen = buffer.getInt(20);
 
