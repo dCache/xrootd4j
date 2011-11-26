@@ -151,26 +151,25 @@ public class DataServerHandler extends XrootdRequestHandler
                 _authenticationHandler = _configuration.authenticationFactory.createHandler();
             }
 
-            Subject subject = _authenticationHandler.getSubject();
             LoginResponse response =
                 new LoginResponse(msg.getStreamID(),
                                   _sessionBytes,
                                   _authenticationHandler.getProtocol());
-             if (_authenticationHandler.isAuthenticationCompleted()) {
-                 authorizeUser(subject);
-             }
-             return response;
-        } catch (InvalidHandlerConfigurationException ihce) {
-            _log.error("Could not instantiate authN handler: {}", ihce);
+            if (_authenticationHandler.isCompleted()) {
+                authorizeUser(_authenticationHandler.getSubject());
+            }
+            return response;
+        } catch (InvalidHandlerConfigurationException e) {
+            _log.error("Could not instantiate authN handler: {}", e);
             throw new XrootdException(kXR_ServerError, "Internal server error");
         }
-
     }
 
     @Override
-    protected AbstractResponseMessage doOnAuthentication(ChannelHandlerContext context,
-                                                         MessageEvent event,
-                                                         AuthenticationRequest msg)
+    protected AbstractResponseMessage
+        doOnAuthentication(ChannelHandlerContext context,
+                           MessageEvent event,
+                           AuthenticationRequest msg)
         throws XrootdException
     {
         try {
@@ -180,12 +179,12 @@ public class DataServerHandler extends XrootdRequestHandler
 
             AbstractResponseMessage response =
                 _authenticationHandler.authenticate(msg);
-            if (_authenticationHandler.isAuthenticationCompleted()) {
+            if (_authenticationHandler.isCompleted()) {
                 authorizeUser(_authenticationHandler.getSubject());
             }
             return response;
-        } catch (InvalidHandlerConfigurationException ihce) {
-            _log.error("Could not instantiate authN handler: {}", ihce);
+        } catch (InvalidHandlerConfigurationException e) {
+            _log.error("Could not instantiate authN handler: {}", e);
             throw new XrootdException(kXR_ServerError, "Internal server error");
         }
     }
@@ -735,23 +734,23 @@ public class DataServerHandler extends XrootdRequestHandler
                 _configuration.authorizationFactory.createHandler();
 
             if (authzHandler != null) {
-                // all information neccessary for checking authorization
-                // is found in opaque
                 Map<String, String> opaqueMap =
                     OpaqueStringParser.getOpaqueMap(opaque);
-                authzHandler.check(requestId,
+                authzHandler.check(_subject,
+                                   requestId,
                                    path,
                                    opaqueMap,
                                    neededPerm,
                                    localAddress);
 
-                // In case of enabled authorization, the path in the open
-                // request can refer to the lfn.  In this case the real
-                // path is delivered by the authz plugin
-                if (authzHandler.providesPFN()) {
-                    _log.info("access granted for LFN={} PFN={}",
-                              path, authzHandler.getPFN());
-                    path = authzHandler.getPFN();
+                String pfn = authzHandler.getPath();
+                if (pfn != null) {
+                    _log.debug("{} mapped to {}", path, pfn);
+                    path = pfn;
+                }
+                Subject subject = authzHandler.getSubject();
+                if (subject != null) {
+                    _log.info("Authorized subject is {}", subject);
                 }
             }
 
@@ -806,7 +805,11 @@ public class DataServerHandler extends XrootdRequestHandler
 
     private void authorizeUser(Subject subject)
     {
-        _subject = subject;
+        if (subject == null) {
+            _subject = new Subject();
+        } else {
+            _subject = subject;
+        }
         _hasLoggedIn = true;
     }
 }

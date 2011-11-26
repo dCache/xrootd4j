@@ -39,6 +39,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
 
+import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
@@ -167,8 +168,9 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
      * @see #handleCertStep
      */
     @Override
-    public AbstractResponseMessage authenticate(AuthenticationRequest request) {
-
+    public AbstractResponseMessage authenticate(AuthenticationRequest request)
+        throws XrootdException
+    {
         try {
             if (_dhSession == null) {
                 _dhSession = new DHSession();
@@ -176,17 +178,15 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
         } catch (GeneralSecurityException gssex) {
             _logger.error("Error setting up cryptographic classes: {}",
                           gssex);
-            return new ErrorResponse(request.getStreamID(),
-                                     kXR_ServerError,
-                                     "Server probably misconfigured.");
+            throw new XrootdException(kXR_ServerError,
+                                      "Server probably misconfigured.");
         }
 
         /* check whether the protocol matches */
         if (!PROTOCOL.equalsIgnoreCase(request.getProtocol())) {
-            return new ErrorResponse(request.getStreamID(),
-                                     kXR_InvalidRequest,
-                                     "Specified Protocol " + request.getProtocol() +
-                                     " is not the protocol that was negotiated.");
+            throw new XrootdException(kXR_InvalidRequest,
+                                      "Specified Protocol " + request.getProtocol() +
+                                      " is not the protocol that was negotiated.");
         }
 
         switch(request.getStep()) {
@@ -197,11 +197,10 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
         case kXGC_cert:
             return handleCertStep(request);
         default:
-            return new ErrorResponse(request.getStreamID(),
-                                     kXR_InvalidRequest,
-                                     "Error during authentication, " +
-                                     "unknown processing step: "
-                                     + request.getStep());
+            throw new XrootdException(kXR_InvalidRequest,
+                                      "Error during authentication, " +
+                                      "unknown processing step: "
+                                      + request.getStep());
         }
     }
 
@@ -219,13 +218,12 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
      * digests.
      *
      * @param request The received authentication request
-     * @return AuthenticationResponse with kXR_authmore or ErrorResponse if
-     *         something failed
+     * @return AuthenticationResponse with kXR_authmore
      */
-    private AbstractResponseMessage handleCertReqStep(AuthenticationRequest request) {
-
-        AbstractResponseMessage response;
-
+    private AbstractResponseMessage
+        handleCertReqStep(AuthenticationRequest request)
+        throws XrootdException
+    {
         try {
             _challengeCipher = Cipher.getInstance(SERVER_ASYNC_CIPHER_MODE,
                                                   "BC");
@@ -260,43 +258,31 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                                                  SUPPORTED_DIGESTS,
                                                  hostCertificateString);
 
-            response =  new AuthenticationResponse(request.getStreamID(),
-                                                   XrootdProtocol.kXR_authmore,
-                                                   responseBuckets.getSize(),
-                                                   PROTOCOL,
-                                                   kXGS_cert,
-                                                   responseBuckets.getBuckets());
+            return new AuthenticationResponse(request.getStreamID(),
+                                              XrootdProtocol.kXR_authmore,
+                                              responseBuckets.getSize(),
+                                              PROTOCOL,
+                                              kXGS_cert,
+                                              responseBuckets.getBuckets());
         } catch (InvalidKeyException ikex) {
             _logger.error("Configured host-key could not be used for" +
                           "signing rtag: {}", ikex);
-            response = new ErrorResponse(request.getStreamID(),
-                                         kXR_ServerError,
-                                         "Internal error occured when trying " +
-                                         "to sign client authentication tag.");
+            throw new XrootdException(kXR_ServerError,
+                                      "Internal error occured when trying " +
+                                      "to sign client authentication tag.");
         } catch (CertificateEncodingException cee) {
             _logger.error("Could not extract contents of server certificate:" +
                           " {}", cee);
-            response = new ErrorResponse(request.getStreamID(),
-                                         kXR_ServerError,
-                                         "Internal error occured when trying " +
-                                         "to send server certificate.");
+            throw new XrootdException(kXR_ServerError,
+                                      "Internal error occured when trying " +
+                                      "to send server certificate.");
         } catch (GeneralSecurityException gssex) {
             _logger.error("Problems during signing of client authN tag " +
                           "(algorithm {}): {}", SERVER_ASYNC_CIPHER_MODE, gssex);
-            response = new ErrorResponse(request.getStreamID(),
-                                         kXR_ServerError,
-                                         "Internal error occured when trying " +
-                                         "to sign client authentication tag.");
-        }  catch (RuntimeException rtex) {
-            _logger.error("Processing of kXRC_certreq failed due to a bug: {}",
-                          rtex);
-            response = new ErrorResponse(request.getStreamID(),
-                                         kXR_ServerError,
-                                         "An error occured while processing " +
-                                         "the cert request.");
+            throw new XrootdException(kXR_ServerError,
+                                      "Internal error occured when trying " +
+                                      "to sign client authentication tag.");
         }
-
-        return response;
     }
 
     /**
@@ -315,13 +301,12 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
      * installed on the server.
      *
      * @param request AuthenticationRequest received by the client
-     * @return OKResponse (verification is okay) or ErrorResponse if something
-     *         went wrong
+     * @return OKResponse (verification is okay)
      */
-    private AbstractResponseMessage handleCertStep(AuthenticationRequest request) {
-
-        AbstractResponseMessage response;
-
+    private AbstractResponseMessage
+        handleCertStep(AuthenticationRequest request)
+        throws XrootdException
+    {
         try {
             Map<BucketType, XrootdBucket> receivedBuckets = request.getBuckets();
 
@@ -392,68 +377,49 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
             String rTagString = new String(rTag, "ASCII");
 
             // check that the challenge sent in the previous step matches
-            if (_challenge.equals(rTagString)) {
-               _logger.debug("signature of challenge tag ok. Challenge: " +
-                             "{}, rTagString: {}", _challenge, rTagString);
-
-               _finished = true;
-
-               response = new OKResponse(request.getStreamID());
-            } else {
+            if (!_challenge.equals(rTagString)) {
                _logger.error("The challenge is {}, the serialized rTag is {}." +
                              "signature of challenge tag has been proven wrong!!",
                              _challenge, rTagString);
-               response = new ErrorResponse(request.getStreamID(),
-                                            kXR_InvalidRequest,
-                                            "Client did not present correct" +
-                                            "challenge response!");
+               throw new XrootdException(kXR_InvalidRequest,
+                                         "Client did not present correct" +
+                                         "challenge response!");
             }
+            _logger.debug("signature of challenge tag ok. Challenge: " +
+                          "{}, rTagString: {}", _challenge, rTagString);
 
+            _finished = true;
 
-
+            return new OKResponse(request.getStreamID());
         } catch (InvalidKeyException ikex) {
             _logger.error("The key negotiated by DH key exchange appears to " +
                           "be invalid: {}", ikex);
-            response = new ErrorResponse(request.getStreamID(),
-                                         kXR_InvalidRequest,
-                                         "Could not decrypt client" +
-                                         "information with negotiated key.");
+            throw new XrootdException(kXR_InvalidRequest,
+                                      "Could not decrypt client" +
+                                      "information with negotiated key.");
         } catch (InvalidKeySpecException iksex) {
             _logger.error("DH key negotiation caused problems{}", iksex);
-            response = new ErrorResponse(request.getStreamID(),
-                                         kXR_InvalidRequest,
-                                         "Could not find key negotiation " +
-                                         "parameters.");
+            throw new XrootdException(kXR_InvalidRequest,
+                                      "Could not find key negotiation " +
+                                      "parameters.");
         } catch (IOException ioex) {
             _logger.error("Could not deserialize main nested buffer {}", ioex);
-            response = new ErrorResponse(request.getStreamID(),
-                                         kXR_IOError,
-                                         "Could not decrypt encrypted " +
-                                         "client message.");
+            throw new XrootdException(kXR_IOError,
+                                      "Could not decrypt encrypted " +
+                                      "client message.");
         } catch (ProxyPathValidatorException ppvex) {
             _logger.error("Could not validate certificate path of client " +
                           "certificate: {}", ppvex);
-            response = new ErrorResponse(request.getStreamID(),
-                                         kXR_NotAuthorized,
-                                         "Your certificate's issuer is " +
-                                         "not trusted.");
+            throw new XrootdException(kXR_NotAuthorized,
+                                      "Your certificate's issuer is " +
+                                      "not trusted.");
         } catch (GeneralSecurityException gssex) {
             _logger.error("Error during decrypting/server-side key exchange: {}",
                           gssex);
-            response = new ErrorResponse(request.getStreamID(),
-                                         kXR_ServerError,
-                                         "Error in server-side cryptographic " +
-                                         "operations.");
-        } catch (RuntimeException rtex) {
-            _logger.error("Processing of kXRC_cert failed due to a bug: {}",
-                          rtex);
-            response = new ErrorResponse(request.getStreamID(),
-                                         kXR_ServerError,
-                                         "An error occured while processing " +
-                                         "the cert request.");
+            throw new XrootdException(kXR_ServerError,
+                                      "Error in server-side cryptographic " +
+                                      "operations.");
         }
-
-        return response;
     }
 
     /**
@@ -479,7 +445,8 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                                                        byte [] puk,
                                                        String supportedCiphers,
                                                        String supportedDigests,
-                                                       String hostCertificate) {
+                                                       String hostCertificate)
+    {
         int responseLength = 0;
         List<XrootdBucket> responseList = new ArrayList<XrootdBucket>();
 
@@ -577,12 +544,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
     }
 
     @Override
-    public boolean isAuthenticationCompleted() {
+    public boolean isCompleted() {
         return _finished;
-    }
-
-    @Override
-    public boolean isStrongAuthentication() {
-        return true;
     }
 }

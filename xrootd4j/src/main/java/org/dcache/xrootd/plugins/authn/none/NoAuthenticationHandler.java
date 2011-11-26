@@ -27,14 +27,13 @@ import org.dcache.xrootd.protocol.messages.OKResponse;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
 
 /**
- * Dummy authentication handler that accepts all authentication requests in
- * authenticate
+ * Dummy authentication handler that accepts all authentication
+ * requests in authenticate.
  *
  * @author tzangerl
- *
  */
-public class NoAuthenticationHandler implements AuthenticationHandler {
-
+public class NoAuthenticationHandler implements AuthenticationHandler
+{
     @Override
     public AbstractResponseMessage authenticate(AuthenticationRequest request) {
         return new OKResponse(request.getStreamID());
@@ -45,22 +44,13 @@ public class NoAuthenticationHandler implements AuthenticationHandler {
         return "";
     }
 
-    /**
-     * start with empty subject for noauthentication handler
-     */
     @Override
     public Subject getSubject() {
-        return new Subject();
+        return null;
     }
 
     @Override
-    public boolean isAuthenticationCompleted() {
+    public boolean isCompleted() {
         return true;
     }
-
-    @Override
-    public boolean isStrongAuthentication() {
-        return false;
-    }
-
 }
