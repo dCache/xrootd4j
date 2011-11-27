@@ -27,13 +27,10 @@ import org.dcache.xrootd.protocol.XrootdProtocol.FilePerm;
 import org.dcache.xrootd.protocol.messages.*;
 import org.dcache.xrootd.plugins.AuthorizationFactory;
 import org.dcache.xrootd.plugins.AuthorizationHandler;
-import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
-import org.dcache.xrootd.util.FileStatus;
 import org.dcache.xrootd.util.OpaqueStringParser;
 import org.dcache.xrootd.util.ParseException;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.ChannelHandler.Sharable;
 
@@ -220,6 +217,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
         return null;
     }
 
+    @Override
     protected AbstractResponseMessage doOnReadV(ChannelHandlerContext ctx,
                                                 MessageEvent event,
                                                 ReadVRequest msg)
@@ -229,6 +227,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
         return null;
     }
 
+    @Override
     protected AbstractResponseMessage doOnWrite(ChannelHandlerContext ctx,
                                                 MessageEvent event,
                                                 WriteRequest msg)
@@ -238,6 +237,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
         return null;
     }
 
+    @Override
     protected AbstractResponseMessage doOnSync(ChannelHandlerContext ctx,
                                                MessageEvent event,
                                                SyncRequest msg)
@@ -247,6 +247,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
         return null;
     }
 
+    @Override
     protected AbstractResponseMessage doOnClose(ChannelHandlerContext ctx,
                                                 MessageEvent event,
                                                 CloseRequest msg)
@@ -256,6 +257,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
         return null;
     }
 
+    @Override
     protected AbstractResponseMessage doOnProtocolRequest(ChannelHandlerContext ctx,
                                                           MessageEvent event,
                                                           ProtocolRequest msg)

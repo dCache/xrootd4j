@@ -19,13 +19,9 @@
  */
 package org.dcache.xrootd.core;
 
-import javax.security.auth.Subject;
-
-import org.jboss.netty.channel.ChannelEvent;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.handler.timeout.IdleStateAwareChannelHandler;
 
 import org.dcache.xrootd.protocol.messages.*;

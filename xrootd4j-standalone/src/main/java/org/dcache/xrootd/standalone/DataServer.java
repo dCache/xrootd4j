@@ -22,7 +22,6 @@ package org.dcache.xrootd.standalone;
 import java.net.InetSocketAddress;
 import java.util.NoSuchElementException;
 import java.util.concurrent.Executors;
-import java.io.IOException;
 
 import joptsimple.OptionSet;
 import joptsimple.OptionException;

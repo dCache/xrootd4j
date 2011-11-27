@@ -19,8 +19,6 @@
  */
 package org.dcache.xrootd.plugins;
 
-import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
-
 public interface AuthenticationFactory
 {
     public AuthenticationHandler createHandler()
