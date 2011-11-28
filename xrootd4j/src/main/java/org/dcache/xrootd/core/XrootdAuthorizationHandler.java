@@ -280,19 +280,15 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     /**
-     * Check if the permissions on the path sent along with the
-     * request message satisfy the required permission level.
+     * Performs authorization check and path mapping.
      *
+     * @param event The Netty MessageEvent for this request
+     * @param request The xrootd message
      * @param neededPerm The permission level that is required for the operation
-     * @param req The actual request, containing path and authZ token
-     * @param localAddress The local address, needed for token endpoint
-     *        verification
-     * @return The path referring to the LFN in the request, if the request
-     *         contained a LFN. The path from the request, if the request
-     *         contained an absolute path.
-     * @throws PermissionDeniedCacheException The needed permissions are not
-     *         present in the authZ token, the authZ token is not present or
-     *         the format is corrupted.
+     * @param path The path to which access is requested
+     * @param opaque Opaque data sent with the request
+     * @return The path to which access is granted.
+     * @throws XrootdException if the request is denied
      */
     private String authorize(MessageEvent event,
                              XrootdRequest request,
