@@ -67,7 +67,7 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
     private static final ImmutableSet<Integer> WITHOUT_AUTH =
         ImmutableSet.of(kXR_auth, kXR_bind, kXR_login, kXR_ping, kXR_protocol);
 
-    private static final int SESSION_ID_BYTES = 16;
+    private static final int SESSION_ID_SIZE = 16;
     private static final SecureRandom _random = new SecureRandom();
 
     private final AuthenticationFactory _authenticationFactory;
@@ -77,7 +77,7 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
     private State _state = State.NO_LOGIN;
 
     private Subject _subject;
-    private final byte[] _session = new byte[SESSION_ID_BYTES];
+    private final byte[] _session = new byte[SESSION_ID_SIZE];
 
     public XrootdAuthenticationHandler(AuthenticationFactory authenticationFactory)
     {
@@ -137,9 +137,9 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
         }
     }
 
-    protected void doOnLogin(ChannelHandlerContext context,
-                             MessageEvent event,
-                             LoginRequest request)
+    private void doOnLogin(ChannelHandlerContext context,
+                           MessageEvent event,
+                           LoginRequest request)
         throws XrootdException
     {
         try {
@@ -169,9 +169,9 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
         }
     }
 
-    protected void doOnAuthentication(ChannelHandlerContext context,
-                                      MessageEvent event,
-                                      AuthenticationRequest request)
+    private void doOnAuthentication(ChannelHandlerContext context,
+                                    MessageEvent event,
+                                    AuthenticationRequest request)
         throws XrootdException
     {
         AbstractResponseMessage response =
@@ -186,21 +186,26 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
         event.getChannel().write(response);
     }
 
+    private void authenticated(ChannelHandlerContext context, Subject subject)
+        throws XrootdException
+    {
+        _subject = login(context, subject);
+        _state = State.AUTH;
+        _authenticationHandler = null;
+    }
+
     /**
-     * Signals the end of authentication.
-     *
      * Called at the end of successful login/authentication.
      *
      * Subclasses may override this method to add additional
-     * processing. If the subclass throws XrootdException then the
-     * login is aborted. Otherwise subclasses must call the superclass
-     * version of this method.
+     * processing and internal mapping of the Subject.
+     *
+     * If the subclass throws XrootdException then the login is
+     * aborted.
      */
-    protected void authenticated(ChannelHandlerContext context, Subject subject)
+    protected Subject login(ChannelHandlerContext context, Subject subject)
         throws XrootdException
     {
-        _state = State.AUTH;
-        _subject = subject;
-        _authenticationHandler = null;
+        return subject;
     }
 }
