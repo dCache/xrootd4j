@@ -20,10 +20,8 @@
 package org.dcache.xrootd.core;
 
 import org.jboss.netty.channel.ChannelHandlerContext;
-
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.handler.timeout.IdleStateAwareChannelHandler;
 
 import org.dcache.xrootd.protocol.messages.*;
@@ -33,11 +31,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A SimpleChannelHandler which provides an individual handler method
- * for each xrootd request type.
+ * A SimpleChannelHandler dispatch xrootd events to handler methods.
  *
- * Default respons to all requests is kXR_Unsupported. Sub-classes
- * may override handler methods to implement request handling.
+ * Default response to all request messages from a client is
+ * kXR_Unsupported. Sub-classes may override handler methods to
+ * implement request handling.
  */
 public class XrootdRequestHandler extends IdleStateAwareChannelHandler
 {
@@ -51,78 +49,115 @@ public class XrootdRequestHandler extends IdleStateAwareChannelHandler
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent event)
     {
-        AbstractRequestMessage msg =
-            (AbstractRequestMessage) event.getMessage();
+        Object msg = event.getMessage();
+        if (msg instanceof XrootdRequest) {
+            requestReceived(ctx, event, (XrootdRequest) msg);
+        }
+    }
 
+    protected void requestReceived(ChannelHandlerContext ctx,
+                                   MessageEvent event,
+                                   XrootdRequest req)
+    {
         try {
-            /* FIXME: can dispatching be done in a nicer way? */
             AbstractResponseMessage response;
-            if (msg instanceof AuthenticationRequest) {
+            switch (req.getRequestId()) {
+            case kXR_auth:
                 response =
-                    doOnAuthentication(ctx, event, (AuthenticationRequest) msg);
-            } else if (msg instanceof LoginRequest) {
+                    doOnAuthentication(ctx, event, (AuthenticationRequest) req);
+                break;
+            case kXR_login:
                 response =
-                    doOnLogin(ctx, event, (LoginRequest) msg);
-            } else if (msg instanceof OpenRequest) {
+                    doOnLogin(ctx, event, (LoginRequest) req);
+                break;
+            case kXR_open:
                 response =
-                    doOnOpen(ctx, event, (OpenRequest) msg);
-            } else if (msg instanceof StatRequest) {
+                    doOnOpen(ctx, event, (OpenRequest) req);
+                break;
+            case kXR_stat:
                 response =
-                    doOnStat(ctx, event, (StatRequest) msg);
-            } else if (msg instanceof StatxRequest) {
+                    doOnStat(ctx, event, (StatRequest) req);
+                break;
+            case kXR_statx:
                 response =
-                    doOnStatx(ctx, event, (StatxRequest) msg);
-            } else if (msg instanceof ReadRequest) {
+                    doOnStatx(ctx, event, (StatxRequest) req);
+                break;
+            case kXR_read:
                 response =
-                    doOnRead(ctx, event, (ReadRequest) msg);
-            } else if (msg instanceof ReadVRequest) {
+                    doOnRead(ctx, event, (ReadRequest) req);
+                break;
+            case kXR_readv:
                 response =
-                    doOnReadV(ctx, event, (ReadVRequest) msg);
-            } else if (msg instanceof WriteRequest) {
+                    doOnReadV(ctx, event, (ReadVRequest) req);
+                break;
+            case kXR_write:
                 response =
-                    doOnWrite(ctx, event, (WriteRequest) msg);
-            } else if (msg instanceof SyncRequest) {
+                    doOnWrite(ctx, event, (WriteRequest) req);
+                break;
+            case kXR_sync:
                 response =
-                    doOnSync(ctx, event, (SyncRequest) msg);
-            } else if (msg instanceof CloseRequest) {
+                    doOnSync(ctx, event, (SyncRequest) req);
+                break;
+            case kXR_close:
                 response =
-                    doOnClose(ctx, event, (CloseRequest) msg);
-            } else if (msg instanceof ProtocolRequest) {
+                    doOnClose(ctx, event, (CloseRequest) req);
+                break;
+            case kXR_protocol:
                 response =
-                    doOnProtocolRequest(ctx, event, (ProtocolRequest) msg);
-            } else if (msg instanceof RmRequest) {
+                    doOnProtocolRequest(ctx, event, (ProtocolRequest) req);
+                break;
+            case kXR_rm:
                 response =
-                    doOnRm(ctx, event, (RmRequest) msg);
-            } else if (msg instanceof RmDirRequest) {
+                    doOnRm(ctx, event, (RmRequest) req);
+                break;
+            case kXR_rmdir:
                 response =
-                    doOnRmDir(ctx, event, (RmDirRequest) msg);
-            } else if (msg instanceof MkDirRequest) {
+                    doOnRmDir(ctx, event, (RmDirRequest) req);
+                break;
+            case kXR_mkdir:
                 response =
-                    doOnMkDir(ctx, event, (MkDirRequest) msg);
-            } else if (msg instanceof MvRequest) {
+                    doOnMkDir(ctx, event, (MkDirRequest) req);
+                break;
+            case kXR_mv:
                 response =
-                    doOnMv(ctx, event, (MvRequest) msg);
-            } else if (msg instanceof DirListRequest) {
+                    doOnMv(ctx, event, (MvRequest) req);
+                break;
+            case kXR_dirlist:
                 response =
-                    doOnDirList(ctx, event, (DirListRequest) msg);
-            } else if (msg instanceof PrepareRequest) {
+                    doOnDirList(ctx, event, (DirListRequest) req);
+                break;
+            case kXR_prepare:
                 response =
-                    doOnPrepare(ctx, event, (PrepareRequest) msg);
-            } else {
+                    doOnPrepare(ctx, event, (PrepareRequest) req);
+                break;
+            default:
                 response =
-                    unsupported(ctx, event, msg);
+                    unsupported(ctx, event, req);
+                break;
             }
             if (response != null) {
                 respond(ctx, event, response);
             }
         } catch (XrootdException e) {
-            respondWithError(ctx, event, msg, e.getError(), e.getMessage());
+            respond(ctx, event, withError(req, e.getError(), e.getMessage()));
         } catch (RuntimeException e) {
-            _log.error(String.format("Processing %s failed due to a bug", msg), e);
-            respondWithError(ctx, event, msg, kXR_ServerError,
-                             String.format("Internal server error (%s)",
-                                           e.getMessage()));
+            _log.error(String.format("Processing %s failed due to a bug", req), e);
+            respond(ctx, event,
+                    withError(req, kXR_ServerError,
+                              String.format("Internal server error (%s)",
+                                            e.getMessage())));
         }
+    }
+
+    protected OkResponse withOk(XrootdRequest req)
+    {
+        return new OkResponse(req.getStreamId());
+    }
+
+    protected ErrorResponse
+        withError(XrootdRequest req, int errorCode, String errMsg)
+    {
+        return new ErrorResponse(req.getStreamId(), errorCode, errMsg);
     }
 
     protected ChannelFuture respond(ChannelHandlerContext ctx,
@@ -132,33 +167,14 @@ public class XrootdRequestHandler extends IdleStateAwareChannelHandler
         return e.getChannel().write(msg);
     }
 
-    protected ChannelFuture respondWithError(ChannelHandlerContext ctx,
-                                             MessageEvent e,
-                                             AbstractRequestMessage msg,
-                                             int errorCode, String errMsg)
-    {
-        return respond(ctx, e,
-                       new ErrorResponse(msg.getStreamID(), errorCode, errMsg));
-    }
-
-    protected ChannelFuture closeWithError(ChannelHandlerContext ctx,
-                                           MessageEvent e,
-                                           AbstractRequestMessage msg,
-                                           int errorCode, String errMsg)
-    {
-        ChannelFuture f = respondWithError(ctx, e, msg, errorCode, errMsg);
-        f.addListener(ChannelFutureListener.CLOSE);
-        return f;
-    }
-
     protected AbstractResponseMessage unsupported(ChannelHandlerContext ctx,
                                                   MessageEvent e,
-                                                  AbstractRequestMessage msg)
+                                                  XrootdRequest msg)
         throws XrootdException
     {
         _log.warn("Unsupported request: " + msg);
         throw new XrootdException(kXR_Unsupported,
-                                  "Request " + msg.getRequestID() + " not supported");
+                                  "Request " + msg.getRequestId() + " not supported");
     }
 
     protected AbstractResponseMessage doOnLogin(ChannelHandlerContext ctx,

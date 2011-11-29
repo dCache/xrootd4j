@@ -19,7 +19,7 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-public class DummyRequest extends AbstractRequestMessage
+public class DummyRequest extends XrootdRequest
 {
     public DummyRequest()
     {

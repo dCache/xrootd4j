@@ -19,42 +19,49 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import org.dcache.xrootd.protocol.XrootdProtocol;
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 import org.jboss.netty.buffer.ChannelBuffer;
 
-public class StatxRequest extends AbstractRequestMessage
+public class StatxRequest extends XrootdRequest
 {
-    private final String[] paths;
-    private final String[] opaques;
+    private String[] _paths;
+    private String[] _opaques;
 
     public StatxRequest(ChannelBuffer buffer)
     {
-        super(buffer);
-
-        if (getRequestID() != XrootdProtocol.kXR_statx)
-            throw new IllegalArgumentException("doesn't seem to be a kXR_statx message");
+        super(buffer, kXR_statx);
 
         int dlen = buffer.getInt(20);
-        paths = buffer.toString(24, dlen, XROOTD_CHARSET).split("\n");
-        opaques = new String[paths.length];
+        _paths = buffer.toString(24, dlen, XROOTD_CHARSET).split("\n");
+        _opaques = new String[_paths.length];
 
-        for (int i = 0; i < paths.length; i++) {
-            String path = paths[i];
+        for (int i = 0; i < _paths.length; i++) {
+            String path = _paths[i];
             int pos = path.indexOf('?');
             if (pos > -1) {
-                paths[i] = path.substring(0, pos);
-                opaques[i] = path.substring(pos + 1);
+                _paths[i] = path.substring(0, pos);
+                _opaques[i] = path.substring(pos + 1);
             }
         }
     }
 
+    public void setPaths(String[] paths)
+    {
+        _paths = paths;
+    }
+
     public String[] getPaths()
     {
-        return paths;
+        return _paths;
+    }
+
+    public void setOpaques(String[] opaques)
+    {
+        _opaques = opaques;
     }
 
     public String[] getOpaques()
     {
-        return opaques;
+        return _opaques;
     }
 }

@@ -24,7 +24,7 @@ import java.util.Arrays;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 import org.jboss.netty.buffer.ChannelBuffer;
 
-public class PrepareRequest extends AbstractRequestMessage
+public class PrepareRequest extends XrootdRequest
 {
     private final int _options;
     private final int _priority;
@@ -32,10 +32,7 @@ public class PrepareRequest extends AbstractRequestMessage
 
     public PrepareRequest(ChannelBuffer buffer)
     {
-        super(buffer);
-
-        if (getRequestID() != kXR_prepare)
-            throw new IllegalArgumentException("doesn't seem to be a kXR_prepare message");
+        super(buffer, kXR_prepare);
 
         _options = buffer.getUnsignedShort(4);
         _priority = buffer.getUnsignedShort(5);
@@ -43,7 +40,7 @@ public class PrepareRequest extends AbstractRequestMessage
         int plen = buffer.getInt(20);
         int end = 24 + plen;
 
-        _plist = buffer.toString(24, end - 24, "ASCII").split("\n");
+        _plist = buffer.toString(24, end - 24, XROOTD_CHARSET).split("\n");
     }
 
     public int getOptions()

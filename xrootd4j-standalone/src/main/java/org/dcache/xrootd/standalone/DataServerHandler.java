@@ -22,61 +22,27 @@ package org.dcache.xrootd.standalone;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.net.InetSocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileChannel;
-import java.security.GeneralSecurityException;
-import java.security.SecureRandom;
-import javax.security.auth.Subject;
 
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Map;
 
 import org.apache.commons.io.FilenameUtils;
 
 import org.dcache.xrootd.core.XrootdRequestHandler;
 import org.dcache.xrootd.core.XrootdException;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import org.dcache.xrootd.protocol.XrootdProtocol.FilePerm;
-import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
-import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
-import org.dcache.xrootd.protocol.messages.CloseRequest;
-import org.dcache.xrootd.protocol.messages.DirListRequest;
-import org.dcache.xrootd.protocol.messages.DirListResponse;
+import org.dcache.xrootd.protocol.messages.*;
 import org.dcache.xrootd.protocol.messages.GenericReadRequestMessage.EmbeddedReadRequest;
-import org.dcache.xrootd.protocol.messages.LoginRequest;
-import org.dcache.xrootd.protocol.messages.LoginResponse;
-import org.dcache.xrootd.protocol.messages.MkDirRequest;
-import org.dcache.xrootd.protocol.messages.MvRequest;
-import org.dcache.xrootd.protocol.messages.OKResponse;
-import org.dcache.xrootd.protocol.messages.OpenRequest;
-import org.dcache.xrootd.protocol.messages.OpenResponse;
-import org.dcache.xrootd.protocol.messages.PrepareRequest;
-import org.dcache.xrootd.protocol.messages.ReadRequest;
-import org.dcache.xrootd.protocol.messages.ReadResponse;
-import org.dcache.xrootd.protocol.messages.ReadVRequest;
-import org.dcache.xrootd.protocol.messages.RmDirRequest;
-import org.dcache.xrootd.protocol.messages.RmRequest;
-import org.dcache.xrootd.protocol.messages.StatRequest;
-import org.dcache.xrootd.protocol.messages.StatResponse;
-import org.dcache.xrootd.protocol.messages.StatxRequest;
-import org.dcache.xrootd.protocol.messages.StatxResponse;
-import org.dcache.xrootd.protocol.messages.SyncRequest;
-import org.dcache.xrootd.protocol.messages.WriteRequest;
-import org.dcache.xrootd.plugins.AuthenticationHandler;
-import org.dcache.xrootd.plugins.AuthorizationHandler;
-import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
 import org.dcache.xrootd.util.FileStatus;
-import org.dcache.xrootd.util.OpaqueStringParser;
-import org.dcache.xrootd.util.ParseException;
-import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.group.ChannelGroup;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,23 +53,9 @@ public class DataServerHandler extends XrootdRequestHandler
 
     private final ChannelGroup _allChannels;
 
-    /** variables needed for session-tracking */
-    private static final int SESSION_ID_BYTES = 16;
-    private static final SecureRandom _random = new SecureRandom();
-    private byte[] _sessionBytes = new byte[SESSION_ID_BYTES];
-
-    /** class used for creating authentication handler.
-     *  FIXME: Support more than just one authentication plugin
-     */
-    private AuthenticationHandler _authenticationHandler;
-
     private final List<RandomAccessFile> _openFiles =
         new ArrayList<RandomAccessFile>();
 
-    private boolean _hasLoggedIn = false;
-
-    /** empty subject before login has been called */
-    private Subject _subject = new Subject();
     private final DataServerConfiguration _configuration;
 
     public DataServerHandler(DataServerConfiguration configuration,
@@ -139,84 +91,18 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected LoginResponse doOnLogin(ChannelHandlerContext context,
-                                      MessageEvent event,
-                                      LoginRequest msg)
-        throws XrootdException
-    {
-        _random.nextBytes(_sessionBytes);
-
-        try {
-            if (_authenticationHandler == null) {
-                _authenticationHandler = _configuration.authenticationFactory.createHandler();
-            }
-
-            LoginResponse response =
-                new LoginResponse(msg.getStreamID(),
-                                  _sessionBytes,
-                                  _authenticationHandler.getProtocol());
-            if (_authenticationHandler.isCompleted()) {
-                authorizeUser(_authenticationHandler.getSubject());
-            }
-            return response;
-        } catch (InvalidHandlerConfigurationException e) {
-            _log.error("Could not instantiate authN handler: {}", e);
-            throw new XrootdException(kXR_ServerError, "Internal server error");
-        }
-    }
-
-    @Override
-    protected AbstractResponseMessage
-        doOnAuthentication(ChannelHandlerContext context,
-                           MessageEvent event,
-                           AuthenticationRequest msg)
-        throws XrootdException
-    {
-        try {
-            if (_authenticationHandler == null) {
-                _authenticationHandler = _configuration.authenticationFactory.createHandler();
-            }
-
-            AbstractResponseMessage response =
-                _authenticationHandler.authenticate(msg);
-            if (_authenticationHandler.isCompleted()) {
-                authorizeUser(_authenticationHandler.getSubject());
-            }
-            return response;
-        } catch (InvalidHandlerConfigurationException e) {
-            _log.error("Could not instantiate authN handler: {}", e);
-            throw new XrootdException(kXR_ServerError, "Internal server error");
-        }
-    }
-
-    @Override
     protected StatResponse doOnStat(ChannelHandlerContext ctx,
                                     MessageEvent event,
                                     StatRequest req)
         throws XrootdException
     {
-        Channel channel = event.getChannel();
-        InetSocketAddress localAddress =
-            (InetSocketAddress) channel.getLocalAddress();
-
-        if (!_hasLoggedIn) {
-            respondWithError(ctx, event, req,
-                             kXR_NotAuthorized,
-                             "Please call login/auth first.");
-        }
-
-        String path = req.getPath();
-        File file = authorize(req.getRequestID(),
-                              FilePerm.READ,
-                              path,
-                              req.getOpaque(),
-                              localAddress);
+        File file = getFile(req.getPath());
         if (!file.exists()) {
-            return new StatResponse(req.getStreamID(),
+            return new StatResponse(req.getStreamId(),
                                     FileStatus.FILE_NOT_FOUND);
         } else {
             FileStatus fs = getFileStatusOf(file);
-            return new StatResponse(req.getStreamID(), fs);
+            return new StatResponse(req.getStreamId(), fs);
         }
     }
 
@@ -226,15 +112,6 @@ public class DataServerHandler extends XrootdRequestHandler
                                       StatxRequest req)
         throws XrootdException
     {
-        Channel channel = event.getChannel();
-        InetSocketAddress localAddress =
-            (InetSocketAddress) channel.getLocalAddress();
-
-        if (!_hasLoggedIn) {
-            throw new XrootdException(kXR_NotAuthorized,
-                                      "Please call login/auth first.");
-        }
-
         if (req.getPaths().length == 0) {
             throw new XrootdException(kXR_ArgMissing, "no paths specified");
         }
@@ -243,11 +120,7 @@ public class DataServerHandler extends XrootdRequestHandler
         String[] opaques = req.getOpaques();
         int[] flags = new int[paths.length];
         for (int i = 0; i < paths.length; i++) {
-            File file = authorize(req.getRequestID(),
-                                  FilePerm.READ,
-                                  paths[i],
-                                  opaques[i],
-                                  localAddress);
+            File file = getFile(paths[i]);
             if (!file.exists()) {
                 flags[i] = kXR_other;
             } else {
@@ -255,29 +128,20 @@ public class DataServerHandler extends XrootdRequestHandler
             }
         }
 
-        return new StatxResponse(req.getStreamID(), flags);
+        return new StatxResponse(req.getStreamId(), flags);
     }
 
     @Override
-    protected OKResponse doOnRm(ChannelHandlerContext ctx,
+    protected OkResponse doOnRm(ChannelHandlerContext ctx,
                                 MessageEvent e,
                                 RmRequest req)
         throws XrootdException
     {
-        Channel channel = e.getChannel();
-        InetSocketAddress localAddress =
-            (InetSocketAddress) channel.getLocalAddress();
         if (req.getPath().isEmpty()) {
             throw new XrootdException(kXR_ArgMissing, "no path specified");
         }
 
-        _log.info("Trying to delete {}", req.getPath());
-
-        File file = authorize(req.getRequestID(),
-                              FilePerm.DELETE,
-                              req.getPath(),
-                              req.getOpaque(),
-                              localAddress);
+        File file = getFile(req.getPath());
         if (!file.exists()) {
             throw new XrootdException(kXR_NotFound,
                                       "No such directory or file: " + file);
@@ -288,28 +152,19 @@ public class DataServerHandler extends XrootdRequestHandler
             throw new XrootdException(kXR_IOError,
                                       "Failed to delete file: " + file);
         }
-        return new OKResponse(req.getStreamID());
+        return withOk(req);
     }
 
     @Override
-    protected OKResponse doOnRmDir(ChannelHandlerContext ctx, MessageEvent e,
+    protected OkResponse doOnRmDir(ChannelHandlerContext ctx, MessageEvent e,
                                    RmDirRequest req)
         throws XrootdException
     {
-        Channel channel = e.getChannel();
-        InetSocketAddress localAddress =
-                            (InetSocketAddress) channel.getLocalAddress();
         if (req.getPath().isEmpty()) {
             throw new XrootdException(kXR_ArgMissing, "no path specified");
         }
 
-        _log.info("Trying to delete directory {}", req.getPath());
-
-        File file = authorize(req.getRequestID(),
-                              FilePerm.DELETE,
-                              req.getPath(),
-                              req.getOpaque(),
-                              localAddress);
+        File file = getFile(req.getPath());
         if (!file.exists()) {
             throw new XrootdException(kXR_NotFound,
                                       "No such directory or file: " + file);
@@ -320,29 +175,20 @@ public class DataServerHandler extends XrootdRequestHandler
             throw new XrootdException(kXR_IOError,
                                       "Failed to delete dirctory: " + file);
         }
-        return new OKResponse(req.getStreamID());
+        return withOk(req);
     }
 
     @Override
-    protected OKResponse doOnMkDir(ChannelHandlerContext ctx,
+    protected OkResponse doOnMkDir(ChannelHandlerContext ctx,
                                    MessageEvent e,
                                    MkDirRequest req)
         throws XrootdException
     {
-        Channel channel = e.getChannel();
-        InetSocketAddress localAddress =
-                            (InetSocketAddress) channel.getLocalAddress();
         if (req.getPath().isEmpty()) {
             throw new XrootdException(kXR_ArgMissing, "no path specified");
         }
 
-        _log.info("Trying to create directory {}", req.getPath());
-
-        File file = authorize(req.getRequestID(),
-                              FilePerm.WRITE,
-                              req.getPath(),
-                              req.getOpaque(),
-                              localAddress);
+        File file = getFile(req.getPath());
         if (file.exists()) {
             throw new XrootdException(kXR_IOError, "Path exists: " + file);
         }
@@ -357,18 +203,14 @@ public class DataServerHandler extends XrootdRequestHandler
                                           "Failed to create directory: " + file);
             }
         }
-        return new OKResponse(req.getStreamID());
+        return withOk(req);
     }
 
     @Override
-    protected OKResponse doOnMv(ChannelHandlerContext ctx, MessageEvent e,
+    protected OkResponse doOnMv(ChannelHandlerContext ctx, MessageEvent e,
                                 MvRequest req)
         throws XrootdException
     {
-        Channel channel = e.getChannel();
-        InetSocketAddress localAddress =
-                            (InetSocketAddress) channel.getLocalAddress();
-
         String sourcePath = req.getSourcePath();
         if (sourcePath.isEmpty()) {
             throw new XrootdException(kXR_ArgMissing, "No source path specified");
@@ -379,22 +221,12 @@ public class DataServerHandler extends XrootdRequestHandler
             throw new XrootdException(kXR_ArgMissing, "No target path specified");
         }
 
-        _log.info("Trying to rename {} to {}", req.getSourcePath(),
-                                               req.getTargetPath());
-        File sourceFile = authorize(req.getRequestID(),
-                                    FilePerm.DELETE,
-                                    req.getSourcePath(),
-                                    req.getOpaque(),
-                                    localAddress);
-        File targetFile = authorize(req.getRequestID(),
-                                    FilePerm.WRITE,
-                                    req.getTargetPath(),
-                                    req.getOpaque(),
-                                    localAddress);
+        File sourceFile = getFile(req.getSourcePath());
+        File targetFile = getFile(req.getTargetPath());
         if (!sourceFile.renameTo(targetFile)) {
             throw new XrootdException(kXR_IOError, "Failed to move file");
         }
-        return new OKResponse(req.getStreamID());
+        return withOk(req);
     }
 
     @Override
@@ -403,33 +235,25 @@ public class DataServerHandler extends XrootdRequestHandler
                                           DirListRequest request)
         throws XrootdException
     {
-        Channel channel = event.getChannel();
-        InetSocketAddress localAddress =
-                            (InetSocketAddress) channel.getLocalAddress();
-
         String listPath = request.getPath();
-
         if (listPath.isEmpty()) {
             throw new XrootdException(kXR_ArgMissing, "no source path specified");
         }
 
-        File dir = authorize(request.getRequestID(),
-                             FilePerm.READ, listPath,
-                             request.getOpaque(),
-                             localAddress);
+        File dir = getFile(listPath);
         String[] list = dir.list();
         if (list == null) {
             throw new XrootdException(kXR_NotFound, "No such directory: " + dir);
         }
-        return new DirListResponse(request.getStreamID(),
+        return new DirListResponse(request.getStreamId(),
                                    kXR_ok, Arrays.asList(list));
     }
 
     @Override
-    protected OKResponse doOnPrepare(ChannelHandlerContext ctx, MessageEvent e,
+    protected OkResponse doOnPrepare(ChannelHandlerContext ctx, MessageEvent e,
                                      PrepareRequest msg)
     {
-        return new OKResponse(msg.getStreamID());
+        return withOk(msg);
     }
 
     /**
@@ -444,28 +268,10 @@ public class DataServerHandler extends XrootdRequestHandler
                                     OpenRequest msg)
         throws XrootdException
     {
-        Channel channel = event.getChannel();
-        InetSocketAddress localAddress =
-            (InetSocketAddress) channel.getLocalAddress();
-        InetSocketAddress remoteAddress =
-            (InetSocketAddress) channel.getRemoteAddress();
         int options = msg.getOptions();
 
-        FilePerm neededPerm;
-        if (msg.isNew() || msg.isReadWrite()) {
-            neededPerm = FilePerm.WRITE;
-        } else {
-            neededPerm = FilePerm.READ;
-        }
-
-        _log.info("Opening {} for {}", msg.getPath(), neededPerm.xmlText());
-
         try {
-            File file = authorize(msg.getRequestID(),
-                                  neededPerm,
-                                  msg.getPath(),
-                                  msg.getOpaque(),
-                                  localAddress);
+            File file = getFile(msg.getPath());
             if (file.isDirectory()) {
                 throw new XrootdException(kXR_isDirectory, "Not a file: " + file);
             }
@@ -497,7 +303,7 @@ public class DataServerHandler extends XrootdRequestHandler
 
                 int fd = addOpenFile(raf);
                 raf = null;
-                return new OpenResponse(msg.getStreamID(),
+                return new OpenResponse(msg.getStreamId(),
                                         fd,
                                         null,
                                         null,
@@ -528,7 +334,7 @@ public class DataServerHandler extends XrootdRequestHandler
         throws XrootdException
     {
         try {
-            int id = msg.getStreamID();
+            int id = msg.getStreamId();
             int fd = msg.getFileHandle();
             long offset = msg.getReadOffset();
             int length = msg.bytesToRead();
@@ -577,7 +383,7 @@ public class DataServerHandler extends XrootdRequestHandler
                                           "Request contains no vector");
             }
 
-            ReadResponse response = new ReadResponse(msg.getStreamID(), 0);
+            ReadResponse response = new ReadResponse(msg.getStreamId(), 0);
 
             for (EmbeddedReadRequest request: requests) {
                 response.writeBytes(request);
@@ -610,7 +416,7 @@ public class DataServerHandler extends XrootdRequestHandler
      * @param msg the actual request
      */
     @Override
-    protected OKResponse doOnWrite(ChannelHandlerContext ctx,
+    protected OkResponse doOnWrite(ChannelHandlerContext ctx,
                                    MessageEvent event,
                                    WriteRequest msg)
         throws XrootdException
@@ -620,7 +426,7 @@ public class DataServerHandler extends XrootdRequestHandler
                 getOpenFile(msg.getFileHandle()).getChannel();
             channel.position(msg.getWriteOffset());
             msg.getData(channel);
-            return new OKResponse(msg.getStreamID());
+            return withOk(msg);
         } catch (IOException e) {
             throw new XrootdException(kXR_IOError, e.getMessage());
         }
@@ -635,14 +441,14 @@ public class DataServerHandler extends XrootdRequestHandler
      * @param msg The actual request
      */
     @Override
-    protected OKResponse doOnSync(ChannelHandlerContext ctx,
+    protected OkResponse doOnSync(ChannelHandlerContext ctx,
                                   MessageEvent event,
                                   SyncRequest msg)
         throws XrootdException
     {
         try {
             getOpenFile(msg.getFileHandle()).getFD().sync();
-            return new OKResponse(msg.getStreamID());
+            return withOk(msg);
         } catch (IOException e) {
             throw new XrootdException(kXR_IOError, e.getMessage());
         }
@@ -657,14 +463,14 @@ public class DataServerHandler extends XrootdRequestHandler
      * @param msg The actual request
      */
     @Override
-    protected OKResponse doOnClose(ChannelHandlerContext ctx,
+    protected OkResponse doOnClose(ChannelHandlerContext ctx,
                                    MessageEvent event,
                                    CloseRequest msg)
         throws XrootdException
     {
         try {
             closeOpenFile(msg.getFileHandle());
-            return new OKResponse(msg.getStreamID());
+            return withOk(msg);
         } catch (IOException e) {
             throw new XrootdException(kXR_IOError, e.getMessage());
         }
@@ -702,75 +508,14 @@ public class DataServerHandler extends XrootdRequestHandler
         _openFiles.set(fd, null);
     }
 
-    /**
-     * Check if the permissions on the path sent along with the
-     * request message satisfy the required permission level.
-     *
-     * @param neededPerm The permission level that is required for the operation
-     * @param req The actual request, containing path and authZ token
-     * @param localAddress The local address, needed for token endpoint
-     *        verification
-     * @return The path referring to the LFN in the request, if the request
-     *         contained a LFN. The path from the request, if the request
-     *         contained an absolute path.
-     * @throws PermissionDeniedCacheException The needed permissions are not
-     *         present in the authZ token, the authZ token is not present or
-     *         the format is corrupted.
-     */
-    private File authorize(int requestId,
-                           FilePerm neededPerm,
-                           String path,
-                           String opaque,
-                           InetSocketAddress localAddress)
+    private File getFile(String path)
         throws XrootdException
     {
-        try {
-            if (!_hasLoggedIn) {
-                throw new XrootdException(kXR_NotAuthorized,
-                                          "Permission denied: Complete kXR_login/kXR_auth first.");
-            }
-
-            AuthorizationHandler authzHandler =
-                _configuration.authorizationFactory.createHandler();
-
-            if (authzHandler != null) {
-                Map<String, String> opaqueMap =
-                    OpaqueStringParser.getOpaqueMap(opaque);
-                authzHandler.check(_subject,
-                                   requestId,
-                                   path,
-                                   opaqueMap,
-                                   neededPerm,
-                                   localAddress);
-
-                String pfn = authzHandler.getPath();
-                if (pfn != null) {
-                    _log.debug("{} mapped to {}", path, pfn);
-                    path = pfn;
-                }
-                Subject subject = authzHandler.getSubject();
-                if (subject != null) {
-                    _log.info("Authorized subject is {}", subject);
-                }
-            }
-
-            String normalized = FilenameUtils.normalize(path);
-            if (normalized == null) {
-                throw new XrootdException(kXR_ArgInvalid, "Invalid path: " + path);
-            }
-            return new File(_configuration.root, normalized);
-        } catch (GeneralSecurityException e) {
-            throw new XrootdException(kXR_NotAuthorized,
-                                      "Authorization check failed: " +
-                                      e.getMessage());
-        } catch (SecurityException e) {
-            throw new XrootdException(kXR_NotAuthorized,
-                                      "Permission denied: " + e.getMessage());
-        } catch (ParseException e) {
-            throw new XrootdException(kXR_NotAuthorized,
-                                      "Invalid opaque data: " + e.getMessage() +
-                                      " (opaque=" + opaque + ")");
+        String normalized = FilenameUtils.normalize(path);
+        if (normalized == null) {
+            throw new XrootdException(kXR_ArgInvalid, "Invalid path: " + path);
         }
+        return new File(_configuration.root, normalized);
     }
 
     private int getFileStatusFlagsOf(File file)
@@ -801,15 +546,5 @@ public class DataServerHandler extends XrootdRequestHandler
                               file.length(),
                               flags,
                               file.lastModified() / 1000);
-    }
-
-    private void authorizeUser(Subject subject)
-    {
-        if (subject == null) {
-            _subject = new Subject();
-        } else {
-            _subject = subject;
-        }
-        _hasLoggedIn = true;
     }
 }

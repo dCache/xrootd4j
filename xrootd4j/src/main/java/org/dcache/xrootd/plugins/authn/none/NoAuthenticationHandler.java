@@ -23,7 +23,7 @@ import javax.security.auth.Subject;
 
 import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
-import org.dcache.xrootd.protocol.messages.OKResponse;
+import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
 
 /**
@@ -36,7 +36,7 @@ public class NoAuthenticationHandler implements AuthenticationHandler
 {
     @Override
     public AbstractResponseMessage authenticate(AuthenticationRequest request) {
-        return new OKResponse(request.getStreamID());
+        return new OkResponse(request.getStreamId());
     }
 
     @Override
