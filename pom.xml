@@ -46,7 +46,22 @@
   </repositories>
 
   <distributionManagement>
-    <downloadUrl>http://www.dcache.org/nexus/content/groups/public</downloadUrl>
+    <downloadUrl>http://www.dcache.org/nexus/content/repositories/releases</downloadUrl>
+
+    <repository>
+      <uniqueVersion>false</uniqueVersion>
+      <id>dcache.release.repository</id>
+      <name>dCache.org release repository</name>
+      <url>http://www.dcache.org/nexus/content/repositories/releases/</url>
+      <layout>default</layout>
+    </repository>
+    <snapshotRepository>
+      <uniqueVersion>true</uniqueVersion>
+      <id>dcache.snapshot.repository</id>
+      <name>dCache.org snapshot repository</name>
+      <url>http://www.dcache.org/nexus/content/repositories/snapshots/</url>
+      <layout>default</layout>
+    </snapshotRepository>
 
     <site>
       <id>github</id>
