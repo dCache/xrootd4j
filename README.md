@@ -58,12 +58,12 @@ Add the following Maven dependency to your project:
 To automatically download the dependency, add our Maven repository to
 your project:
 
-  <repositories>
-    <repository>
-      <id>xrootd4j.repository</id>
-      <url>http://www.dcache.org/nexus/content/repositories/releases/</url>
-    </repository>
-  </repositories>
+    <repositories>
+      <repository>
+        <id>xrootd4j.repository</id>
+        <url>http://www.dcache.org/nexus/content/repositories/releases/</url>
+      </repository>
+    </repositories>
 
 
 Alternatively, download or build the JAR by hand and add it to the
