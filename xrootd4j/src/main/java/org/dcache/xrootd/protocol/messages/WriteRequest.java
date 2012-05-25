@@ -21,6 +21,7 @@ package org.dcache.xrootd.protocol.messages;
 
 import java.io.IOException;
 import java.nio.channels.GatheringByteChannel;
+import java.nio.ByteBuffer;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_write;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -67,6 +68,18 @@ public class WriteRequest extends XrootdRequest
             index += written;
             len -= written;
         }
+    }
+
+    /**
+     * Converts this requests's payload into an array of NIO
+     * buffers. The returned buffers might or might not share the
+     * content with this request.
+     *
+     * @see ChannelBuffers.toByteBuffers
+     */
+    public ByteBuffer[] toByteBuffers()
+    {
+        return _buffer.toByteBuffers(24, _dlen);
     }
 
     @Override
