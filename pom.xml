@@ -202,6 +202,7 @@
                       <exclude>.gitignore</exclude>
                       <exclude>LICENSE.txt</exclude>
                       <exclude>README.md</exclude>
+                      <exclude>.idea/**</exclude>
                   </excludes>
               </configuration>
               <executions>
