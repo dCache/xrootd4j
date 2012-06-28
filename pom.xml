@@ -203,6 +203,8 @@
                       <exclude>LICENSE.txt</exclude>
                       <exclude>README.md</exclude>
                       <exclude>.idea/**</exclude>
+	              <exclude>*.releaseBackup</exclude>
+                      <exclude>release-pom.xml</exclude>
                   </excludes>
               </configuration>
               <executions>
