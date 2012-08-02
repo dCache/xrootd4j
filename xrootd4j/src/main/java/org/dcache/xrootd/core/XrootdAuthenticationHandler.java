@@ -125,12 +125,12 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
             }
         } catch (XrootdException e) {
             ErrorResponse error =
-                new ErrorResponse(request.getStreamId(), e.getError(), e.getMessage());
+                new ErrorResponse(request, e.getError(), e.getMessage());
             event.getChannel().write(error);
         } catch (RuntimeException e) {
             _log.error(String.format("Processing %s failed due to a bug", msg), e);
             ErrorResponse error =
-                new ErrorResponse(request.getStreamId(), kXR_ServerError,
+                new ErrorResponse(request, kXR_ServerError,
                                   String.format("Internal server error (%s)",
                                                 e.getMessage()));
             event.getChannel().write(error);
@@ -153,7 +153,7 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
                 _authenticationFactory.createHandler();
 
             LoginResponse response =
-                new LoginResponse(request.getStreamId(), _session,
+                new LoginResponse(request, _session,
                                   _authenticationHandler.getProtocol());
 
             if (_authenticationHandler.isCompleted()) {

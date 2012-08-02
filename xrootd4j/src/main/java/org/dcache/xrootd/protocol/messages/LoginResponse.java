@@ -22,8 +22,8 @@ import org.dcache.xrootd.protocol.XrootdProtocol;
 
 public class LoginResponse extends AbstractResponseMessage
 {
-    public LoginResponse(int sId, byte [] ssId, String sec) {
-        super(sId, XrootdProtocol.kXR_ok, sec.length()+16);
+    public LoginResponse(XrootdRequest request, byte [] ssId, String sec) {
+        super(request, XrootdProtocol.kXR_ok, sec.length()+16);
 
         //		.. put sessionId and security info
         put(ssId);

@@ -30,9 +30,9 @@ public class ReadResponse extends AbstractResponseMessage
 {
     public final static int READ_LIST_HEADER_SIZE = 16;
 
-    public ReadResponse(int sId, int length)
+    public ReadResponse(XrootdRequest request, int length)
     {
-        super(sId, kXR_ok, length);
+        super(request, kXR_ok, length);
     }
 
     /**

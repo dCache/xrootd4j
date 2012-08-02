@@ -36,7 +36,7 @@ public class NoAuthenticationHandler implements AuthenticationHandler
 {
     @Override
     public AbstractResponseMessage authenticate(AuthenticationRequest request) {
-        return new OkResponse(request.getStreamId());
+        return new OkResponse(request);
     }
 
     @Override

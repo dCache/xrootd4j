@@ -22,8 +22,8 @@ import org.dcache.xrootd.protocol.XrootdProtocol;
 
 public class OkResponse extends AbstractResponseMessage
 {
-    public OkResponse(int sId)
+    public OkResponse(XrootdRequest request)
     {
-        super(sId, XrootdProtocol.kXR_ok, 0);
+        super(request, XrootdProtocol.kXR_ok, 0);
     }
 }

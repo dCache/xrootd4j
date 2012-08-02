@@ -33,9 +33,9 @@ public class AuthenticationResponse extends AbstractResponseMessage
      * @param status
      * @param length
      */
-    public AuthenticationResponse(int sId, int status, int length)
+    public AuthenticationResponse(XrootdRequest request, int status, int length)
     {
-        super(sId, status, length);
+        super(request, status, length);
     }
 
     /**
@@ -49,13 +49,13 @@ public class AuthenticationResponse extends AbstractResponseMessage
      * @param buckets list of buckets containing server-side authentication
      *                information (challenge, host certificate, etc.)
      */
-    public AuthenticationResponse(int sId,
+    public AuthenticationResponse(XrootdRequest request,
                                   int status,
                                   int length,
                                   String protocol,
                                   int step,
                                   List<XrootdBucket> buckets) {
-        super(sId, status, length);
+        super(request, status, length);
 
         if (protocol.length() > 4) {
             throw new IllegalArgumentException("Protocol length must not " +

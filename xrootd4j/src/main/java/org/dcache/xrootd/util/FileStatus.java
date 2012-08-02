@@ -31,14 +31,30 @@ public class FileStatus
 
     private long size, modtime;
     private int flags;
-    private int id;
+    private long id;
 
-    public FileStatus(int id, long size, int flags, long modtime)
+    public FileStatus(long id, long size, int flags, long modtime)
     {
         this.id = id;
         this.size = size;
         this.flags = flags;
         this.modtime = modtime;
+    }
+
+    public long getSize() {
+        return size;
+    }
+
+    public long getModificationTime() {
+        return modtime;
+    }
+
+    public int getFlags() {
+        return flags;
+    }
+
+    public long getId() {
+        return id;
     }
 
     @Override

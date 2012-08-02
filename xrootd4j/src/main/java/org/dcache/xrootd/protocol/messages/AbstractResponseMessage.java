@@ -28,13 +28,15 @@ import java.io.UnsupportedEncodingException;
 
 public abstract class AbstractResponseMessage
 {
-    protected ChannelBuffer _buffer;
+    protected final XrootdRequest _request;
+    protected final ChannelBuffer _buffer;
 
-    public AbstractResponseMessage(int sId, int stat, int length)
+    public AbstractResponseMessage(XrootdRequest request, int stat, int length)
     {
+        _request = request;
         _buffer = ChannelBuffers.dynamicBuffer(SERVER_RESPONSE_LEN + length);
 
-        putUnsignedShort(sId);
+        putUnsignedShort(request.getStreamId());
         putUnsignedShort(stat);
 
 
@@ -43,12 +45,6 @@ public abstract class AbstractResponseMessage
         // XrootdDecoder will fill in the correct value before putting
         // the response on the wire.
         putSignedInt(0);
-    }
-
-    public AbstractResponseMessage(int sId, int stat)
-    {
-        putUnsignedShort(sId);
-        putUnsignedShort(stat);
     }
 
     public final void setStatus(int s)
@@ -107,5 +103,10 @@ public abstract class AbstractResponseMessage
     public ChannelBuffer getBuffer()
     {
         return _buffer;
+    }
+
+    public XrootdRequest getRequest()
+    {
+        return _request;
     }
 }

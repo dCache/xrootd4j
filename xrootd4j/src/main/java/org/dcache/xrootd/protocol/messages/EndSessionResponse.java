@@ -21,8 +21,8 @@ package org.dcache.xrootd.protocol.messages;
 
 public class EndSessionResponse extends AbstractResponseMessage
 {
-    public EndSessionResponse(int sId, int stat, int length)
+    public EndSessionResponse(XrootdRequest request, int stat, int length)
     {
-        super(sId, stat, length);
+        super(request, stat, length);
     }
 }

@@ -191,7 +191,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
 
         switch(request.getStep()) {
         case kXGC_none:
-            return new OkResponse(request.getStreamId());
+            return new OkResponse(request);
         case kXGC_certreq:
             return handleCertReqStep(request);
         case kXGC_cert:
@@ -258,7 +258,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                                                  SUPPORTED_DIGESTS,
                                                  hostCertificateString);
 
-            return new AuthenticationResponse(request.getStreamId(),
+            return new AuthenticationResponse(request,
                                               XrootdProtocol.kXR_authmore,
                                               responseBuckets.getSize(),
                                               PROTOCOL,
@@ -390,7 +390,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
 
             _finished = true;
 
-            return new OkResponse(request.getStreamId());
+            return new OkResponse(request);
         } catch (InvalidKeyException ikex) {
             _logger.error("The key negotiated by DH key exchange appears to " +
                           "be invalid: {}", ikex);

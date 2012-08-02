@@ -151,13 +151,13 @@ public class XrootdRequestHandler extends IdleStateAwareChannelHandler
 
     protected OkResponse withOk(XrootdRequest req)
     {
-        return new OkResponse(req.getStreamId());
+        return new OkResponse(req);
     }
 
     protected ErrorResponse
         withError(XrootdRequest req, int errorCode, String errMsg)
     {
-        return new ErrorResponse(req.getStreamId(), errorCode, errMsg);
+        return new ErrorResponse(req, errorCode, errMsg);
     }
 
     protected ChannelFuture respond(ChannelHandlerContext ctx,

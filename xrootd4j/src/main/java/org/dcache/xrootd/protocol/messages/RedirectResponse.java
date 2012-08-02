@@ -27,14 +27,14 @@ public class RedirectResponse extends AbstractResponseMessage
     private final static Logger _logger =
         LoggerFactory.getLogger(RedirectResponse.class);
 
-    public RedirectResponse(int sId, String host, int port)
+    public RedirectResponse(XrootdRequest request, String host, int port)
     {
-        this(sId, host, port, "", "");
+        this(request, host, port, "", "");
     }
 
-    public RedirectResponse(int sId, String host, int port, String opaque, String token)
+    public RedirectResponse(XrootdRequest request, String host, int port, String opaque, String token)
     {
-        super(sId, XrootdProtocol.kXR_redirect,
+        super(request, XrootdProtocol.kXR_redirect,
               4 + host.length() + opaque.length() + token.length() + 2);
 
         putSignedInt(port);

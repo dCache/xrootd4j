@@ -98,11 +98,10 @@ public class DataServerHandler extends XrootdRequestHandler
     {
         File file = getFile(req.getPath());
         if (!file.exists()) {
-            return new StatResponse(req.getStreamId(),
-                                    FileStatus.FILE_NOT_FOUND);
+            return new StatResponse(req, FileStatus.FILE_NOT_FOUND);
         } else {
             FileStatus fs = getFileStatusOf(file);
-            return new StatResponse(req.getStreamId(), fs);
+            return new StatResponse(req, fs);
         }
     }
 
@@ -128,7 +127,7 @@ public class DataServerHandler extends XrootdRequestHandler
             }
         }
 
-        return new StatxResponse(req.getStreamId(), flags);
+        return new StatxResponse(req, flags);
     }
 
     @Override
@@ -245,8 +244,7 @@ public class DataServerHandler extends XrootdRequestHandler
         if (list == null) {
             throw new XrootdException(kXR_NotFound, "No such directory: " + dir);
         }
-        return new DirListResponse(request.getStreamId(),
-                                   kXR_ok, Arrays.asList(list));
+        return new DirListResponse(request, kXR_ok, Arrays.asList(list));
     }
 
     @Override
@@ -303,7 +301,7 @@ public class DataServerHandler extends XrootdRequestHandler
 
                 int fd = addOpenFile(raf);
                 raf = null;
-                return new OpenResponse(msg.getStreamId(),
+                return new OpenResponse(msg,
                                         fd,
                                         null,
                                         null,
@@ -334,7 +332,6 @@ public class DataServerHandler extends XrootdRequestHandler
         throws XrootdException
     {
         try {
-            int id = msg.getStreamId();
             int fd = msg.getFileHandle();
             long offset = msg.getReadOffset();
             int length = msg.bytesToRead();
@@ -342,7 +339,7 @@ public class DataServerHandler extends XrootdRequestHandler
             RandomAccessFile raf = getOpenFile(fd);
             FileChannel channel = raf.getChannel();
             channel.position(offset);
-            ReadResponse response = new ReadResponse(id, length);
+            ReadResponse response = new ReadResponse(msg, length);
             while (length > 0) {
                 int len = response.writeBytes(channel, length);
                 if (len == -1) {
@@ -383,7 +380,7 @@ public class DataServerHandler extends XrootdRequestHandler
                                           "Request contains no vector");
             }
 
-            ReadResponse response = new ReadResponse(msg.getStreamId(), 0);
+            ReadResponse response = new ReadResponse(msg, 0);
 
             for (EmbeddedReadRequest request: requests) {
                 response.writeBytes(request);

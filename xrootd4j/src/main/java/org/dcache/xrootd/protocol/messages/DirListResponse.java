@@ -24,9 +24,9 @@ import org.dcache.xrootd.protocol.XrootdProtocol;
 
 public class DirListResponse extends AbstractResponseMessage
 {
-    public DirListResponse(int streamid, int statusCode, Iterable<String> names)
+    public DirListResponse(XrootdRequest request, int statusCode, Iterable<String> names)
     {
-        super(streamid, statusCode, computeResponseSize(names));
+        super(request, statusCode, computeResponseSize(names));
 
         Iterator<String> i = names.iterator();
         if (i.hasNext()) {
@@ -46,9 +46,9 @@ public class DirListResponse extends AbstractResponseMessage
         }
     }
 
-    public DirListResponse(int streamid, Iterable<String> names)
+    public DirListResponse(XrootdRequest request, Iterable<String> names)
     {
-        this(streamid, XrootdProtocol.kXR_ok, names);
+        this(request, XrootdProtocol.kXR_ok, names);
     }
 
     /**

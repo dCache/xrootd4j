@@ -23,9 +23,9 @@ import org.dcache.xrootd.util.FileStatus;
 
 public class StatResponse extends AbstractResponseMessage
 {
-    public StatResponse(int sId, FileStatus fs)
+    public StatResponse(XrootdRequest request, FileStatus fs)
     {
-        super(sId, XrootdProtocol.kXR_ok, 256);
+        super(request, XrootdProtocol.kXR_ok, 256);
         putCharSequence(fs.toString() + '\0');
     }
 }
