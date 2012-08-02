@@ -173,7 +173,7 @@ public class DataServerHandler extends XrootdRequestHandler
                                       "Not a directory: " + file);
         } else if (!file.delete()) {
             throw new XrootdException(kXR_IOError,
-                                      "Failed to delete dirctory: " + file);
+                                      "Failed to delete directory: " + file);
         }
         return withOk(req);
     }

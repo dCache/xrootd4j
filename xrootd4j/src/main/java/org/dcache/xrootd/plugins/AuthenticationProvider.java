@@ -32,7 +32,7 @@ public interface AuthenticationProvider
     /**
      * Creates and returns a new AuthenticationFactory.
      *
-     * @param plugin name identifying a partcular type of AuthenticationFactory
+     * @param plugin name identifying a particular type of AuthenticationFactory
      * @param properties configuration values
      * @return AuthenticationFactory instance or null if the provider
      * does not provide a matching AuthenticationFactory
