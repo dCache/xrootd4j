@@ -1,0 +1,2 @@
+org.dcache.xrootd.core.XrootdAuthenticationHandlerProvider
+org.dcache.xrootd.core.XrootdAuthorizationHandlerProvider

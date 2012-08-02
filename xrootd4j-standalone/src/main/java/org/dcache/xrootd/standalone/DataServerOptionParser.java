@@ -30,8 +30,7 @@ public class DataServerOptionParser extends OptionParser
     public final OptionSpec<Integer> port;
     public final OptionSpec<Void> help;
     public final OptionSpec<File> root;
-    public final OptionSpec<String> authnPlugin;
-    public final OptionSpec<String> authzPlugin;
+    public final OptionSpec<String> handlerPlugins;
     public final OptionSpec<File> pluginPath;
 
     {
@@ -46,16 +45,12 @@ public class DataServerOptionParser extends OptionParser
             .describedAs("path")
             .ofType(File.class)
             .defaultsTo(new File("/tmp"));
-        authnPlugin = acceptsAll(asList("authn"), "authentication plugin")
+        handlerPlugins = acceptsAll(asList("handler"), "channel handler plugins")
             .withRequiredArg()
             .describedAs("plugin")
             .ofType(String.class)
-            .defaultsTo("none");
-        authzPlugin = acceptsAll(asList("authz"), "authorization plugin")
-            .withRequiredArg()
-            .describedAs("plugin")
-            .ofType(String.class)
-            .defaultsTo("none");
+            .withValuesSeparatedBy(',')
+            .defaultsTo("authn:none");
         pluginPath = acceptsAll(asList("plugins"), "search path for plugins")
             .withRequiredArg()
             .withValuesSeparatedBy(File.pathSeparatorChar)

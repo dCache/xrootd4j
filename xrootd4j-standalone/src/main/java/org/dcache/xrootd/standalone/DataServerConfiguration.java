@@ -34,12 +34,9 @@ import java.net.URLClassLoader;
 
 import joptsimple.OptionSet;
 
-import org.dcache.xrootd.plugins.AuthenticationFactory;
-import org.dcache.xrootd.plugins.AuthenticationProvider;
-import org.dcache.xrootd.plugins.AuthorizationFactory;
-import org.dcache.xrootd.plugins.AuthorizationProvider;
-
 import com.google.common.io.PatternFilenameFilter;
+import org.dcache.xrootd.plugins.ChannelHandlerFactory;
+import org.dcache.xrootd.plugins.ChannelHandlerProvider;
 
 public class DataServerConfiguration
 {
@@ -49,40 +46,36 @@ public class DataServerConfiguration
         new PatternFilenameFilter(".*\\.properties");
 
     private final ClassLoader _pluginLoader;
-    private final ServiceLoader<AuthenticationProvider> _authnProviders;
-    private final ServiceLoader<AuthorizationProvider> _authzProviders;
+    private final ServiceLoader<ChannelHandlerProvider> _channelHandlerProviders;
     private final Properties _pluginDefaults;
 
     public final int port;
     public final File root;
-    public final String authnPlugin;
-    public final String authzPlugin;
     public final List<File> pluginPath;
+    public final List<String> channelHandlerPlugins;
 
-    public final AuthenticationFactory authenticationFactory;
-    public final AuthorizationFactory authorizationFactory;
+    public final List<ChannelHandlerFactory> channelHandlerFactories;
 
     public DataServerConfiguration(DataServerOptionParser parser, OptionSet options)
         throws Exception
     {
         port = options.valueOf(parser.port);
         root = options.valueOf(parser.root);
-        authnPlugin = options.valueOf(parser.authnPlugin);
-        authzPlugin = options.valueOf(parser.authzPlugin);
         pluginPath = options.valuesOf(parser.pluginPath);
+        channelHandlerPlugins = options.valuesOf(parser.handlerPlugins);
 
         _pluginDefaults = loadDefaultProperties(pluginPath);
 
         List<URL> jars = findPluginFiles(pluginPath, JAR_FILTER);
         _pluginLoader =
             new URLClassLoader(jars.toArray(new URL[0]));
-        _authnProviders =
-            ServiceLoader.load(AuthenticationProvider.class, _pluginLoader);
-        _authzProviders =
-            ServiceLoader.load(AuthorizationProvider.class, _pluginLoader);
+        _channelHandlerProviders =
+            ServiceLoader.load(ChannelHandlerProvider.class, _pluginLoader);
 
-        authenticationFactory = createAuthenticationFactory(authnPlugin);
-        authorizationFactory = createAuthorizationFactory(authzPlugin);
+        channelHandlerFactories = new ArrayList<ChannelHandlerFactory>();
+        for (String plugin: channelHandlerPlugins) {
+            channelHandlerFactories.add(createHandlerFactory(plugin));
+        }
     }
 
     private static Properties loadDefaultProperties(List<File> paths)
@@ -130,31 +123,17 @@ public class DataServerConfiguration
         return properties;
     }
 
-    public final AuthenticationFactory createAuthenticationFactory(String plugin)
-        throws Exception
+    public final ChannelHandlerFactory createHandlerFactory(String plugin)
+            throws Exception
     {
         Properties properties = getPluginProperties();
-        for (AuthenticationProvider provider: _authnProviders) {
-            AuthenticationFactory factory =
-                provider.createFactory(plugin, properties);
+        for (ChannelHandlerProvider provider: _channelHandlerProviders) {
+            ChannelHandlerFactory factory =
+                    provider.createFactory(plugin, properties);
             if (factory != null) {
                 return factory;
             }
         }
-        throw new NoSuchElementException("Authentication plugin not found: " + plugin);
-    }
-
-    public final AuthorizationFactory createAuthorizationFactory(String plugin)
-        throws Exception
-    {
-        Properties properties = getPluginProperties();
-        for (AuthorizationProvider provider: _authzProviders) {
-            AuthorizationFactory factory =
-                provider.createFactory(plugin, properties);
-            if (factory != null) {
-                return factory;
-            }
-        }
-        throw new NoSuchElementException("Authorization plugin not found: " + plugin);
+        throw new NoSuchElementException("Channel handler plugin not found: " + plugin);
     }
 }
