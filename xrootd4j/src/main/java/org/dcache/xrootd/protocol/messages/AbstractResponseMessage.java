@@ -29,7 +29,7 @@ import java.io.UnsupportedEncodingException;
 public abstract class AbstractResponseMessage
 {
     protected final XrootdRequest _request;
-    protected final ChannelBuffer _buffer;
+    protected ChannelBuffer _buffer;
 
     public AbstractResponseMessage(XrootdRequest request, int stat, int length)
     {
