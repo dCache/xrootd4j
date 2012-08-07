@@ -26,6 +26,9 @@ import java.io.UnsupportedEncodingException;
 
 public class OpenResponse extends AbstractResponseMessage
 {
+    private final long _fileHandle;
+    private final Integer _cpsize;
+    private final String _cptype;
     private final FileStatus _fs;
 
     public OpenResponse(XrootdRequest request, long fileHandle,
@@ -35,6 +38,9 @@ public class OpenResponse extends AbstractResponseMessage
          */
         super(request, XrootdProtocol.kXR_ok, 256);
 
+        _fileHandle = fileHandle;
+        _cpsize = cpsize;
+        _cptype = cptype;
         _fs = fs;
 
         try {
@@ -68,5 +74,12 @@ public class OpenResponse extends AbstractResponseMessage
     public FileStatus getFileStatus()
     {
         return _fs;
+    }
+
+    @Override
+    public String toString()
+    {
+        return String.format("open-response[%d,%d,%s,%s]",
+            _fileHandle, _cpsize, _cptype, _fs);
     }
 }
