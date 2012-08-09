@@ -35,6 +35,8 @@ import java.net.URLClassLoader;
 import joptsimple.OptionSet;
 
 import com.google.common.io.PatternFilenameFilter;
+import org.dcache.xrootd.core.XrootdAuthenticationHandlerProvider;
+import org.dcache.xrootd.core.XrootdAuthorizationHandlerProvider;
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
 import org.dcache.xrootd.plugins.ChannelHandlerProvider;
 
@@ -69,6 +71,8 @@ public class DataServerConfiguration
         List<URL> jars = findPluginFiles(pluginPath, JAR_FILTER);
         _pluginLoader =
             new URLClassLoader(jars.toArray(new URL[0]));
+        XrootdAuthenticationHandlerProvider.setPluginClassLoader(_pluginLoader);
+        XrootdAuthorizationHandlerProvider.setPluginClassLoader(_pluginLoader);
         _channelHandlerProviders =
             ServiceLoader.load(ChannelHandlerProvider.class, _pluginLoader);
 
