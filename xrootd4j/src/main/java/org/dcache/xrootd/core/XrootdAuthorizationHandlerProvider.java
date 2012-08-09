@@ -23,12 +23,17 @@ import org.dcache.xrootd.plugins.AuthorizationFactory;
 import org.dcache.xrootd.plugins.AuthorizationProvider;
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
 import org.dcache.xrootd.plugins.ChannelHandlerProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 import java.util.ServiceLoader;
 
 public class XrootdAuthorizationHandlerProvider implements ChannelHandlerProvider
 {
+    private final static Logger _log =
+        LoggerFactory.getLogger(XrootdAuthorizationHandlerProvider.class);
+
     final static String PREFIX = "authz:";
 
     private static ClassLoader _classLoader;
@@ -49,7 +54,11 @@ public class XrootdAuthorizationHandlerProvider implements ChannelHandlerProvide
             for (AuthorizationProvider provider: providers) {
                 AuthorizationFactory factory = provider.createFactory(name, properties);
                 if (factory != null) {
+                    _log.debug("AuthorizationHandler plugin {} is provided by {}", name, provider.getClass());
                     return new XrootdAuthorizationHandlerFactory(factory);
+                } else {
+                    _log.debug("AuthorizationHandler plugin {} could not be provided by {}", name,
+                        provider.getClass());
                 }
             }
         }
