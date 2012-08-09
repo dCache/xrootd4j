@@ -31,6 +31,13 @@ public class XrootdAuthorizationHandlerProvider implements ChannelHandlerProvide
 {
     final static String PREFIX = "authz:";
 
+    private static ClassLoader _classLoader;
+
+    public static void setPluginClassLoader(ClassLoader classLoader)
+    {
+        _classLoader = classLoader;
+    }
+
     @Override
     public ChannelHandlerFactory createFactory(String plugin, Properties properties) throws Exception
     {
@@ -38,7 +45,7 @@ public class XrootdAuthorizationHandlerProvider implements ChannelHandlerProvide
             String name = plugin.substring(PREFIX.length());
 
             ServiceLoader<AuthorizationProvider> providers =
-                ServiceLoader.load(AuthorizationProvider.class, getClass().getClassLoader());
+                ServiceLoader.load(AuthorizationProvider.class, _classLoader);
             for (AuthorizationProvider provider: providers) {
                 AuthorizationFactory factory = provider.createFactory(name, properties);
                 if (factory != null) {
