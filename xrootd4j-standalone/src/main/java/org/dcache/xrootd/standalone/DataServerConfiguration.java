@@ -39,9 +39,14 @@ import org.dcache.xrootd.core.XrootdAuthenticationHandlerProvider;
 import org.dcache.xrootd.core.XrootdAuthorizationHandlerProvider;
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
 import org.dcache.xrootd.plugins.ChannelHandlerProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DataServerConfiguration
 {
+    private final static Logger _log =
+        LoggerFactory.getLogger(DataServerConfiguration.class);
+
     private final static FilenameFilter JAR_FILTER =
         new PatternFilenameFilter(".*\\.jar");
     private final static FilenameFilter PROPERTIES_FILTER =
@@ -69,6 +74,9 @@ public class DataServerConfiguration
         _pluginDefaults = loadDefaultProperties(pluginPath);
 
         List<URL> jars = findPluginFiles(pluginPath, JAR_FILTER);
+
+        _log.info("Searching the following additional jars for plugins: {}", jars);
+
         _pluginLoader =
             new URLClassLoader(jars.toArray(new URL[0]));
         XrootdAuthenticationHandlerProvider.setPluginClassLoader(_pluginLoader);
@@ -105,11 +113,12 @@ public class DataServerConfiguration
             File[] plugins = dir.listFiles();
             if (plugins != null) {
                 for (File plugin: plugins) {
-                    File[] jars = plugin.listFiles(filter);
-                    if (jars != null) {
-                        for (File jar: jars) {
-                            if (jar.isFile()) {
-                                urls.add(jar.toURL());
+                    _log.debug("Scanning plugin directory {}", plugin);
+                    File[] files = plugin.listFiles(filter);
+                    if (files != null) {
+                        for (File file: files) {
+                            if (file.isFile()) {
+                                urls.add(file.toURL());
                             }
                         }
                     }
@@ -135,7 +144,10 @@ public class DataServerConfiguration
             ChannelHandlerFactory factory =
                     provider.createFactory(plugin, properties);
             if (factory != null) {
+                _log.debug("ChannelHandler plugin {} is provided by {}", plugin, provider.getClass());
                 return factory;
+            } else {
+                _log.debug("ChannelHandler plugin {} could not be provided by {}", plugin, provider.getClass());
             }
         }
         throw new NoSuchElementException("Channel handler plugin not found: " + plugin);
