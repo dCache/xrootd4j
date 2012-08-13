@@ -34,6 +34,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.dcache.xrootd.core.XrootdRequestHandler;
 import org.dcache.xrootd.core.XrootdException;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+
 import org.dcache.xrootd.protocol.messages.*;
 import org.dcache.xrootd.protocol.messages.GenericReadRequestMessage.EmbeddedReadRequest;
 import org.dcache.xrootd.util.FileStatus;
@@ -88,6 +89,14 @@ public class DataServerHandler extends XrootdRequestHandler
         }
         // TODO: If not already closed, we should probably close the
         // channel.
+    }
+
+    @Override
+    protected AbstractResponseMessage
+    doOnProtocolRequest(ChannelHandlerContext ctx, MessageEvent event,
+                        ProtocolRequest msg)
+    {
+        return new ProtocolResponse(msg, DATA_SERVER);
     }
 
     @Override
