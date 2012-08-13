@@ -207,6 +207,8 @@ public interface XrootdProtocol {
 
     public final static int DEFAULT_PORT = 1094;
 
+    public final static int SESSION_ID_SIZE = 16;
+
     /* All possible access permissions when using xrootd authZ
      * these are the possbile permission level, one file can have only one type
      * (no combinations) the granted rights increase in the order of appereance

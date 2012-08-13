@@ -18,15 +18,20 @@
  * <http://www.gnu.org/licenses/>.
  */
 package org.dcache.xrootd.protocol.messages;
-import org.dcache.xrootd.protocol.XrootdProtocol;
+
+import org.dcache.xrootd.core.XrootdSessionIdentifier;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 public class LoginResponse extends AbstractResponseMessage
 {
-    public LoginResponse(XrootdRequest request, byte [] ssId, String sec) {
-        super(request, XrootdProtocol.kXR_ok, sec.length()+16);
+    public LoginResponse(XrootdRequest request, XrootdSessionIdentifier sessionId, String sec)
+    {
+        super(request, kXR_ok, sec.length() + SESSION_ID_SIZE);
 
         //		.. put sessionId and security info
-        put(ssId);
+        put(sessionId.getBytes());
         putCharSequence(sec);
     }
 }
