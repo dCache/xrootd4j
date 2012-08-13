@@ -20,9 +20,13 @@
 package org.dcache.xrootd.core;
 
 import javax.security.auth.Subject;
-import java.security.SecureRandom;
+import java.util.concurrent.ConcurrentMap;
 
+import com.google.common.collect.Maps;
+import org.dcache.xrootd.protocol.messages.EndSessionRequest;
+import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 
@@ -67,8 +71,10 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
     private static final ImmutableSet<Integer> WITHOUT_AUTH =
         ImmutableSet.of(kXR_auth, kXR_bind, kXR_login, kXR_ping, kXR_protocol);
 
-    private static final int SESSION_ID_SIZE = 16;
-    private static final SecureRandom _random = new SecureRandom();
+    private final static ConcurrentMap<XrootdSessionIdentifier,XrootdSession> _sessions =
+        Maps.newConcurrentMap();
+
+    private final XrootdSessionIdentifier _sessionId = new XrootdSessionIdentifier();
 
     private final AuthenticationFactory _authenticationFactory;
     private AuthenticationHandler _authenticationHandler;
@@ -76,12 +82,17 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
     private enum State { NO_LOGIN, NO_AUTH, AUTH }
     private State _state = State.NO_LOGIN;
 
-    private Subject _subject;
-    private final byte[] _session = new byte[SESSION_ID_SIZE];
+    private XrootdSession _session;
 
     public XrootdAuthenticationHandler(AuthenticationFactory authenticationFactory)
     {
         _authenticationFactory = authenticationFactory;
+    }
+
+    @Override
+    public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception
+    {
+        _sessions.remove(_sessionId);
     }
 
     @Override
@@ -118,8 +129,11 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
             case kXR_auth:
                 doOnAuthentication(ctx, event, (AuthenticationRequest) request);
                 break;
+            case kXR_endsess:
+                doOnEndSession(ctx, event, (EndSessionRequest) request);
+                break;
             default:
-                request.setSubject(_subject);
+                request.setSession(_session);
                 ctx.sendUpstream(event);
                 break;
             }
@@ -146,14 +160,15 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
             /* Any login request resets the authentication status.
              */
             _state = State.NO_LOGIN;
-            _subject = null;
 
-            _random.nextBytes(_session);
+            _session =
+                new XrootdSession(_sessionId, context.getChannel(), request);
+
             _authenticationHandler =
                 _authenticationFactory.createHandler();
 
             LoginResponse response =
-                new LoginResponse(request, _session,
+                new LoginResponse(request, _sessionId,
                                   _authenticationHandler.getProtocol());
 
             if (_authenticationHandler.isCompleted()) {
@@ -163,6 +178,8 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
             }
 
             event.getChannel().write(response);
+
+            _sessions.put(_sessionId, _session);
         } catch (InvalidHandlerConfigurationException e) {
             _log.error("Could not instantiate authentication handler: {}", e);
             throw new XrootdException(kXR_ServerError, "Internal server error");
@@ -186,10 +203,24 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
         event.getChannel().write(response);
     }
 
+    private void doOnEndSession(ChannelHandlerContext ctx, MessageEvent event, EndSessionRequest request)
+        throws XrootdException
+    {
+        XrootdSession session = _sessions.get(request.getSessionId());
+        if (session == null) {
+            throw new XrootdException(kXR_NotFound, "session not found");
+        }
+        if (!session.hasOwner(_session.getSubject())) {
+            throw new XrootdException(kXR_NotAuthorized, "not session owner");
+        }
+        session.getChannel().close();
+        event.getChannel().write(new OkResponse(request));
+    }
+
     private void authenticated(ChannelHandlerContext context, Subject subject)
         throws XrootdException
     {
-        _subject = login(context, subject);
+        _session.setSubject(login(context, subject));
         _state = State.AUTH;
         _authenticationHandler = null;
     }

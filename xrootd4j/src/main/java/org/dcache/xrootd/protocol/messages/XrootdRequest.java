@@ -22,6 +22,7 @@ package org.dcache.xrootd.protocol.messages;
 import java.nio.charset.Charset;
 import javax.security.auth.Subject;
 
+import org.dcache.xrootd.core.XrootdSession;
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -32,7 +33,7 @@ public abstract class XrootdRequest
 
     protected final int _streamId;
     protected final int _requestId;
-    protected Subject _subject;
+    protected XrootdSession _session;
 
     public XrootdRequest()
     {
@@ -62,13 +63,19 @@ public abstract class XrootdRequest
         return _requestId;
     }
 
-    public void setSubject(Subject subject)
+    public void setSession(XrootdSession session)
     {
-        _subject = subject;
+        _session = session;
     }
 
+    public XrootdSession getSession()
+    {
+        return _session;
+    }
+
+    @Deprecated
     public Subject getSubject()
     {
-        return _subject;
+        return (_session == null) ? null : _session.getSubject();
     }
 }
