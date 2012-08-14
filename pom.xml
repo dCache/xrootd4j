@@ -6,7 +6,7 @@
   <packaging>pom</packaging>
 
   <name>xrootd4j parent</name>
-  <url>http://github.com/gbehrmann/xrootd4j/</url>
+  <url>http://github.com/dCache/xrootd4j/</url>
 
   <licenses>
       <license>
@@ -26,9 +26,9 @@
   </properties>
 
   <scm>
-    <connection>scm:git:git://github.com/gbehrmann/xrootd4j.git</connection>
-    <developerConnection>scm:git:git@github.com:gbehrmann/xrootd4j.git</developerConnection>
-    <url>http://github.com/gbehrmann/xrootd4j</url>
+    <connection>scm:git:git://github.com/dCache/xrootd4j.git</connection>
+    <developerConnection>scm:git:git@github.com:dCache/xrootd4j.git</developerConnection>
+    <url>http://github.com/dCache/xrootd4j</url>
   </scm>
 
   <repositories>
@@ -63,13 +63,13 @@
     <site>
       <id>github</id>
       <name>xrootd4j</name>
-      <url>http://github.com/gbehrmann/xrootd4j/</url>
+      <url>http://github.com/dCache/xrootd4j/</url>
     </site>
   </distributionManagement>
 
   <issueManagement>
       <system>GitHub</system>
-      <url>http://github.com/gbehrmann/xrootd4j/issues/</url>
+      <url>http://github.com/dCache/xrootd4j/issues/</url>
   </issueManagement>
 
   <mailingLists>
