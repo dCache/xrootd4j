@@ -48,8 +48,9 @@ public class XrootdAuthenticationHandlerProvider implements ChannelHandlerProvid
         if (plugin.startsWith(PREFIX)) {
             String name = plugin.substring(PREFIX.length());
 
-            ServiceLoader<AuthenticationProvider> providers =
-                ServiceLoader.load(AuthenticationProvider.class, _classLoader);
+            ServiceLoader<AuthenticationProvider> providers = (_classLoader == null)
+                ? ServiceLoader.load(AuthenticationProvider.class)
+                : ServiceLoader.load(AuthenticationProvider.class, _classLoader);
             for (AuthenticationProvider provider: providers) {
                 AuthenticationFactory factory = provider.createFactory(name, properties);
                 if (factory != null) {
