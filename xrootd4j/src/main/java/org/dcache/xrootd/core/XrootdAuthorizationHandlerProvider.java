@@ -49,8 +49,9 @@ public class XrootdAuthorizationHandlerProvider implements ChannelHandlerProvide
         if (plugin.startsWith(PREFIX)) {
             String name = plugin.substring(PREFIX.length());
 
-            ServiceLoader<AuthorizationProvider> providers =
-                ServiceLoader.load(AuthorizationProvider.class, _classLoader);
+            ServiceLoader<AuthorizationProvider> providers = (_classLoader == null)
+                ? ServiceLoader.load(AuthorizationProvider.class)
+                : ServiceLoader.load(AuthorizationProvider.class, _classLoader);
             for (AuthorizationProvider provider: providers) {
                 AuthorizationFactory factory = provider.createFactory(name, properties);
                 if (factory != null) {
