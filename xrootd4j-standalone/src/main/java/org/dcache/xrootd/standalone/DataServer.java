@@ -32,6 +32,7 @@ import org.jboss.netty.channel.group.ChannelGroup;
 import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.bootstrap.ServerBootstrap;
+import org.jboss.netty.channel.socket.oio.OioServerSocketChannelFactory;
 import org.jboss.netty.logging.InternalLoggerFactory;
 import org.jboss.netty.logging.Slf4JLoggerFactory;
 
@@ -59,8 +60,13 @@ public class DataServer
         ChannelPipelineFactory pipelineFactory =
             new DataServerPipelineFactory(_configuration, allChannels);
         ChannelFactory factory =
-            new NioServerSocketChannelFactory(Executors.newCachedThreadPool(),
-                                              Executors.newCachedThreadPool());
+            _configuration.blocking
+                ? new OioServerSocketChannelFactory(
+                Executors.newCachedThreadPool(),
+                Executors.newCachedThreadPool())
+                : new NioServerSocketChannelFactory(
+                Executors.newCachedThreadPool(),
+                Executors.newCachedThreadPool());
         final ServerBootstrap bootstrap = new ServerBootstrap(factory);
         bootstrap.setOption("child.tcpNoDelay", true);
         bootstrap.setOption("child.keepAlive", true);

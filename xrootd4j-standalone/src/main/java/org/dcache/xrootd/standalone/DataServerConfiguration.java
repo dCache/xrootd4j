@@ -60,6 +60,7 @@ public class DataServerConfiguration
     public final File root;
     public final List<File> pluginPath;
     public final List<String> channelHandlerPlugins;
+    public final boolean blocking;
 
     public final List<ChannelHandlerFactory> channelHandlerFactories;
 
@@ -70,6 +71,7 @@ public class DataServerConfiguration
         root = options.valueOf(parser.root);
         pluginPath = options.valuesOf(parser.pluginPath);
         channelHandlerPlugins = options.valuesOf(parser.handlerPlugins);
+        blocking = options.has(parser.blocking);
 
         _pluginDefaults = loadDefaultProperties(pluginPath);
 
