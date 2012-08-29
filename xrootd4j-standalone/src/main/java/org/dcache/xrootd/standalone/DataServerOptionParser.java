@@ -32,6 +32,7 @@ public class DataServerOptionParser extends OptionParser
     public final OptionSpec<File> root;
     public final OptionSpec<String> handlerPlugins;
     public final OptionSpec<File> pluginPath;
+    public final OptionSpec<Void> blocking;
 
     {
         port = acceptsAll(asList("p", "port"))
@@ -56,5 +57,6 @@ public class DataServerOptionParser extends OptionParser
             .withValuesSeparatedBy(File.pathSeparatorChar)
             .describedAs("url")
             .ofType(File.class);
+        blocking = acceptsAll(asList("b", "blocking"));
     }
 }
