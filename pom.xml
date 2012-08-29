@@ -33,10 +33,6 @@
 
   <repositories>
     <repository>
-      <id>jboss-netty.repository</id>
-      <url>http://repository.jboss.org/nexus/content/groups/public/</url>
-    </repository>
-    <repository>
         <id>dcache.repository</id>
         <url>http://www.dcache.org/nexus/content/groups/public</url>
     </repository>
@@ -105,9 +101,9 @@
           <scope>test</scope>
       </dependency>
       <dependency>
-          <groupId>org.jboss.netty</groupId>
+          <groupId>io.netty</groupId>
           <artifactId>netty</artifactId>
-          <version>3.2.4.Final</version>
+          <version>3.5.3.Final</version>
       </dependency>
       <dependency>
           <groupId>org.slf4j</groupId>
