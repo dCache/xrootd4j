@@ -60,7 +60,8 @@ public class DataServerConfiguration
     public final File root;
     public final List<File> pluginPath;
     public final List<String> channelHandlerPlugins;
-    public final boolean blocking;
+    public final boolean useBlockingIo;
+    public final boolean useZeroCopy;
 
     public final List<ChannelHandlerFactory> channelHandlerFactories;
 
@@ -71,7 +72,8 @@ public class DataServerConfiguration
         root = options.valueOf(parser.root);
         pluginPath = options.valuesOf(parser.pluginPath);
         channelHandlerPlugins = options.valuesOf(parser.handlerPlugins);
-        blocking = options.has(parser.blocking);
+        useBlockingIo = options.has(parser.blocking);
+        useZeroCopy = options.has(parser.zeroCopy);
 
         _pluginDefaults = loadDefaultProperties(pluginPath);
 

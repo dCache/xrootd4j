@@ -60,7 +60,7 @@ public class DataServer
         ChannelPipelineFactory pipelineFactory =
             new DataServerPipelineFactory(_configuration, allChannels);
         ChannelFactory factory =
-            _configuration.blocking
+            _configuration.useBlockingIo
                 ? new OioServerSocketChannelFactory(
                 Executors.newCachedThreadPool(),
                 Executors.newCachedThreadPool())

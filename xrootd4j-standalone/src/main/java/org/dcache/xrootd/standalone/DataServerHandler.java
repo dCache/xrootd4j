@@ -41,8 +41,12 @@ import org.dcache.xrootd.stream.ChunkedFileChannelReadResponse;
 import org.dcache.xrootd.stream.ChunkedFileChannelReadvResponse;
 import org.dcache.xrootd.stream.ChunkedFileReadvResponse;
 import org.dcache.xrootd.util.FileStatus;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
+import org.jboss.netty.channel.Channels;
+import org.jboss.netty.channel.DefaultFileRegion;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.group.ChannelGroup;
@@ -352,6 +356,15 @@ public class DataServerHandler extends XrootdRequestHandler
         RandomAccessFile raf = getOpenFile(msg.getFileHandle());
         if (msg.bytesToRead() == 0) {
             return withOk(msg);
+        } else if (_configuration.useZeroCopy) {
+            ChannelBuffer buffer = ChannelBuffers.buffer(8);
+            buffer.writeShort(msg.getStreamId());
+            buffer.writeShort(kXR_ok);
+            buffer.writeInt(msg.bytesToRead());
+            Channels.write(ctx.getChannel(), buffer);
+            Channels.write(ctx.getChannel(), new DefaultFileRegion(raf.getChannel(),
+                msg.getReadOffset(), msg.bytesToRead()));
+            return null;
         } else {
             return new ChunkedFileChannelReadResponse(msg, MAX_FRAME_SIZE, raf.getChannel());
         }

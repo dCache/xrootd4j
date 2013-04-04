@@ -33,6 +33,7 @@ public class DataServerOptionParser extends OptionParser
     public final OptionSpec<String> handlerPlugins;
     public final OptionSpec<File> pluginPath;
     public final OptionSpec<Void> blocking;
+    public final OptionSpec<Void> zeroCopy;
 
     {
         port = acceptsAll(asList("p", "port"))
@@ -57,6 +58,7 @@ public class DataServerOptionParser extends OptionParser
             .withValuesSeparatedBy(File.pathSeparatorChar)
             .describedAs("url")
             .ofType(File.class);
-        blocking = acceptsAll(asList("b", "blocking"));
+        blocking = acceptsAll(asList("b", "blocking"), "Use blocking IO calls");
+        zeroCopy = acceptsAll(asList("z", "zerocopy"), "Use zero copy reads");
     }
 }
