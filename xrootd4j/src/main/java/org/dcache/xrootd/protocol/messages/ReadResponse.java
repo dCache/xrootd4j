@@ -20,11 +20,14 @@
 package org.dcache.xrootd.protocol.messages;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import static org.jboss.netty.buffer.ChannelBuffers.wrappedBuffer;
 
 import java.nio.channels.ScatteringByteChannel;
 import java.io.IOException;
 
 import org.dcache.xrootd.protocol.messages.GenericReadRequestMessage.EmbeddedReadRequest;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
 
 public class ReadResponse extends AbstractResponseMessage
 {
@@ -62,6 +65,33 @@ public class ReadResponse extends AbstractResponseMessage
         putSignedInt(req.BytesToRead());
         putSignedLong(req.getOffset());
         return 16;
+    }
+
+    private ChannelBuffer createReadListHeader(EmbeddedReadRequest request, int actualLength)
+    {
+        ChannelBuffer buffer = ChannelBuffers.buffer(16);
+        buffer.writeInt(request.getFileHandle());
+        buffer.writeInt(actualLength);
+        buffer.writeLong(request.getOffset());
+        return buffer;
+    }
+
+    public void write(EmbeddedReadRequest[] requests,
+                      ChannelBuffer[] buffers,
+                      int offset, int length)
+    {
+        ChannelBuffer[] reply = new ChannelBuffer[2 * length + 1];
+        reply[0] = _buffer;
+        for (int i = 0; i < length; i++) {
+            reply[2 * i + 1] = createReadListHeader(requests[offset + i], buffers[offset + i].readableBytes());
+            reply[2 * i + 2] = buffers[offset + i];
+        }
+        _buffer = wrappedBuffer(reply);
+    }
+
+    public void append(ChannelBuffer buffer)
+    {
+        _buffer = wrappedBuffer(_buffer, buffer);
     }
 
     /**

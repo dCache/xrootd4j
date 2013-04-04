@@ -60,7 +60,7 @@ public class XrootdRequestHandler extends IdleStateAwareChannelHandler
                                    XrootdRequest req)
     {
         try {
-            AbstractResponseMessage response;
+            Object response;
             switch (req.getRequestId()) {
             case kXR_auth:
                 response =
@@ -143,9 +143,9 @@ public class XrootdRequestHandler extends IdleStateAwareChannelHandler
         } catch (RuntimeException e) {
             _log.error(String.format("Processing %s failed due to a bug", req), e);
             respond(ctx, event,
-                    withError(req, kXR_ServerError,
-                              String.format("Internal server error (%s)",
-                                            e.getMessage())));
+                withError(req, kXR_ServerError,
+                    String.format("Internal server error (%s)",
+                        e.getMessage())));
         }
     }
 
@@ -154,160 +154,159 @@ public class XrootdRequestHandler extends IdleStateAwareChannelHandler
         return new OkResponse(req);
     }
 
-    protected ErrorResponse
-        withError(XrootdRequest req, int errorCode, String errMsg)
+    protected ErrorResponse withError(XrootdRequest req, int errorCode, String errMsg)
     {
         return new ErrorResponse(req, errorCode, errMsg);
     }
 
     protected ChannelFuture respond(ChannelHandlerContext ctx,
                                     MessageEvent e,
-                                    AbstractResponseMessage msg)
+                                    Object response)
     {
-        return e.getChannel().write(msg);
+        return e.getChannel().write(response);
     }
 
-    protected AbstractResponseMessage unsupported(ChannelHandlerContext ctx,
-                                                  MessageEvent e,
-                                                  XrootdRequest msg)
+    protected Object unsupported(ChannelHandlerContext ctx,
+                                 MessageEvent e,
+                                 XrootdRequest msg)
         throws XrootdException
     {
         _log.warn("Unsupported request: " + msg);
         throw new XrootdException(kXR_Unsupported,
-                                  "Request " + msg.getRequestId() + " not supported");
+            "Request " + msg.getRequestId() + " not supported");
     }
 
-    protected AbstractResponseMessage doOnLogin(ChannelHandlerContext ctx,
-                                                MessageEvent e,
-                                                LoginRequest msg)
+    protected Object doOnLogin(ChannelHandlerContext ctx,
+                               MessageEvent e,
+                               LoginRequest msg)
         throws XrootdException
     {
         return unsupported(ctx, e, msg);
     }
 
-    protected AbstractResponseMessage doOnAuthentication(ChannelHandlerContext ctx,
-                                                         MessageEvent e,
-                                                         AuthenticationRequest msg)
+    protected Object doOnAuthentication(ChannelHandlerContext ctx,
+                                        MessageEvent e,
+                                        AuthenticationRequest msg)
         throws XrootdException
     {
         return unsupported(ctx, e, msg);
     }
 
-    protected AbstractResponseMessage doOnOpen(ChannelHandlerContext ctx,
-                                               MessageEvent e,
-                                               OpenRequest msg)
+    protected Object doOnOpen(ChannelHandlerContext ctx,
+                              MessageEvent e,
+                              OpenRequest msg)
         throws XrootdException
     {
         return unsupported(ctx, e, msg);
     }
 
-    protected AbstractResponseMessage doOnStat(ChannelHandlerContext ctx,
-                                               MessageEvent e,
-                                               StatRequest msg)
+    protected Object doOnStat(ChannelHandlerContext ctx,
+                              MessageEvent e,
+                              StatRequest msg)
         throws XrootdException
     {
         return unsupported(ctx, e, msg);
     }
 
-    protected AbstractResponseMessage doOnStatx(ChannelHandlerContext ctx,
-                                                MessageEvent e,
-                                                StatxRequest msg)
+    protected Object doOnStatx(ChannelHandlerContext ctx,
+                               MessageEvent e,
+                               StatxRequest msg)
         throws XrootdException
     {
         return unsupported(ctx, e, msg);
     }
 
-    protected AbstractResponseMessage doOnRead(ChannelHandlerContext ctx,
-                                               MessageEvent e,
-                                               ReadRequest msg)
+    protected Object doOnRead(ChannelHandlerContext ctx,
+                              MessageEvent e,
+                              ReadRequest msg)
         throws XrootdException
     {
         return unsupported(ctx, e, msg);
     }
 
-    protected AbstractResponseMessage doOnReadV(ChannelHandlerContext ctx,
-                                                MessageEvent e,
-                                                ReadVRequest msg)
+    protected Object doOnReadV(ChannelHandlerContext ctx,
+                               MessageEvent e,
+                               ReadVRequest msg)
         throws XrootdException
     {
         return unsupported(ctx, e, msg);
     }
 
-    protected AbstractResponseMessage doOnWrite(ChannelHandlerContext ctx,
-                                                MessageEvent e,
-                                                WriteRequest msg)
+    protected Object doOnWrite(ChannelHandlerContext ctx,
+                               MessageEvent e,
+                               WriteRequest msg)
         throws XrootdException
     {
         return unsupported(ctx, e, msg);
     }
 
-    protected AbstractResponseMessage doOnSync(ChannelHandlerContext ctx,
-                                               MessageEvent e,
-                                               SyncRequest msg)
+    protected Object doOnSync(ChannelHandlerContext ctx,
+                              MessageEvent e,
+                              SyncRequest msg)
         throws XrootdException
     {
         return unsupported(ctx, e, msg);
     }
 
-    protected AbstractResponseMessage doOnClose(ChannelHandlerContext ctx,
-                                                MessageEvent e,
-                                                CloseRequest msg)
+    protected Object doOnClose(ChannelHandlerContext ctx,
+                               MessageEvent e,
+                               CloseRequest msg)
         throws XrootdException
     {
         return unsupported(ctx, e, msg);
     }
 
-    protected AbstractResponseMessage doOnProtocolRequest(ChannelHandlerContext ctx,
-                                                          MessageEvent e,
-                                                          ProtocolRequest msg)
+    protected Object doOnProtocolRequest(ChannelHandlerContext ctx,
+                                         MessageEvent e,
+                                         ProtocolRequest msg)
         throws XrootdException
     {
         return unsupported(ctx, e, msg);
     }
 
-    protected AbstractResponseMessage doOnRm(ChannelHandlerContext ctx,
-                                             MessageEvent e,
-                                             RmRequest msg)
+    protected Object doOnRm(ChannelHandlerContext ctx,
+                            MessageEvent e,
+                            RmRequest msg)
         throws XrootdException
     {
         return unsupported(ctx, e, msg);
     }
 
-    protected AbstractResponseMessage doOnRmDir(ChannelHandlerContext ctx,
-                                                MessageEvent e,
-                                                RmDirRequest msg)
+    protected Object doOnRmDir(ChannelHandlerContext ctx,
+                               MessageEvent e,
+                               RmDirRequest msg)
         throws XrootdException
     {
         return unsupported(ctx, e, msg);
     }
 
-    protected AbstractResponseMessage doOnMkDir(ChannelHandlerContext ctx,
-                                                MessageEvent e,
-                                                MkDirRequest msg)
+    protected Object doOnMkDir(ChannelHandlerContext ctx,
+                               MessageEvent e,
+                               MkDirRequest msg)
         throws XrootdException
     {
         return unsupported(ctx, e, msg);
     }
 
-    protected AbstractResponseMessage doOnMv(ChannelHandlerContext ctx,
-                                             MessageEvent e,
-                                             MvRequest msg)
+    protected Object doOnMv(ChannelHandlerContext ctx,
+                            MessageEvent e,
+                            MvRequest msg)
         throws XrootdException
     {
         return unsupported(ctx, e, msg);
     }
 
-    protected AbstractResponseMessage doOnDirList(ChannelHandlerContext ctx,
-                                                  MessageEvent e,
-                                                  DirListRequest msg)
+    protected Object doOnDirList(ChannelHandlerContext ctx,
+                                 MessageEvent e,
+                                 DirListRequest msg)
         throws XrootdException
     {
         return unsupported(ctx, e, msg);
     }
 
-    protected AbstractResponseMessage doOnPrepare(ChannelHandlerContext ctx,
-                                                  MessageEvent e,
-                                                  PrepareRequest msg)
+    protected Object doOnPrepare(ChannelHandlerContext ctx,
+                                 MessageEvent e,
+                                 PrepareRequest msg)
         throws XrootdException
     {
         return unsupported(ctx, e, msg);

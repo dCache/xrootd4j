@@ -20,6 +20,7 @@
 package org.dcache.xrootd.standalone;
 
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
+import org.dcache.xrootd.stream.ChunkedResponseWriteHandler;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.group.ChannelGroup;
@@ -31,10 +32,15 @@ import static org.jboss.netty.channel.Channels.pipeline;
 import org.dcache.xrootd.core.XrootdEncoder;
 import org.dcache.xrootd.core.XrootdDecoder;
 import org.dcache.xrootd.core.XrootdHandshakeHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 public class DataServerPipelineFactory implements ChannelPipelineFactory
 {
+    private static final Logger logger = LoggerFactory.getLogger(DataServerPipelineFactory.class);
+
     private static final int MB = 1 << 20;
     private static final int THREADS = 16;
     private static final int CHANNEL_MEMORY = 16 * MB;
@@ -59,7 +65,9 @@ public class DataServerPipelineFactory implements ChannelPipelineFactory
         ChannelPipeline pipeline = pipeline();
         pipeline.addLast("encoder", new XrootdEncoder());
         pipeline.addLast("decoder", new XrootdDecoder());
-        pipeline.addLast("logger", new LoggingHandler(DataServer.class));
+        if (logger.isDebugEnabled()) {
+            pipeline.addLast("logger", new LoggingHandler(DataServerPipelineFactory.class));
+        }
         pipeline.addLast("handshaker", new XrootdHandshakeHandler(DATA_SERVER));
 
         for (ChannelHandlerFactory factory: _options.channelHandlerFactories) {
@@ -67,6 +75,7 @@ public class DataServerPipelineFactory implements ChannelPipelineFactory
         }
 
         pipeline.addLast("executor", _executionHandler);
+        pipeline.addLast("chunk-writer", new ChunkedResponseWriteHandler());
         pipeline.addLast("data-server",
                          new DataServerHandler(_options,
                                                _allChannels));

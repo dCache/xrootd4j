@@ -37,6 +37,9 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 import org.dcache.xrootd.protocol.messages.*;
 import org.dcache.xrootd.protocol.messages.GenericReadRequestMessage.EmbeddedReadRequest;
+import org.dcache.xrootd.stream.ChunkedFileChannelReadResponse;
+import org.dcache.xrootd.stream.ChunkedFileChannelReadvResponse;
+import org.dcache.xrootd.stream.ChunkedFileReadvResponse;
 import org.dcache.xrootd.util.FileStatus;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
@@ -51,6 +54,12 @@ public class DataServerHandler extends XrootdRequestHandler
 {
     private final static Logger _log =
         LoggerFactory.getLogger(DataServerHandler.class);
+
+    /**
+     * Maximum frame size of a read or readv reply. Does not include the size
+     * of the frame header.
+     */
+    private final static int MAX_FRAME_SIZE = 2 << 20;
 
     private final ChannelGroup _allChannels;
 
@@ -335,31 +344,16 @@ public class DataServerHandler extends XrootdRequestHandler
      * @param msg The actual request
      */
     @Override
-    protected ReadResponse doOnRead(ChannelHandlerContext ctx,
-                                    MessageEvent event,
-                                    ReadRequest msg)
+    protected Object doOnRead(ChannelHandlerContext ctx,
+                              MessageEvent event,
+                              ReadRequest msg)
         throws XrootdException
     {
-        try {
-            int fd = msg.getFileHandle();
-            long offset = msg.getReadOffset();
-            int length = msg.bytesToRead();
-
-            RandomAccessFile raf = getOpenFile(fd);
-            FileChannel channel = raf.getChannel();
-            channel.position(offset);
-            ReadResponse response = new ReadResponse(msg, length);
-            while (length > 0) {
-                int len = response.writeBytes(channel, length);
-                if (len == -1) {
-                    break;
-                }
-                length -= len;
-            }
-            response.setIncomplete(false);
-            return response;
-        } catch (IOException e) {
-            throw new XrootdException(kXR_IOError, e.getMessage());
+        RandomAccessFile raf = getOpenFile(msg.getFileHandle());
+        if (msg.bytesToRead() == 0) {
+            return withOk(msg);
+        } else {
+            return new ChunkedFileChannelReadResponse(msg, MAX_FRAME_SIZE, raf.getChannel());
         }
     }
 
@@ -376,40 +370,18 @@ public class DataServerHandler extends XrootdRequestHandler
      * @param msg The actual request.
      */
     @Override
-    protected ReadResponse doOnReadV(ChannelHandlerContext ctx,
-                                     MessageEvent event,
-                                     ReadVRequest msg)
+    protected ChunkedFileReadvResponse doOnReadV(ChannelHandlerContext ctx,
+                                                        MessageEvent event,
+                                                        ReadVRequest msg)
         throws XrootdException
     {
-        try {
-            EmbeddedReadRequest[] requests = msg.getReadRequestList();
-
-            if (requests == null || requests.length == 0) {
-                throw new XrootdException(kXR_ArgMissing,
-                                          "Request contains no vector");
-            }
-
-            ReadResponse response = new ReadResponse(msg, 0);
-
-            for (EmbeddedReadRequest request: requests) {
-                response.writeBytes(request);
-
-                long offset = request.getOffset();
-                long end = offset + request.BytesToRead();
-                FileChannel channel =
-                    getOpenFile(request.getFileHandle()).getChannel();
-                channel.position(offset);
-                while (offset < end) {
-                    int read =
-                        response.writeBytes(channel, (int) (end - offset));
-                    offset += read;
-                }
-            }
-            response.setIncomplete(false);
-            return response;
-        } catch (IOException e) {
-            throw new XrootdException(kXR_IOError, e.getMessage());
+        EmbeddedReadRequest[] requests = msg.getReadRequestList();
+        if (requests == null || requests.length == 0) {
+            throw new XrootdException(kXR_ArgMissing,
+                                      "Request contains no vector");
         }
+
+        return new ChunkedFileReadvResponse(msg, MAX_FRAME_SIZE, _openFiles);
     }
 
     /**
