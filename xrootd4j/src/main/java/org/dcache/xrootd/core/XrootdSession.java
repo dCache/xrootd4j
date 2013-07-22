@@ -19,10 +19,11 @@
  */
 package org.dcache.xrootd.core;
 
-import org.dcache.xrootd.protocol.messages.LoginRequest;
-import org.jboss.netty.channel.Channel;
+import io.netty.channel.Channel;
 
 import javax.security.auth.Subject;
+
+import org.dcache.xrootd.protocol.messages.LoginRequest;
 
 public class XrootdSession
 {

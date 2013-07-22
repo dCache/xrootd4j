@@ -19,10 +19,12 @@
  */
 package org.dcache.xrootd.security;
 
+import io.netty.buffer.ByteBuf;
+
 import java.io.IOException;
 import java.io.OutputStream;
+
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
-import org.jboss.netty.buffer.ChannelBuffer;
 
 /**
  * An XrootdBucket is a serialized datatype (string, uint, binary, list) with
@@ -47,7 +49,7 @@ public abstract class XrootdBucket
         return _type;
     }
 
-    public void serialize(ChannelBuffer out) {
+    public void serialize(ByteBuf out) {
         out.writeInt(_type.getCode());
     }
 
@@ -65,7 +67,7 @@ public abstract class XrootdBucket
      * @return The deserialized bucket
      * @throws IOException Deserialization fails.
      */
-    public static XrootdBucket deserialize(BucketType type, ChannelBuffer buffer)
+    public static XrootdBucket deserialize(BucketType type, ByteBuf buffer)
         throws IOException {
 
         XrootdBucket bucket;

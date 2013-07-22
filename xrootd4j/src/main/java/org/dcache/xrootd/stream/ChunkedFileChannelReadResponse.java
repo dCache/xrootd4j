@@ -19,7 +19,7 @@
  */
 package org.dcache.xrootd.stream;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -27,7 +27,7 @@ import java.nio.channels.FileChannel;
 
 import org.dcache.xrootd.protocol.messages.ReadRequest;
 
-import static org.jboss.netty.buffer.ChannelBuffers.wrappedBuffer;
+import static io.netty.buffer.Unpooled.wrappedBuffer;
 
 public class ChunkedFileChannelReadResponse extends AbstractChunkedReadResponse
 {
@@ -40,7 +40,7 @@ public class ChunkedFileChannelReadResponse extends AbstractChunkedReadResponse
     }
 
     @Override
-    public ChannelBuffer read(long position, int length)
+    public ByteBuf read(long position, int length)
         throws IOException
     {
         ByteBuffer chunk = ByteBuffer.allocate(length);

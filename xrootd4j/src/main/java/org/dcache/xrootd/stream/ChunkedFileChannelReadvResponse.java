@@ -19,7 +19,7 @@
  */
 package org.dcache.xrootd.stream;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -29,8 +29,8 @@ import java.util.List;
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.protocol.messages.ReadVRequest;
 
+import static io.netty.buffer.Unpooled.wrappedBuffer;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_FileNotOpen;
-import static org.jboss.netty.buffer.ChannelBuffers.wrappedBuffer;
 
 public class ChunkedFileChannelReadvResponse extends AbstractChunkedReadvResponse
 {
@@ -57,7 +57,7 @@ public class ChunkedFileChannelReadvResponse extends AbstractChunkedReadvRespons
     }
 
     @Override
-    protected ChannelBuffer read(int fd, long position, int length)
+    protected ByteBuf read(int fd, long position, int length)
         throws IOException, XrootdException
     {
         checkValidFileDescriptor(fd);

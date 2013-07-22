@@ -19,17 +19,18 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.SESSION_ID_SIZE;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_endsess;
+import io.netty.buffer.ByteBuf;
 
 import org.dcache.xrootd.core.XrootdSessionIdentifier;
-import org.jboss.netty.buffer.ChannelBuffer;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.SESSION_ID_SIZE;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_endsess;
 
 public class EndSessionRequest extends XrootdRequest
 {
     private final byte[] _session = new byte[SESSION_ID_SIZE];
 
-    public EndSessionRequest(ChannelBuffer buffer)
+    public EndSessionRequest(ByteBuf buffer)
     {
         super(buffer, kXR_endsess);
         buffer.getBytes(4, _session);

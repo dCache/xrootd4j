@@ -19,21 +19,18 @@
  */
 package org.dcache.xrootd.core;
 
-import java.util.Arrays;
-
-
-import static org.jboss.netty.channel.Channels.*;
-import static org.jboss.netty.buffer.ChannelBuffers.*;
-import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.MessageEvent;
-
-import org.dcache.xrootd.protocol.messages.XrootdRequest;
-import org.dcache.xrootd.protocol.messages.HandshakeRequest;
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundMessageHandlerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+
+import org.dcache.xrootd.protocol.messages.HandshakeRequest;
+import org.dcache.xrootd.protocol.messages.XrootdRequest;
+
+import static io.netty.buffer.Unpooled.wrappedBuffer;
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 /**
  * A ChannelHandler which recognizes the xrootd handshake and
@@ -41,9 +38,9 @@ import org.slf4j.LoggerFactory;
  * are passed on. Failure to handshake causes the channel to be
  * closed.
  */
-public class XrootdHandshakeHandler extends SimpleChannelUpstreamHandler
+public class XrootdHandshakeHandler extends ChannelInboundMessageHandlerAdapter<XrootdRequest>
 {
-    private final static Logger _log =
+    private static final Logger _log =
         LoggerFactory.getLogger(XrootdHandshakeHandler.class);
 
     private final int _serverType;
@@ -56,15 +53,13 @@ public class XrootdHandshakeHandler extends SimpleChannelUpstreamHandler
     }
 
     @Override
-    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e)
+    public void messageReceived(ChannelHandlerContext ctx, XrootdRequest msg)
         throws Exception
     {
-        XrootdRequest msg = (XrootdRequest) e.getMessage();
-
         if (!_isHandshaked) {
             if (!(msg instanceof HandshakeRequest)) {
                 _log.error("Invalid handshake");
-                close(ctx, e.getFuture());
+                ctx.channel().close();
                 return;
             }
 
@@ -72,7 +67,7 @@ public class XrootdHandshakeHandler extends SimpleChannelUpstreamHandler
             if (!Arrays.equals(request, HANDSHAKE_REQUEST)) {
                 _log.error("Received corrupt handshake message ("
                            + request.length + " bytes).");
-                close(ctx, e.getFuture());
+                ctx.channel().close();
                 return;
             }
 
@@ -88,17 +83,17 @@ public class XrootdHandshakeHandler extends SimpleChannelUpstreamHandler
 
             default:
                 _log.error("Unknown server type (" + _serverType + ")");
-                close(ctx, e.getFuture());
+                ctx.channel().close();
                 return;
             }
 
-            write(ctx, e.getFuture(), wrappedBuffer(response));
+            ctx.channel().write(wrappedBuffer(response));
 
             _isHandshaked = true;
 
             return;
         }
 
-        super.messageReceived(ctx, e);
+        ctx.nextInboundMessageBuffer().add(msg);
     }
 }

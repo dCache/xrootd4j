@@ -19,22 +19,22 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import io.netty.buffer.ByteBuf;
 
 import java.io.UnsupportedEncodingException;
+
+import static io.netty.buffer.Unpooled.buffer;
+import static org.dcache.xrootd.protocol.XrootdProtocol.SERVER_RESPONSE_LEN;
 
 public abstract class AbstractResponseMessage
 {
     protected final XrootdRequest _request;
-    protected ChannelBuffer _buffer;
+    protected ByteBuf _buffer;
 
     public AbstractResponseMessage(XrootdRequest request, int stat, int length)
     {
         _request = request;
-        _buffer = ChannelBuffers.dynamicBuffer(SERVER_RESPONSE_LEN + length);
+        _buffer = buffer(SERVER_RESPONSE_LEN + length);
 
         putUnsignedShort(request.getStreamId());
         putUnsignedShort(stat);
@@ -100,7 +100,7 @@ public abstract class AbstractResponseMessage
      * response object is no longer valid if the read index of the
      * buffer is changed.
      */
-    public ChannelBuffer getBuffer()
+    public ByteBuf getBuffer()
     {
         return _buffer;
     }

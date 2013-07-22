@@ -19,14 +19,16 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_stat;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_vfs;
 
 public class StatRequest extends PathRequest
 {
     private final short _opts;
 
-    public StatRequest(ChannelBuffer buffer)
+    public StatRequest(ByteBuf buffer)
     {
         super(buffer, kXR_stat);
         _opts = buffer.getUnsignedByte(4);

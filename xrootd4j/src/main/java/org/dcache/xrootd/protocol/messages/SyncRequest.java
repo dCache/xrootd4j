@@ -19,14 +19,15 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import io.netty.buffer.ByteBuf;
+
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_sync;
-import org.jboss.netty.buffer.ChannelBuffer;
 
 public class SyncRequest extends XrootdRequest
 {
     private final int _fhandle;
 
-    public SyncRequest(ChannelBuffer buffer)
+    public SyncRequest(ByteBuf buffer)
     {
         super(buffer, kXR_sync);
         _fhandle = buffer.getInt(4);

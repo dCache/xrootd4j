@@ -19,19 +19,20 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import static org.jboss.netty.buffer.ChannelBuffers.wrappedBuffer;
+import io.netty.buffer.ByteBuf;
 
-import java.nio.channels.ScatteringByteChannel;
 import java.io.IOException;
+import java.nio.channels.ScatteringByteChannel;
 
 import org.dcache.xrootd.protocol.messages.GenericReadRequestMessage.EmbeddedReadRequest;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
+
+import static io.netty.buffer.Unpooled.buffer;
+import static io.netty.buffer.Unpooled.wrappedBuffer;
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 public class ReadResponse extends AbstractResponseMessage
 {
-    public final static int READ_LIST_HEADER_SIZE = 16;
+    public static final int READ_LIST_HEADER_SIZE = 16;
 
     public ReadResponse(XrootdRequest request, int length)
     {
@@ -67,9 +68,9 @@ public class ReadResponse extends AbstractResponseMessage
         return 16;
     }
 
-    private ChannelBuffer createReadListHeader(EmbeddedReadRequest request, int actualLength)
+    private ByteBuf createReadListHeader(EmbeddedReadRequest request, int actualLength)
     {
-        ChannelBuffer buffer = ChannelBuffers.buffer(16);
+        ByteBuf buffer = buffer(16);
         buffer.writeInt(request.getFileHandle());
         buffer.writeInt(actualLength);
         buffer.writeLong(request.getOffset());
@@ -77,10 +78,10 @@ public class ReadResponse extends AbstractResponseMessage
     }
 
     public void write(EmbeddedReadRequest[] requests,
-                      ChannelBuffer[] buffers,
+                      ByteBuf[] buffers,
                       int offset, int length)
     {
-        ChannelBuffer[] reply = new ChannelBuffer[2 * length + 1];
+        ByteBuf[] reply = new ByteBuf[2 * length + 1];
         reply[0] = _buffer;
         for (int i = 0; i < length; i++) {
             reply[2 * i + 1] = createReadListHeader(requests[offset + i], buffers[offset + i].readableBytes());
@@ -89,7 +90,7 @@ public class ReadResponse extends AbstractResponseMessage
         _buffer = wrappedBuffer(reply);
     }
 
-    public void append(ChannelBuffer buffer)
+    public void append(ByteBuf buffer)
     {
         _buffer = wrappedBuffer(_buffer, buffer);
     }

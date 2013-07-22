@@ -19,9 +19,9 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mv;
+import io.netty.buffer.ByteBuf;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mv;
 
 public class MvRequest extends XrootdRequest
 {
@@ -29,7 +29,7 @@ public class MvRequest extends XrootdRequest
     private String _targetPath;
     private String _opaque;
 
-    public MvRequest(ChannelBuffer buffer) {
+    public MvRequest(ByteBuf buffer) {
         super(buffer, kXR_mv);
 
         int dlen = buffer.getInt(20);

@@ -19,9 +19,10 @@
  */
 package org.dcache.xrootd.core;
 
+import io.netty.channel.ChannelHandler;
+
 import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
-import org.jboss.netty.channel.ChannelHandler;
 
 public class XrootdAuthenticationHandlerFactory implements ChannelHandlerFactory
 {

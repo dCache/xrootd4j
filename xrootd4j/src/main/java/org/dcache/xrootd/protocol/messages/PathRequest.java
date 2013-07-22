@@ -19,7 +19,7 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 /**
  * Base class for requests that contain a path.
@@ -40,13 +40,13 @@ public class PathRequest extends XrootdRequest
         super();
     }
 
-    public PathRequest(ChannelBuffer buffer, int requestId)
+    public PathRequest(ByteBuf buffer, int requestId)
     {
         super(buffer, requestId);
         setPathAndOpaque(buffer, 24, buffer.getInt(20));
     }
 
-    private void setPathAndOpaque(ChannelBuffer buffer, int begin, int length)
+    private void setPathAndOpaque(ByteBuf buffer, int begin, int length)
     {
         int end = begin + length;
         int pos = buffer.indexOf(begin, end, OPAQUE_DELIMITER);

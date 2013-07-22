@@ -19,8 +19,9 @@
  */
 package org.dcache.xrootd.security;
 
+import io.netty.buffer.ByteBuf;
+
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
-import org.jboss.netty.buffer.ChannelBuffer;
 
 /**
  * A bucket containing a header plus an unsigned integer.
@@ -44,7 +45,7 @@ public class UnsignedIntBucket extends XrootdBucket
         return _data;
     }
 
-    public static UnsignedIntBucket deserialize(BucketType type, ChannelBuffer buffer) {
+    public static UnsignedIntBucket deserialize(BucketType type, ByteBuf buffer) {
 
         UnsignedIntBucket bucket = new UnsignedIntBucket(type, buffer.getInt(0));
 
@@ -52,7 +53,7 @@ public class UnsignedIntBucket extends XrootdBucket
     }
 
     @Override
-    public void serialize(ChannelBuffer out) {
+    public void serialize(ByteBuf out) {
         super.serialize(out);
         out.writeInt(4);
         out.writeInt(_data);

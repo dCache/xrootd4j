@@ -19,22 +19,20 @@
  */
 package org.dcache.xrootd.standalone;
 
-import java.net.InetSocketAddress;
-import java.util.NoSuchElementException;
-import java.util.concurrent.Executors;
-
-import joptsimple.OptionSet;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.group.ChannelGroup;
+import io.netty.channel.group.DefaultChannelGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.oio.OioEventLoopGroup;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.channel.socket.oio.OioServerSocketChannel;
+import io.netty.util.internal.logging.InternalLoggerFactory;
+import io.netty.util.internal.logging.Slf4JLoggerFactory;
 import joptsimple.OptionException;
+import joptsimple.OptionSet;
 
-import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.ChannelFactory;
-import org.jboss.netty.channel.group.ChannelGroup;
-import org.jboss.netty.channel.group.DefaultChannelGroup;
-import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-import org.jboss.netty.bootstrap.ServerBootstrap;
-import org.jboss.netty.channel.socket.oio.OioServerSocketChannelFactory;
-import org.jboss.netty.logging.InternalLoggerFactory;
-import org.jboss.netty.logging.Slf4JLoggerFactory;
+import java.util.NoSuchElementException;
 
 public class DataServer
 {
@@ -55,29 +53,20 @@ public class DataServer
 
     public void start()
     {
-        final ChannelGroup allChannels =
-            new DefaultChannelGroup(DataServer.class.getName());
-        ChannelPipelineFactory pipelineFactory =
-            new DataServerPipelineFactory(_configuration, allChannels);
-        ChannelFactory factory =
-            _configuration.useBlockingIo
-                ? new OioServerSocketChannelFactory(
-                Executors.newCachedThreadPool(),
-                Executors.newCachedThreadPool())
-                : new NioServerSocketChannelFactory(
-                Executors.newCachedThreadPool(),
-                Executors.newCachedThreadPool());
-        final ServerBootstrap bootstrap = new ServerBootstrap(factory);
-        bootstrap.setOption("child.tcpNoDelay", true);
-        bootstrap.setOption("child.keepAlive", true);
-        bootstrap.setPipelineFactory(pipelineFactory);
-        allChannels.add(bootstrap.bind(new InetSocketAddress(_configuration.port)));
+        final ServerBootstrap bootstrap = new ServerBootstrap();
+        bootstrap
+                .group(_configuration.useBlockingIo ? new OioEventLoopGroup() : new NioEventLoopGroup())
+                .channel(_configuration.useBlockingIo ? OioServerSocketChannel.class : NioServerSocketChannel.class)
+                .option(ChannelOption.TCP_NODELAY, true)
+                .option(ChannelOption.SO_KEEPALIVE, true)
+                .childHandler(new DataServerChannelInitializer(_configuration))
+                .localAddress(_configuration.port)
+                .bind();
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
                 @Override
                 public void run() {
-                    allChannels.close().awaitUninterruptibly();
-                    bootstrap.releaseExternalResources();
+                    bootstrap.shutdown();
                 }
             });
     }

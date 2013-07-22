@@ -19,13 +19,13 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import io.netty.buffer.ByteBuf;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_rm;
 
 public class RmRequest extends PathRequest
 {
-    public RmRequest(ChannelBuffer buffer)
+    public RmRequest(ByteBuf buffer)
     {
         super(buffer, kXR_rm);
     }

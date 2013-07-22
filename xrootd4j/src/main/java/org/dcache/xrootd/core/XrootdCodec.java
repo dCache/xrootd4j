@@ -19,36 +19,51 @@
  */
 package org.dcache.xrootd.core;
 
-import org.jboss.netty.handler.codec.frame.FrameDecoder;
-
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.ByteToMessageCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.dcache.xrootd.protocol.messages.*;
+import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
+import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
+import org.dcache.xrootd.protocol.messages.CloseRequest;
+import org.dcache.xrootd.protocol.messages.DirListRequest;
+import org.dcache.xrootd.protocol.messages.EndSessionRequest;
+import org.dcache.xrootd.protocol.messages.HandshakeRequest;
+import org.dcache.xrootd.protocol.messages.LoginRequest;
+import org.dcache.xrootd.protocol.messages.MkDirRequest;
+import org.dcache.xrootd.protocol.messages.MvRequest;
+import org.dcache.xrootd.protocol.messages.OpenRequest;
+import org.dcache.xrootd.protocol.messages.PrepareRequest;
+import org.dcache.xrootd.protocol.messages.ProtocolRequest;
+import org.dcache.xrootd.protocol.messages.ReadRequest;
+import org.dcache.xrootd.protocol.messages.ReadVRequest;
+import org.dcache.xrootd.protocol.messages.RmDirRequest;
+import org.dcache.xrootd.protocol.messages.RmRequest;
+import org.dcache.xrootd.protocol.messages.StatRequest;
+import org.dcache.xrootd.protocol.messages.StatxRequest;
+import org.dcache.xrootd.protocol.messages.SyncRequest;
+import org.dcache.xrootd.protocol.messages.UnknownRequest;
+import org.dcache.xrootd.protocol.messages.WriteRequest;
+
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 /**
  * A FrameDecoder decoding xrootd frames into AbstractRequestMessage
  * objects.
- *
- * TODO: Implement zero-copy handling of write requests by splitting
- * the request into fragments.
  */
-public class XrootdDecoder extends FrameDecoder
+public class XrootdCodec extends ByteToMessageCodec<AbstractResponseMessage>
 {
-    private final static Logger _logger =
-        LoggerFactory.getLogger(XrootdDecoder.class);
+    private static final Logger LOGGER =
+        LoggerFactory.getLogger(XrootdCodec.class);
 
     private boolean gotHandshake = false;
 
     @Override
-    protected Object decode(ChannelHandlerContext ctx, Channel channel,
-                            ChannelBuffer buffer)
+    protected Object decode(ChannelHandlerContext ctx, ByteBuf in) throws Exception
     {
-        int readable = buffer.readableBytes();
+        int readable = in.readableBytes();
 
         /* The first 20 bytes form a handshake.
          */
@@ -58,7 +73,7 @@ public class XrootdDecoder extends FrameDecoder
             }
             gotHandshake = true;
 
-            return new HandshakeRequest(buffer.readSlice(CLIENT_HANDSHAKE_LEN));
+            return new HandshakeRequest(in.readSlice(CLIENT_HANDSHAKE_LEN));
         }
 
         /* All other requests have a common framing format with a
@@ -68,13 +83,13 @@ public class XrootdDecoder extends FrameDecoder
             return null;
         }
 
-        int pos = buffer.readerIndex();
-        int headerFrameLength = buffer.getInt(pos + 20);
+        int pos = in.readerIndex();
+        int headerFrameLength = in.getInt(pos + 20);
 
         if (headerFrameLength < 0) {
-            _logger.error("Received illegal frame length in xrootd header: {}."
-                          + " Closing channel.", headerFrameLength);
-            channel.close();
+            LOGGER.error("Received illegal frame length in xrootd header: {}."
+                    + " Closing channel.", headerFrameLength);
+            ctx.channel().close();
             return null;
         }
 
@@ -84,7 +99,7 @@ public class XrootdDecoder extends FrameDecoder
             return null;
         }
 
-        ChannelBuffer frame = buffer.readBytes(length);
+        ByteBuf frame = in.readBytes(length);
         int requestID = frame.getUnsignedShort(2);
 
         switch (requestID) {
@@ -127,5 +142,14 @@ public class XrootdDecoder extends FrameDecoder
         default:
             return new UnknownRequest(frame);
         }
+    }
+
+    @Override
+    protected void encode(ChannelHandlerContext ctx, AbstractResponseMessage msg, ByteBuf out)
+            throws Exception
+    {
+        ByteBuf buffer = msg.getBuffer();
+        buffer.setInt(4, buffer.readableBytes() - 8);
+        out.writeBytes(buffer);
     }
 }

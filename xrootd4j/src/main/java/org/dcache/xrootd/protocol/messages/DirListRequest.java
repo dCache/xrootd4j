@@ -19,13 +19,13 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import io.netty.buffer.ByteBuf;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_dirlist;
 
 public class DirListRequest extends PathRequest
 {
-    public DirListRequest(ChannelBuffer buffer)
+    public DirListRequest(ByteBuf buffer)
     {
         super(buffer, kXR_dirlist);
     }

@@ -19,103 +19,100 @@
  */
 package org.dcache.xrootd.standalone;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.DefaultFileRegion;
+import org.apache.commons.io.FilenameUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileChannel;
-
-import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
-import org.apache.commons.io.FilenameUtils;
-
-import org.dcache.xrootd.core.XrootdRequestHandler;
 import org.dcache.xrootd.core.XrootdException;
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-
-import org.dcache.xrootd.protocol.messages.*;
+import org.dcache.xrootd.core.XrootdRequestHandler;
+import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
+import org.dcache.xrootd.protocol.messages.CloseRequest;
+import org.dcache.xrootd.protocol.messages.DirListRequest;
+import org.dcache.xrootd.protocol.messages.DirListResponse;
 import org.dcache.xrootd.protocol.messages.GenericReadRequestMessage.EmbeddedReadRequest;
+import org.dcache.xrootd.protocol.messages.MkDirRequest;
+import org.dcache.xrootd.protocol.messages.MvRequest;
+import org.dcache.xrootd.protocol.messages.OkResponse;
+import org.dcache.xrootd.protocol.messages.OpenRequest;
+import org.dcache.xrootd.protocol.messages.OpenResponse;
+import org.dcache.xrootd.protocol.messages.PrepareRequest;
+import org.dcache.xrootd.protocol.messages.ProtocolRequest;
+import org.dcache.xrootd.protocol.messages.ProtocolResponse;
+import org.dcache.xrootd.protocol.messages.ReadRequest;
+import org.dcache.xrootd.protocol.messages.ReadVRequest;
+import org.dcache.xrootd.protocol.messages.RmDirRequest;
+import org.dcache.xrootd.protocol.messages.RmRequest;
+import org.dcache.xrootd.protocol.messages.StatRequest;
+import org.dcache.xrootd.protocol.messages.StatResponse;
+import org.dcache.xrootd.protocol.messages.StatxRequest;
+import org.dcache.xrootd.protocol.messages.StatxResponse;
+import org.dcache.xrootd.protocol.messages.SyncRequest;
+import org.dcache.xrootd.protocol.messages.WriteRequest;
 import org.dcache.xrootd.stream.ChunkedFileChannelReadResponse;
-import org.dcache.xrootd.stream.ChunkedFileChannelReadvResponse;
 import org.dcache.xrootd.stream.ChunkedFileReadvResponse;
 import org.dcache.xrootd.util.FileStatus;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelStateEvent;
-import org.jboss.netty.channel.Channels;
-import org.jboss.netty.channel.DefaultFileRegion;
-import org.jboss.netty.channel.ExceptionEvent;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.group.ChannelGroup;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 public class DataServerHandler extends XrootdRequestHandler
 {
-    private final static Logger _log =
+    private static final Logger _log =
         LoggerFactory.getLogger(DataServerHandler.class);
 
     /**
      * Maximum frame size of a read or readv reply. Does not include the size
      * of the frame header.
      */
-    private final static int MAX_FRAME_SIZE = 2 << 20;
-
-    private final ChannelGroup _allChannels;
+    private static final int MAX_FRAME_SIZE = 2 << 20;
 
     private final List<RandomAccessFile> _openFiles =
         new ArrayList<RandomAccessFile>();
 
     private final DataServerConfiguration _configuration;
 
-    public DataServerHandler(DataServerConfiguration configuration,
-                             ChannelGroup allChannels)
+    public DataServerHandler(DataServerConfiguration configuration)
     {
         _configuration = configuration;
-        _allChannels = allChannels;
     }
 
     @Override
-    public void channelOpen(ChannelHandlerContext ctx, ChannelStateEvent e)
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
     {
-        // Add all open channels to the global group so that they are
-        // closed on shutdown.
-        _allChannels.add(e.getChannel());
-    }
-
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx,
-                                ExceptionEvent e)
-    {
-        Throwable t = e.getCause();
-        if (t instanceof ClosedChannelException) {
+        if (cause instanceof ClosedChannelException) {
             _log.info("Connection closed");
-        } else if (t instanceof RuntimeException || t instanceof Error) {
+        } else if (cause instanceof XrootdException) {
+            // TODO: report this to the client
+        } else if (cause instanceof RuntimeException || cause instanceof Error) {
             Thread me = Thread.currentThread();
-            me.getUncaughtExceptionHandler().uncaughtException(me, t);
+            me.getUncaughtExceptionHandler().uncaughtException(me, cause);
         } else {
-            _log.warn(t.toString());
+            _log.warn(cause.toString());
         }
         // TODO: If not already closed, we should probably close the
         // channel.
     }
 
     @Override
-    protected AbstractResponseMessage
-    doOnProtocolRequest(ChannelHandlerContext ctx, MessageEvent event,
-                        ProtocolRequest msg)
+    protected AbstractResponseMessage doOnProtocolRequest(ChannelHandlerContext ctx, ProtocolRequest msg)
     {
         return new ProtocolResponse(msg, DATA_SERVER);
     }
 
     @Override
-    protected StatResponse doOnStat(ChannelHandlerContext ctx,
-                                    MessageEvent event,
-                                    StatRequest req)
+    protected StatResponse doOnStat(ChannelHandlerContext ctx, StatRequest req)
         throws XrootdException
     {
         File file = getFile(req.getPath());
@@ -128,9 +125,7 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected StatxResponse doOnStatx(ChannelHandlerContext ctx,
-                                      MessageEvent event,
-                                      StatxRequest req)
+    protected StatxResponse doOnStatx(ChannelHandlerContext ctx, StatxRequest req)
         throws XrootdException
     {
         if (req.getPaths().length == 0) {
@@ -153,9 +148,7 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected OkResponse doOnRm(ChannelHandlerContext ctx,
-                                MessageEvent e,
-                                RmRequest req)
+    protected OkResponse doOnRm(ChannelHandlerContext ctx, RmRequest req)
         throws XrootdException
     {
         if (req.getPath().isEmpty()) {
@@ -177,8 +170,7 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected OkResponse doOnRmDir(ChannelHandlerContext ctx, MessageEvent e,
-                                   RmDirRequest req)
+    protected OkResponse doOnRmDir(ChannelHandlerContext ctx, RmDirRequest req)
         throws XrootdException
     {
         if (req.getPath().isEmpty()) {
@@ -200,9 +192,7 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected OkResponse doOnMkDir(ChannelHandlerContext ctx,
-                                   MessageEvent e,
-                                   MkDirRequest req)
+    protected OkResponse doOnMkDir(ChannelHandlerContext ctx, MkDirRequest req)
         throws XrootdException
     {
         if (req.getPath().isEmpty()) {
@@ -228,8 +218,7 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected OkResponse doOnMv(ChannelHandlerContext ctx, MessageEvent e,
-                                MvRequest req)
+    protected OkResponse doOnMv(ChannelHandlerContext ctx, MvRequest req)
         throws XrootdException
     {
         String sourcePath = req.getSourcePath();
@@ -251,9 +240,7 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected DirListResponse doOnDirList(ChannelHandlerContext context,
-                                          MessageEvent event,
-                                          DirListRequest request)
+    protected DirListResponse doOnDirList(ChannelHandlerContext context, DirListRequest request)
         throws XrootdException
     {
         String listPath = request.getPath();
@@ -270,8 +257,7 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected OkResponse doOnPrepare(ChannelHandlerContext ctx, MessageEvent e,
-                                     PrepareRequest msg)
+    protected OkResponse doOnPrepare(ChannelHandlerContext ctx, PrepareRequest msg)
     {
         return withOk(msg);
     }
@@ -283,9 +269,7 @@ public class DataServerHandler extends XrootdRequestHandler
      * processing
      */
     @Override
-    protected OpenResponse doOnOpen(ChannelHandlerContext ctx,
-                                    MessageEvent event,
-                                    OpenRequest msg)
+    protected OpenResponse doOnOpen(ChannelHandlerContext ctx, OpenRequest msg)
         throws XrootdException
     {
         int options = msg.getOptions();
@@ -344,26 +328,23 @@ public class DataServerHandler extends XrootdRequestHandler
      * in a queue, from which it can be taken when sending read information
      * to the client.
      * @param ctx Received from the netty pipeline
-     * @param event Received from the netty pipeline
      * @param msg The actual request
      */
     @Override
-    protected Object doOnRead(ChannelHandlerContext ctx,
-                              MessageEvent event,
-                              ReadRequest msg)
+    protected Object doOnRead(ChannelHandlerContext ctx, ReadRequest msg)
         throws XrootdException
     {
         RandomAccessFile raf = getOpenFile(msg.getFileHandle());
         if (msg.bytesToRead() == 0) {
             return withOk(msg);
         } else if (_configuration.useZeroCopy) {
-            ChannelBuffer buffer = ChannelBuffers.buffer(8);
+            ByteBuf buffer = Unpooled.buffer(8);
             buffer.writeShort(msg.getStreamId());
             buffer.writeShort(kXR_ok);
             buffer.writeInt(msg.bytesToRead());
-            Channels.write(ctx.getChannel(), buffer);
-            Channels.write(ctx.getChannel(), new DefaultFileRegion(raf.getChannel(),
-                msg.getReadOffset(), msg.bytesToRead()));
+            ctx.channel().write(buffer);
+            ctx.channel().write(new DefaultFileRegion(raf.getChannel(),
+                    msg.getReadOffset(), msg.bytesToRead()));
             return null;
         } else {
             return new ChunkedFileChannelReadResponse(msg, MAX_FRAME_SIZE, raf.getChannel());
@@ -379,13 +360,10 @@ public class DataServerHandler extends XrootdRequestHandler
      * transferred or the time of the last update.
      *
      * @param ctx received from the netty pipeline
-     * @param event received from the netty pipeline
      * @param msg The actual request.
      */
     @Override
-    protected ChunkedFileReadvResponse doOnReadV(ChannelHandlerContext ctx,
-                                                        MessageEvent event,
-                                                        ReadVRequest msg)
+    protected ChunkedFileReadvResponse doOnReadV(ChannelHandlerContext ctx, ReadVRequest msg)
         throws XrootdException
     {
         EmbeddedReadRequest[] requests = msg.getReadRequestList();
@@ -403,13 +381,10 @@ public class DataServerHandler extends XrootdRequestHandler
      * function calls to the mover.
      *
      * @param ctx received from the netty pipeline
-     * @param event received from the netty pipeline
      * @param msg the actual request
      */
     @Override
-    protected OkResponse doOnWrite(ChannelHandlerContext ctx,
-                                   MessageEvent event,
-                                   WriteRequest msg)
+    protected OkResponse doOnWrite(ChannelHandlerContext ctx, WriteRequest msg)
         throws XrootdException
     {
         try {
@@ -428,13 +403,10 @@ public class DataServerHandler extends XrootdRequestHandler
      * invokes its sync-operation.
      *
      * @param ctx received from the netty pipeline
-     * @param event received from the netty pipeline
      * @param msg The actual request
      */
     @Override
-    protected OkResponse doOnSync(ChannelHandlerContext ctx,
-                                  MessageEvent event,
-                                  SyncRequest msg)
+    protected OkResponse doOnSync(ChannelHandlerContext ctx, SyncRequest msg)
         throws XrootdException
     {
         try {
@@ -450,13 +422,10 @@ public class DataServerHandler extends XrootdRequestHandler
      * invokes its close information.
      *
      * @param ctx received from the netty pipeline
-     * @param event received from the netty pipeline
      * @param msg The actual request
      */
     @Override
-    protected OkResponse doOnClose(ChannelHandlerContext ctx,
-                                   MessageEvent event,
-                                   CloseRequest msg)
+    protected OkResponse doOnClose(ChannelHandlerContext ctx, CloseRequest msg)
         throws XrootdException
     {
         try {

@@ -19,15 +19,16 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import io.netty.buffer.ByteBuf;
+
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import org.jboss.netty.buffer.ChannelBuffer;
 
 public class OpenRequest extends PathRequest
 {
     private final int _mode;
     private final int _options;
 
-    public OpenRequest(ChannelBuffer buffer)
+    public OpenRequest(ByteBuf buffer)
     {
         super(buffer, kXR_open);
 

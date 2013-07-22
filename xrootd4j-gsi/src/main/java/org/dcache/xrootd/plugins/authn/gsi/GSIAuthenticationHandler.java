@@ -19,47 +19,48 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
+import io.netty.buffer.ByteBuf;
+import org.globus.gsi.CertificateRevocationLists;
+import org.globus.gsi.TrustedCertificates;
+import org.globus.gsi.proxy.ProxyPathValidator;
+import org.globus.gsi.proxy.ProxyPathValidatorException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.crypto.Cipher;
+import javax.security.auth.Subject;
+
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
-import java.security.cert.CertificateEncodingException;
-import java.security.cert.X509Certificate;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import javax.crypto.Cipher;
-import javax.security.auth.Subject;
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
 
 import org.dcache.xrootd.core.XrootdException;
+import org.dcache.xrootd.plugins.AuthenticationHandler;
 import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.AuthenticationResponse;
-import org.dcache.xrootd.protocol.messages.ErrorResponse;
 import org.dcache.xrootd.protocol.messages.OkResponse;
-import org.dcache.xrootd.plugins.AuthenticationHandler;
-import org.dcache.xrootd.security.RawBucket;
-import org.dcache.xrootd.security.XrootdBucket;
 import org.dcache.xrootd.security.NestedBucketBuffer;
+import org.dcache.xrootd.security.RawBucket;
 import org.dcache.xrootd.security.StringBucket;
-import org.globus.gsi.CertificateRevocationLists;
-import org.globus.gsi.TrustedCertificates;
-import org.globus.gsi.jaas.GlobusPrincipal;
-import org.globus.gsi.proxy.ProxyPathValidator;
-import org.globus.gsi.proxy.ProxyPathValidatorException;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.dcache.xrootd.security.XrootdBucket;
+
+import static io.netty.buffer.Unpooled.wrappedBuffer;
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
 
 /**
  * Handler for xrootd-security message exchange based on the GSI protocol.
@@ -78,24 +79,24 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
     public static final String SUPPORTED_CIPHER_ALGORITHMS = "aes-128-cbc";
     public static final String SUPPORTED_DIGESTS = "sha1:md5";
 
-    private final static Logger _logger =
+    private static final Logger _logger =
         LoggerFactory.getLogger(GSIAuthenticationHandler.class);
 
     /**
      * RSA algorithm, no block chaining mode (not a block-cipher) and PKCS1
      * padding, which is recommended to be used in conjunction with RSA
      */
-    private final static String SERVER_ASYNC_CIPHER_MODE = "RSA/NONE/PKCS1Padding";
+    private static final String SERVER_ASYNC_CIPHER_MODE = "RSA/NONE/PKCS1Padding";
 
     /** the sync cipher mode supported by the server. Unless this is made
      * configurable (todo), it has to match the SUPPORTED_CIPHER_ALGORITHMS
      * advertised by the server
      */
-    private final static String SERVER_SYNC_CIPHER_MODE = "AES/CBC/PKCS5Padding";
-    private final static String SERVER_SYNC_CIPHER_NAME = "AES";
+    private static final String SERVER_SYNC_CIPHER_MODE = "AES/CBC/PKCS5Padding";
+    private static final String SERVER_SYNC_CIPHER_NAME = "AES";
     /** blocksize in bytes */
-    private final static int SERVER_SYNC_CIPHER_BLOCKSIZE = 16;
-    private final static int CHALLENGE_BYTES = 8;
+    private static final int SERVER_SYNC_CIPHER_BLOCKSIZE = 16;
+    private static final int CHALLENGE_BYTES = 8;
 
     /** cryptographic helper classes */
     private static final SecureRandom _random = new SecureRandom();
@@ -121,13 +122,6 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
 
     private boolean _finished = false;
 
-    /**
-     * @param hostCertificatePath
-     * @param hostKeyPath
-     * @param caCertDir
-     * @param verifyHostCertificate
-     * @param endpoint CellEndpoint for communication with the login strategies
-     */
     public GSIAuthenticationHandler(X509Certificate hostCertificate,
                                     PrivateKey privateKey,
                                     TrustedCertificates trustedCerts,
@@ -325,7 +319,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                                                    SERVER_SYNC_CIPHER_BLOCKSIZE,
                                                    encrypted);
 
-            ChannelBuffer buffer = ChannelBuffers.wrappedBuffer(decrypted);
+            ByteBuf buffer = wrappedBuffer(decrypted);
             NestedBucketBuffer nestedBucket =
                 NestedBucketBuffer.deserialize(kXRS_main, buffer);
 
@@ -421,16 +415,6 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
      * a new challenge created by the server, the cryptoMode (typically SSL),
      * DH key exchange parameters, a list of supported ciphers, a list of
      * supported digests and a PEM-encoded host certificate.
-     *
-     * @param signedChallenge
-     * @param newChallenge
-     * @param cryptoMode
-     * @param puk
-     * @param supportedCiphers
-     * @param supportedDigests
-     * @param hostCertificate
-     * @return List with the above parameters plus size in bytes of the bucket
-     *         list.
      */
     private XrootdBucketContainer buildCertReqResponse(byte[] signedChallenge,
                                                        String newChallenge,

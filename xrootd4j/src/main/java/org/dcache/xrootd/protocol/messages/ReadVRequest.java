@@ -19,14 +19,15 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import io.netty.buffer.ByteBuf;
+
 import java.util.Arrays;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_readv;
-import org.jboss.netty.buffer.ChannelBuffer;
 
 public class ReadVRequest extends GenericReadRequestMessage
 {
-    public ReadVRequest(ChannelBuffer buffer)
+    public ReadVRequest(ByteBuf buffer)
     {
         super(buffer, kXR_readv);
     }

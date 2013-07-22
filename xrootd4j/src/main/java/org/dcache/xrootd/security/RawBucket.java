@@ -20,8 +20,9 @@
 package org.dcache.xrootd.security;
 
 
+import io.netty.buffer.ByteBuf;
+
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
-import org.jboss.netty.buffer.ChannelBuffer;
 
 /**
  * A bucket containing a header plus a number of bytes. This can be binary
@@ -47,7 +48,7 @@ public class RawBucket extends XrootdBucket
         return _data;
     }
 
-    public static RawBucket deserialize(BucketType type, ChannelBuffer buffer) {
+    public static RawBucket deserialize(BucketType type, ByteBuf buffer) {
 
         byte [] tmp = new byte[buffer.readableBytes()];
         buffer.getBytes(0, tmp);
@@ -57,7 +58,7 @@ public class RawBucket extends XrootdBucket
     }
 
     @Override
-    public void serialize(ChannelBuffer out) {
+    public void serialize(ByteBuf out) {
         super.serialize(out);
         out.writeInt(_data.length);
         out.writeBytes(_data);

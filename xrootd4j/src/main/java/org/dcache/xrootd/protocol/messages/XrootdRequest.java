@@ -19,17 +19,19 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import java.nio.charset.Charset;
+import io.netty.buffer.ByteBuf;
+
 import javax.security.auth.Subject;
 
+import java.nio.charset.Charset;
+
 import org.dcache.xrootd.core.XrootdSession;
-import org.jboss.netty.buffer.ChannelBuffer;
 
 import static com.google.common.base.Preconditions.checkState;
 
 public abstract class XrootdRequest
 {
-    protected final static Charset XROOTD_CHARSET = Charset.forName("ASCII");
+    protected static final Charset XROOTD_CHARSET = Charset.forName("ASCII");
 
     protected final int _streamId;
     protected final int _requestId;
@@ -41,13 +43,13 @@ public abstract class XrootdRequest
         _requestId = 0;
     }
 
-    public XrootdRequest(ChannelBuffer buffer, int requestId)
+    public XrootdRequest(ByteBuf buffer, int requestId)
     {
         this(buffer);
         checkState(_requestId == requestId);
     }
 
-    public XrootdRequest(ChannelBuffer buffer)
+    public XrootdRequest(ByteBuf buffer)
     {
         _streamId = buffer.getUnsignedShort(0);
         _requestId = buffer.getUnsignedShort(2);

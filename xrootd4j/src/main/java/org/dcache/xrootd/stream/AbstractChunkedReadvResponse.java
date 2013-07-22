@@ -19,17 +19,19 @@
  */
 package org.dcache.xrootd.stream;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.MessageBuf;
+import io.netty.handler.stream.ChunkedMessageInput;
 
 import java.io.IOException;
 
 import org.dcache.xrootd.core.XrootdException;
+import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
 import org.dcache.xrootd.protocol.messages.GenericReadRequestMessage;
 import org.dcache.xrootd.protocol.messages.ReadResponse;
 import org.dcache.xrootd.protocol.messages.ReadVRequest;
-import org.dcache.xrootd.protocol.messages.XrootdRequest;
 
-public abstract class AbstractChunkedReadvResponse implements ChunkedResponse
+public abstract class AbstractChunkedReadvResponse implements ChunkedMessageInput<AbstractResponseMessage>
 {
     protected final ReadVRequest request;
     protected final int maxFrameSize;
@@ -44,20 +46,14 @@ public abstract class AbstractChunkedReadvResponse implements ChunkedResponse
     }
 
     @Override
-    public XrootdRequest getRequest()
-    {
-        return request;
-    }
-
-    @Override
-    public ReadResponse nextChunk() throws Exception
+    public boolean readChunk(MessageBuf<AbstractResponseMessage> buffer) throws Exception
     {
         if (isEndOfInput()) {
-            return null;
+            return false;
         }
 
         int count = getChunksInNextFrame(maxFrameSize);
-        ChannelBuffer[] chunks = new ChannelBuffer[requests.length];
+        ByteBuf[] chunks = new ByteBuf[requests.length];
         for (int i = index; i < index + count; i++) {
             chunks[i] = read(requests[i]);
         }
@@ -67,7 +63,9 @@ public abstract class AbstractChunkedReadvResponse implements ChunkedResponse
         response.setIncomplete(index + count < requests.length);
         index += count;
 
-        return response;
+        buffer.add(response);
+
+        return true;
     }
 
     @Override
@@ -106,7 +104,7 @@ public abstract class AbstractChunkedReadvResponse implements ChunkedResponse
         return count;
     }
 
-    private ChannelBuffer read(GenericReadRequestMessage.EmbeddedReadRequest request)
+    private ByteBuf read(GenericReadRequestMessage.EmbeddedReadRequest request)
         throws IOException, XrootdException
     {
         return read(request.getFileHandle(), request.getOffset(), request.BytesToRead());
@@ -114,6 +112,6 @@ public abstract class AbstractChunkedReadvResponse implements ChunkedResponse
 
     protected abstract long getSize(int fd) throws IOException, XrootdException;
 
-    protected abstract ChannelBuffer read(int fd, long position, int length)
+    protected abstract ByteBuf read(int fd, long position, int length)
         throws IOException, XrootdException;
 }

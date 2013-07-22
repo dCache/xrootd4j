@@ -19,8 +19,9 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import io.netty.buffer.ByteBuf;
+
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_read;
-import org.jboss.netty.buffer.ChannelBuffer;
 
 public class ReadRequest extends GenericReadRequestMessage
 {
@@ -28,7 +29,7 @@ public class ReadRequest extends GenericReadRequestMessage
     private final long offset;
     private final int rlen;
 
-    public ReadRequest(ChannelBuffer buffer)
+    public ReadRequest(ByteBuf buffer)
     {
         super(buffer, kXR_read);
 

@@ -19,14 +19,15 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import io.netty.buffer.ByteBuf;
+
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_handshake;
-import org.jboss.netty.buffer.ChannelBuffer;
 
 public class HandshakeRequest extends XrootdRequest
 {
     private final byte[] _handshake;
 
-    public HandshakeRequest(ChannelBuffer buffer)
+    public HandshakeRequest(ByteBuf buffer)
     {
         super(buffer, kXR_handshake);
         _handshake = new byte[20];

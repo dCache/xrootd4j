@@ -19,15 +19,17 @@
  */
 package org.dcache.xrootd.stream;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.MessageBuf;
+import io.netty.handler.stream.ChunkedMessageInput;
 
 import java.io.IOException;
 
+import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
 import org.dcache.xrootd.protocol.messages.ReadRequest;
 import org.dcache.xrootd.protocol.messages.ReadResponse;
-import org.dcache.xrootd.protocol.messages.XrootdRequest;
 
-public abstract class AbstractChunkedReadResponse implements ChunkedResponse
+public abstract class AbstractChunkedReadResponse implements ChunkedMessageInput<AbstractResponseMessage>
 {
     protected final ReadRequest request;
     protected final int maxFrameSize;
@@ -43,33 +45,28 @@ public abstract class AbstractChunkedReadResponse implements ChunkedResponse
     }
 
     @Override
-    public XrootdRequest getRequest()
-    {
-        return request;
-    }
-
-    @Override
-    public ReadResponse nextChunk() throws Exception
+    public boolean readChunk(MessageBuf<AbstractResponseMessage> buffer) throws Exception
     {
         if (length == 0) {
-            return null;
+            return false;
         }
 
         int chunkLength = Math.min(length, maxFrameSize);
 
-        ChannelBuffer buffer = read(position, chunkLength);
-        chunkLength = buffer.readableBytes();
+        ByteBuf chunk = read(position, chunkLength);
+        chunkLength = chunk.readableBytes();
         position += chunkLength;
         length -= chunkLength;
 
         ReadResponse response = new ReadResponse(request, 0);
-        response.append(buffer);
+        response.append(chunk);
         response.setIncomplete(length != 0);
 
-        return response;
+        buffer.add(response);
+        return true;
     }
 
-    protected abstract ChannelBuffer read(long srcIndex, int length)
+    protected abstract ByteBuf read(long srcIndex, int length)
         throws IOException;
 
     @Override

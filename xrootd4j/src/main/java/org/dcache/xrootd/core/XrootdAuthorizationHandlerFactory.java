@@ -21,7 +21,7 @@ package org.dcache.xrootd.core;
 
 import org.dcache.xrootd.plugins.AuthorizationFactory;
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
-import org.jboss.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandler;
 
 public class XrootdAuthorizationHandlerFactory implements ChannelHandlerFactory
 {

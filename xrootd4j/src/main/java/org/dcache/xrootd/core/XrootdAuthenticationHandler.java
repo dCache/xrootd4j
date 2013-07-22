@@ -19,31 +19,29 @@
  */
 package org.dcache.xrootd.core;
 
-import javax.security.auth.Subject;
-import java.util.concurrent.ConcurrentMap;
-
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import org.dcache.xrootd.protocol.messages.EndSessionRequest;
-import org.dcache.xrootd.protocol.messages.OkResponse;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelStateEvent;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
-
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundMessageHandlerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableSet;
+import javax.security.auth.Subject;
+
+import java.util.concurrent.ConcurrentMap;
 
 import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
 import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
+import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
+import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
+import org.dcache.xrootd.protocol.messages.EndSessionRequest;
+import org.dcache.xrootd.protocol.messages.ErrorResponse;
 import org.dcache.xrootd.protocol.messages.LoginRequest;
 import org.dcache.xrootd.protocol.messages.LoginResponse;
-import org.dcache.xrootd.protocol.messages.ErrorResponse;
-import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
+import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.dcache.xrootd.protocol.messages.XrootdRequest;
-import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
+
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 /**
@@ -61,9 +59,9 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.*;
  * <code>authenticated</code> method to add additional operations
  * after authentication.
  */
-public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
+public class XrootdAuthenticationHandler extends ChannelInboundMessageHandlerAdapter<XrootdRequest>
 {
-    private final static Logger _log =
+    private static final Logger LOGGER =
         LoggerFactory.getLogger(XrootdAuthenticationHandler.class);
 
     private static final ImmutableSet<Integer> WITHOUT_LOGIN =
@@ -71,7 +69,7 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
     private static final ImmutableSet<Integer> WITHOUT_AUTH =
         ImmutableSet.of(kXR_auth, kXR_bind, kXR_login, kXR_ping, kXR_protocol);
 
-    private final static ConcurrentMap<XrootdSessionIdentifier,XrootdSession> _sessions =
+    private static final ConcurrentMap<XrootdSessionIdentifier,XrootdSession> _sessions =
         Maps.newConcurrentMap();
 
     private final XrootdSessionIdentifier _sessionId = new XrootdSessionIdentifier();
@@ -90,26 +88,14 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
     }
 
     @Override
-    public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception
     {
         _sessions.remove(_sessionId);
     }
 
     @Override
-    public void messageReceived(ChannelHandlerContext ctx, MessageEvent event)
-    {
-        Object msg = event.getMessage();
-
-        /* Pass along any message that is not an xrootd requests.
-         */
-        if (!(msg instanceof XrootdRequest)) {
-            ctx.sendUpstream(event);
-            return;
-        }
-
-        XrootdRequest request = (XrootdRequest) msg;
+    public void messageReceived(ChannelHandlerContext ctx, XrootdRequest request) {
         int reqId = request.getRequestId();
-
         try {
             /* Enforce login and authentication.
              */
@@ -124,35 +110,32 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
              */
             switch (reqId) {
             case kXR_login:
-                doOnLogin(ctx, event, (LoginRequest) request);
+                doOnLogin(ctx, (LoginRequest) request);
                 break;
             case kXR_auth:
-                doOnAuthentication(ctx, event, (AuthenticationRequest) request);
+                doOnAuthentication(ctx, (AuthenticationRequest) request);
                 break;
             case kXR_endsess:
-                doOnEndSession(ctx, event, (EndSessionRequest) request);
+                doOnEndSession(ctx, (EndSessionRequest) request);
                 break;
             default:
                 request.setSession(_session);
-                ctx.sendUpstream(event);
+                ctx.nextInboundMessageBuffer().add(request);
                 break;
             }
         } catch (XrootdException e) {
-            ErrorResponse error =
-                new ErrorResponse(request, e.getError(), e.getMessage());
-            event.getChannel().write(error);
+            ctx.channel().write(
+                    new ErrorResponse(request, e.getError(), e.getMessage()));
         } catch (RuntimeException e) {
-            _log.error(String.format("Processing %s failed due to a bug", msg), e);
-            ErrorResponse error =
-                new ErrorResponse(request, kXR_ServerError,
-                                  String.format("Internal server error (%s)",
-                                                e.getMessage()));
-            event.getChannel().write(error);
+            LOGGER.error("Processing " + request + " failed due to a bug", e);
+            ctx.channel().write(
+                    new ErrorResponse(request, kXR_ServerError,
+                            String.format("Internal server error (%s)",
+                                    e.getMessage())));
         }
     }
 
-    private void doOnLogin(ChannelHandlerContext context,
-                           MessageEvent event,
+    private void doOnLogin(ChannelHandlerContext ctx,
                            LoginRequest request)
         throws XrootdException
     {
@@ -162,7 +145,7 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
             _state = State.NO_LOGIN;
 
             _session =
-                new XrootdSession(_sessionId, context.getChannel(), request);
+                new XrootdSession(_sessionId, ctx.channel(), request);
 
             _authenticationHandler =
                 _authenticationFactory.createHandler();
@@ -172,22 +155,21 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
                                   _authenticationHandler.getProtocol());
 
             if (_authenticationHandler.isCompleted()) {
-                authenticated(context, _authenticationHandler.getSubject());
+                authenticated(ctx, _authenticationHandler.getSubject());
             } else {
                 _state = State.NO_AUTH;
             }
 
-            event.getChannel().write(response);
+            ctx.channel().write(response);
 
             _sessions.put(_sessionId, _session);
         } catch (InvalidHandlerConfigurationException e) {
-            _log.error("Could not instantiate authentication handler: {}", e);
+            LOGGER.error("Could not instantiate authentication handler: {}", e);
             throw new XrootdException(kXR_ServerError, "Internal server error");
         }
     }
 
-    private void doOnAuthentication(ChannelHandlerContext context,
-                                    MessageEvent event,
+    private void doOnAuthentication(ChannelHandlerContext ctx,
                                     AuthenticationRequest request)
         throws XrootdException
     {
@@ -198,12 +180,12 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
              * the authentication status is reset.
              */
             _state = State.NO_LOGIN;
-            authenticated(context, _authenticationHandler.getSubject());
+            authenticated(ctx, _authenticationHandler.getSubject());
         }
-        event.getChannel().write(response);
+        ctx.channel().write(response);
     }
 
-    private void doOnEndSession(ChannelHandlerContext ctx, MessageEvent event, EndSessionRequest request)
+    private void doOnEndSession(ChannelHandlerContext ctx, EndSessionRequest request)
         throws XrootdException
     {
         XrootdSession session = _sessions.get(request.getSessionId());
@@ -214,13 +196,13 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
             throw new XrootdException(kXR_NotAuthorized, "not session owner");
         }
         session.getChannel().close();
-        event.getChannel().write(new OkResponse(request));
+        ctx.channel().write(new OkResponse(request));
     }
 
-    private void authenticated(ChannelHandlerContext context, Subject subject)
+    private void authenticated(ChannelHandlerContext ctx, Subject subject)
         throws XrootdException
     {
-        _session.setSubject(login(context, subject));
+        _session.setSubject(login(ctx, subject));
         _state = State.AUTH;
         _authenticationHandler = null;
     }
@@ -234,7 +216,7 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
      * If the subclass throws XrootdException then the login is
      * aborted.
      */
-    protected Subject login(ChannelHandlerContext context, Subject subject)
+    protected Subject login(ChannelHandlerContext ctx, Subject subject)
         throws XrootdException
     {
         return subject;
