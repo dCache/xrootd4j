@@ -23,6 +23,7 @@
  */
 package org.dcache.xrootd.stream;
 
+import com.google.common.base.Strings;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelDownstreamHandler;
 import org.jboss.netty.channel.ChannelEvent;
@@ -208,15 +209,26 @@ public class ChunkedResponseWriteHandler
                             endOfInput = chunks.isEndOfInput();
                         } catch (XrootdException e) {
                             currentEvent.getFuture().setFailure(e);
-                            chunk = new ErrorResponse(chunks.getRequest(), e.getError(), e.getMessage());
+                            chunk = new ErrorResponse(chunks.getRequest(), e.getError(),
+                                    Strings.nullToEmpty(e.getMessage()));
                             endOfInput = true;
                         } catch (IOException e) {
+                            logger.warn("xrootd I/O error: {}", e.toString());
                             currentEvent.getFuture().setFailure(e);
-                            chunk = new ErrorResponse(chunks.getRequest(), kXR_IOError, e.getMessage());
+                            chunk = new ErrorResponse(chunks.getRequest(), kXR_IOError,
+                                    Strings.nullToEmpty(e.getMessage()));
+                            endOfInput = true;
+                        } catch (RuntimeException e) {
+                            logger.error("xrootd server error (please report this to support@dcache.org)", e);
+                            currentEvent.getFuture().setFailure(e);
+                            chunk = new ErrorResponse(chunks.getRequest(), kXR_ServerError,
+                                    Strings.nullToEmpty(e.getMessage()));
                             endOfInput = true;
                         } catch (Exception e) {
+                            logger.warn("xrootd server error: {}", e.toString());
                             currentEvent.getFuture().setFailure(e);
-                            chunk = new ErrorResponse(chunks.getRequest(), kXR_ServerError, e.getMessage());
+                            chunk = new ErrorResponse(chunks.getRequest(), kXR_ServerError,
+                                    Strings.nullToEmpty(e.getMessage()));
                             endOfInput = true;
                         } catch (Error t) {
                             this.currentEvent = null;
