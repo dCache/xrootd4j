@@ -19,16 +19,36 @@
  */
 package org.dcache.xrootd.core;
 
+import com.google.common.base.Strings;
+import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.handler.timeout.IdleStateAwareChannelHandler;
-
-import org.dcache.xrootd.protocol.messages.*;
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
+import org.dcache.xrootd.protocol.messages.CloseRequest;
+import org.dcache.xrootd.protocol.messages.DirListRequest;
+import org.dcache.xrootd.protocol.messages.ErrorResponse;
+import org.dcache.xrootd.protocol.messages.LoginRequest;
+import org.dcache.xrootd.protocol.messages.MkDirRequest;
+import org.dcache.xrootd.protocol.messages.MvRequest;
+import org.dcache.xrootd.protocol.messages.OkResponse;
+import org.dcache.xrootd.protocol.messages.OpenRequest;
+import org.dcache.xrootd.protocol.messages.PrepareRequest;
+import org.dcache.xrootd.protocol.messages.ProtocolRequest;
+import org.dcache.xrootd.protocol.messages.ReadRequest;
+import org.dcache.xrootd.protocol.messages.ReadVRequest;
+import org.dcache.xrootd.protocol.messages.RmDirRequest;
+import org.dcache.xrootd.protocol.messages.RmRequest;
+import org.dcache.xrootd.protocol.messages.StatRequest;
+import org.dcache.xrootd.protocol.messages.StatxRequest;
+import org.dcache.xrootd.protocol.messages.SyncRequest;
+import org.dcache.xrootd.protocol.messages.WriteRequest;
+import org.dcache.xrootd.protocol.messages.XrootdRequest;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 /**
  * A SimpleChannelHandler dispatch xrootd events to handler methods.
@@ -141,7 +161,7 @@ public class XrootdRequestHandler extends IdleStateAwareChannelHandler
         } catch (XrootdException e) {
             respond(ctx, event, withError(req, e.getError(), e.getMessage()));
         } catch (RuntimeException e) {
-            _log.error(String.format("Processing %s failed due to a bug", req), e);
+            _log.error("xrootd server error while processing " + req + " (please report this to support@dcache.org)", e);
             respond(ctx, event,
                 withError(req, kXR_ServerError,
                     String.format("Internal server error (%s)",
@@ -156,7 +176,7 @@ public class XrootdRequestHandler extends IdleStateAwareChannelHandler
 
     protected ErrorResponse withError(XrootdRequest req, int errorCode, String errMsg)
     {
-        return new ErrorResponse(req, errorCode, errMsg);
+        return new ErrorResponse(req, errorCode, Strings.nullToEmpty(errMsg));
     }
 
     protected ChannelFuture respond(ChannelHandlerContext ctx,
