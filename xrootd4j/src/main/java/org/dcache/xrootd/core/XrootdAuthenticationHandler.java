@@ -19,31 +19,32 @@
  */
 package org.dcache.xrootd.core;
 
-import javax.security.auth.Subject;
-import java.util.concurrent.ConcurrentMap;
-
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import org.dcache.xrootd.protocol.messages.EndSessionRequest;
-import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableSet;
+import javax.security.auth.Subject;
+
+import java.util.concurrent.ConcurrentMap;
 
 import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
 import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
+import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
+import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
+import org.dcache.xrootd.protocol.messages.EndSessionRequest;
+import org.dcache.xrootd.protocol.messages.ErrorResponse;
 import org.dcache.xrootd.protocol.messages.LoginRequest;
 import org.dcache.xrootd.protocol.messages.LoginResponse;
-import org.dcache.xrootd.protocol.messages.ErrorResponse;
-import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
+import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.dcache.xrootd.protocol.messages.XrootdRequest;
-import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
+
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 /**
@@ -139,10 +140,10 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
             }
         } catch (XrootdException e) {
             ErrorResponse error =
-                new ErrorResponse(request, e.getError(), e.getMessage());
+                new ErrorResponse(request, e.getError(), Strings.nullToEmpty(e.getMessage()));
             event.getChannel().write(error);
         } catch (RuntimeException e) {
-            _log.error(String.format("Processing %s failed due to a bug", msg), e);
+            _log.error("xrootd server error while processing " + msg + " (please report this to support@dcache.org)", e);
             ErrorResponse error =
                 new ErrorResponse(request, kXR_ServerError,
                                   String.format("Internal server error (%s)",
