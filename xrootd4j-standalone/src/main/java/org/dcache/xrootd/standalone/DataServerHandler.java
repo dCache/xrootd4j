@@ -36,6 +36,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.net.InetSocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
@@ -49,6 +50,8 @@ import org.dcache.xrootd.protocol.messages.CloseRequest;
 import org.dcache.xrootd.protocol.messages.DirListRequest;
 import org.dcache.xrootd.protocol.messages.DirListResponse;
 import org.dcache.xrootd.protocol.messages.GenericReadRequestMessage.EmbeddedReadRequest;
+import org.dcache.xrootd.protocol.messages.LocateRequest;
+import org.dcache.xrootd.protocol.messages.LocateResponse;
 import org.dcache.xrootd.protocol.messages.MkDirRequest;
 import org.dcache.xrootd.protocol.messages.MvRequest;
 import org.dcache.xrootd.protocol.messages.OkResponse;
@@ -491,6 +494,27 @@ public class DataServerHandler extends XrootdRequestHandler
         }
     }
 
+    @Override
+    protected LocateResponse doOnLocate(ChannelHandlerContext ctx, MessageEvent e,
+                                        LocateRequest msg) throws XrootdException
+    {
+        File file = getFile(stripLeadingAsterix(msg.getPath()));
+        if (!file.exists()) {
+            return new LocateResponse(msg);
+        } else {
+            return new LocateResponse(msg,
+                    new LocateResponse.InfoElement(
+                            (InetSocketAddress) e.getChannel().getLocalAddress(),
+                            LocateResponse.Node.SERVER,
+                            file.canWrite() ? LocateResponse.Access.WRITE : LocateResponse.Access.READ));
+        }
+    }
+
+    private String stripLeadingAsterix(String s)
+    {
+        return s.startsWith("*") ? s.substring(1) : s;
+    }
+
     private int addOpenFile(RandomAccessFile raf)
     {
        for (int i = 0; i < _openFiles.size(); i++) {
@@ -499,7 +523,6 @@ public class DataServerHandler extends XrootdRequestHandler
                return i;
            }
        }
-
        _openFiles.add(raf);
        return _openFiles.size() - 1;
     }
