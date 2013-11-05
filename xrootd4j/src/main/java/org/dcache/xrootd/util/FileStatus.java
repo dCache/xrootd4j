@@ -26,9 +26,6 @@ package org.dcache.xrootd.util;
  */
 public class FileStatus
 {
-    public final static FileStatus FILE_NOT_FOUND =
-        new FileStatus(-1, -1, -1, -1);
-
     private long size, modtime;
     private int flags;
     private long id;

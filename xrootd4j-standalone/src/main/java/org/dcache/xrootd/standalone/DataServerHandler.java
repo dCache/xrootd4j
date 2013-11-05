@@ -19,28 +19,7 @@
  */
 package org.dcache.xrootd.standalone;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.channels.ClosedChannelException;
-import java.nio.channels.FileChannel;
-
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Arrays;
-
 import org.apache.commons.io.FilenameUtils;
-
-import org.dcache.xrootd.core.XrootdRequestHandler;
-import org.dcache.xrootd.core.XrootdException;
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-
-import org.dcache.xrootd.protocol.messages.*;
-import org.dcache.xrootd.protocol.messages.GenericReadRequestMessage.EmbeddedReadRequest;
-import org.dcache.xrootd.stream.ChunkedFileChannelReadResponse;
-import org.dcache.xrootd.stream.ChunkedFileChannelReadvResponse;
-import org.dcache.xrootd.stream.ChunkedFileReadvResponse;
-import org.dcache.xrootd.util.FileStatus;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.ChannelHandlerContext;
@@ -50,9 +29,49 @@ import org.jboss.netty.channel.DefaultFileRegion;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.group.ChannelGroup;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.FileChannel;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import org.dcache.xrootd.core.XrootdException;
+import org.dcache.xrootd.core.XrootdRequestHandler;
+import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
+import org.dcache.xrootd.protocol.messages.CloseRequest;
+import org.dcache.xrootd.protocol.messages.DirListRequest;
+import org.dcache.xrootd.protocol.messages.DirListResponse;
+import org.dcache.xrootd.protocol.messages.GenericReadRequestMessage.EmbeddedReadRequest;
+import org.dcache.xrootd.protocol.messages.MkDirRequest;
+import org.dcache.xrootd.protocol.messages.MvRequest;
+import org.dcache.xrootd.protocol.messages.OkResponse;
+import org.dcache.xrootd.protocol.messages.OpenRequest;
+import org.dcache.xrootd.protocol.messages.OpenResponse;
+import org.dcache.xrootd.protocol.messages.PrepareRequest;
+import org.dcache.xrootd.protocol.messages.ProtocolRequest;
+import org.dcache.xrootd.protocol.messages.ProtocolResponse;
+import org.dcache.xrootd.protocol.messages.ReadRequest;
+import org.dcache.xrootd.protocol.messages.ReadVRequest;
+import org.dcache.xrootd.protocol.messages.RmDirRequest;
+import org.dcache.xrootd.protocol.messages.RmRequest;
+import org.dcache.xrootd.protocol.messages.StatRequest;
+import org.dcache.xrootd.protocol.messages.StatResponse;
+import org.dcache.xrootd.protocol.messages.StatxRequest;
+import org.dcache.xrootd.protocol.messages.StatxResponse;
+import org.dcache.xrootd.protocol.messages.SyncRequest;
+import org.dcache.xrootd.protocol.messages.WriteRequest;
+import org.dcache.xrootd.stream.ChunkedFileChannelReadResponse;
+import org.dcache.xrootd.stream.ChunkedFileReadvResponse;
+import org.dcache.xrootd.util.FileStatus;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 public class DataServerHandler extends XrootdRequestHandler
 {
@@ -120,7 +139,7 @@ public class DataServerHandler extends XrootdRequestHandler
     {
         File file = getFile(req.getPath());
         if (!file.exists()) {
-            return new StatResponse(req, FileStatus.FILE_NOT_FOUND);
+            throw new XrootdException(kXR_NotFound, "No such file");
         } else {
             FileStatus fs = getFileStatusOf(file);
             return new StatResponse(req, fs);
@@ -243,6 +262,9 @@ public class DataServerHandler extends XrootdRequestHandler
         }
 
         File sourceFile = getFile(req.getSourcePath());
+        if (!sourceFile.exists()) {
+            throw new XrootdException(kXR_NotFound, "No such file");
+        }
         File targetFile = getFile(req.getTargetPath());
         if (!sourceFile.renameTo(targetFile)) {
             throw new XrootdException(kXR_IOError, "Failed to move file");
@@ -333,6 +355,8 @@ public class DataServerHandler extends XrootdRequestHandler
                     raf.close();
                 }
             }
+        } catch (FileNotFoundException e) {
+            throw new XrootdException(kXR_NotFound, e.getMessage());
         } catch (IOException e) {
             throw new XrootdException(kXR_IOError, e.getMessage());
         }
