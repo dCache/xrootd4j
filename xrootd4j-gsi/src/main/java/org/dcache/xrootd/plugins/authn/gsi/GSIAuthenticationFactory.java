@@ -19,12 +19,20 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMReader;
+import org.globus.gsi.CertificateRevocationLists;
+import org.globus.gsi.TrustedCertificates;
+import org.globus.gsi.proxy.ProxyPathValidator;
+import org.globus.gsi.proxy.ProxyPathValidatorException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Properties;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
@@ -35,20 +43,12 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
-
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.openssl.PEMReader;
 import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
 import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
-import org.globus.gsi.CertificateRevocationLists;
-import org.globus.gsi.TrustedCertificates;
-import org.globus.gsi.proxy.ProxyPathValidator;
-import org.globus.gsi.proxy.ProxyPathValidatorException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Authentication factory that returns GSI security handlers. Initiates the
@@ -95,13 +95,15 @@ public class GSIAuthenticationFactory implements AuthenticationFactory
         _hostCertificatePath =
             properties.getProperty("xrootd.gsi.hostcert.cert");
         _hostCertRefreshInterval =
-            SECONDS.toMillis(Integer.parseInt(properties.getProperty("xrootd.gsi.hostcert.refresh")));
+                TimeUnit.valueOf(properties.getProperty("xrootd.gsi.hostcert.refresh.unit"))
+                        .toMillis(Integer.parseInt(properties.getProperty("xrootd.gsi.hostcert.refresh")));
         _verifyHostCertificate =
             Boolean.parseBoolean(properties.getProperty("xrootd.gsi.hostcert.verify"));
 
         _caCertificatePath = properties.getProperty("xrootd.gsi.ca.path");
         _trustAnchorRefreshInterval =
-            SECONDS.toMillis(Integer.parseInt(properties.getProperty("xrootd.gsi.ca.refresh")));
+                TimeUnit.valueOf(properties.getProperty("xrootd.gsi.ca.refresh.unit"))
+                        .toMillis(Integer.parseInt(properties.getProperty("xrootd.gsi.ca.refresh")));
     }
 
     @Override
