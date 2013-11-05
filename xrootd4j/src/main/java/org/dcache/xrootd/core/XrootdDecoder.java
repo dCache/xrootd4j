@@ -124,6 +124,8 @@ public class XrootdDecoder extends FrameDecoder
             return new AuthenticationRequest(frame);
         case kXR_endsess:
             return new EndSessionRequest(frame);
+        case kXR_locate :
+            return new LocateRequest(frame);
         default:
             return new UnknownRequest(frame);
         }
