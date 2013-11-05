@@ -31,6 +31,7 @@ import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
 import org.dcache.xrootd.protocol.messages.DirListRequest;
 import org.dcache.xrootd.protocol.messages.ErrorResponse;
+import org.dcache.xrootd.protocol.messages.LocateRequest;
 import org.dcache.xrootd.protocol.messages.LoginRequest;
 import org.dcache.xrootd.protocol.messages.MkDirRequest;
 import org.dcache.xrootd.protocol.messages.MvRequest;
@@ -149,6 +150,10 @@ public class XrootdRequestHandler extends IdleStateAwareChannelHandler
             case kXR_prepare:
                 response =
                     doOnPrepare(ctx, event, (PrepareRequest) req);
+                break;
+            case kXR_locate :
+                response =
+                        doOnLocate(ctx, event, (LocateRequest) req);
                 break;
             default:
                 response =
@@ -327,6 +332,14 @@ public class XrootdRequestHandler extends IdleStateAwareChannelHandler
     protected Object doOnPrepare(ChannelHandlerContext ctx,
                                  MessageEvent e,
                                  PrepareRequest msg)
+        throws XrootdException
+    {
+        return unsupported(ctx, e, msg);
+    }
+
+    protected Object doOnLocate(ChannelHandlerContext ctx,
+                                MessageEvent e,
+                                LocateRequest msg)
         throws XrootdException
     {
         return unsupported(ctx, e, msg);
