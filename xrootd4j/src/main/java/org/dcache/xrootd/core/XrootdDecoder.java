@@ -39,7 +39,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.*;
  */
 public class XrootdDecoder extends FrameDecoder
 {
-    private final static Logger _logger =
+    private static final Logger _logger =
         LoggerFactory.getLogger(XrootdDecoder.class);
 
     private boolean gotHandshake = false;

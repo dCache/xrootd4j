@@ -19,20 +19,10 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
-import java.io.IOException;
+import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.pkcs.DHParameter;
+import org.globus.gsi.bc.BouncyCastleUtil;
 
-import java.math.BigInteger;
-import java.security.GeneralSecurityException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.KeyFactory;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.PublicKey;
-import java.security.spec.InvalidKeySpecException;
-import java.util.Arrays;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -45,9 +35,19 @@ import javax.crypto.spec.DHPublicKeySpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.bouncycastle.asn1.ASN1Sequence;
-import org.bouncycastle.asn1.pkcs.DHParameter;
-import org.globus.gsi.bc.BouncyCastleUtil;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.security.GeneralSecurityException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.util.Arrays;
 
 /**
  * This class represents a Diffie-Hellman (DH) session. After the DH key agreement
@@ -60,16 +60,16 @@ import org.globus.gsi.bc.BouncyCastleUtil;
  */
 public class DHSession
 {
-    private final static String DH_ALGORITHM_NAME = "DH";
-    private final static String DH_HEADER = "-----BEGIN DH PARAMETERS-----";
-    private final static String DH_FOOTER = "-----END DH PARAMETERS-----";
-    private final static String DH_PUBKEY_HEADER = "---BPUB---";
-    private final static String DH_PUBKEY_FOOTER = "---EPUB---";
+    private static final String DH_ALGORITHM_NAME = "DH";
+    private static final String DH_HEADER = "-----BEGIN DH PARAMETERS-----";
+    private static final String DH_FOOTER = "-----END DH PARAMETERS-----";
+    private static final String DH_PUBKEY_HEADER = "---BPUB---";
+    private static final String DH_PUBKEY_FOOTER = "---EPUB---";
 
     // The 512-bit prime being part of the DH parameter set.
     // This specific number set was created by using Openssl and passes
     // its validity tests and is therefore considered to be safe.
-    private final static String DH_PRIME =
+    private static final String DH_PRIME =
             ( "00:a8:37:9d:6f:ff:e8:63:a0:b1:47:0c:26:dd:1a:"
             + "45:0b:e2:03:9a:f0:83:b1:ba:5b:fa:1d:2f:5b:2a:"
             + "89:08:02:d8:c4:d4:66:8d:14:8d:35:bb:24:b1:af:"

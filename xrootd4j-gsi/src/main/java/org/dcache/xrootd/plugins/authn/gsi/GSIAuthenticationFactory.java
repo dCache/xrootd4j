@@ -67,21 +67,21 @@ public class GSIAuthenticationFactory implements AuthenticationFactory
     private static final Logger _logger =
         LoggerFactory.getLogger(GSIAuthenticationFactory.class);
 
-    private String _hostCertificatePath;
-    private String _hostKeyPath;
-    private String _caCertificatePath;
+    private final String _hostCertificatePath;
+    private final String _hostKeyPath;
+    private final String _caCertificatePath;
 
     private X509Certificate _hostCertificate;
     private PrivateKey _hostKey;
     private TrustedCertificates _trustedCerts;
 
-    private long _hostCertRefreshInterval;
-    private long _trustAnchorRefreshInterval;
+    private final long _hostCertRefreshInterval;
+    private final long _trustAnchorRefreshInterval;
     private long _hostCertRefreshTimestamp = 0;
     private long _trustAnchorRefreshTimestamp = 0;
 
-    private ProxyPathValidator _proxyValidator = new ProxyPathValidator();
-    private boolean _verifyHostCertificate;
+    private final ProxyPathValidator _proxyValidator = new ProxyPathValidator();
+    private final boolean _verifyHostCertificate;
 
     static
     {

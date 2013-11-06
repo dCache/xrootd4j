@@ -19,15 +19,16 @@
  */
 package org.dcache.xrootd.security;
 
-import java.io.IOException;
-
-import java.util.Map;
-
-import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Map;
+
+import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
+
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
 /**
  * Format of a NestedBucketBuffer:
@@ -54,11 +55,11 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class NestedBucketBuffer extends XrootdBucket {
-    private final static Logger _logger =
+    private static final Logger _logger =
         LoggerFactory.getLogger(NestedBucketBuffer.class);
-    private Map<BucketType, XrootdBucket> _nestedBuckets;
-    private String _protocol;
-    private int _step;
+    private final Map<BucketType, XrootdBucket> _nestedBuckets;
+    private final String _protocol;
+    private final int _step;
 
     public NestedBucketBuffer(BucketType type,
                               String protocol,
@@ -99,12 +100,10 @@ public class NestedBucketBuffer extends XrootdBucket {
             throw new IOException("Buffer contents are not a nested buffer!");
         }
 
-        NestedBucketBuffer bucket = new NestedBucketBuffer(type,
-                                                           protocol,
-                                                           step,
-                                                           AuthenticationRequest.deserializeBuckets(buffer));
-
-        return bucket;
+        return new NestedBucketBuffer(type,
+                protocol,
+                step,
+                AuthenticationRequest.deserializeBuckets(buffer));
     }
 
     /**

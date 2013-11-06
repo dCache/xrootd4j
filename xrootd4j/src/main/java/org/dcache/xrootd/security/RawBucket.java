@@ -20,8 +20,9 @@
 package org.dcache.xrootd.security;
 
 
-import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 import org.jboss.netty.buffer.ChannelBuffer;
+
+import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
 /**
  * A bucket containing a header plus a number of bytes. This can be binary
@@ -36,7 +37,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
  */
 public class RawBucket extends XrootdBucket
 {
-    private byte[] _data;
+    private final byte[] _data;
 
     public RawBucket(BucketType type, byte[] data) {
         super(type);
@@ -51,9 +52,7 @@ public class RawBucket extends XrootdBucket
 
         byte [] tmp = new byte[buffer.readableBytes()];
         buffer.getBytes(0, tmp);
-        RawBucket bucket = new RawBucket(type, tmp);
-
-        return bucket;
+        return new RawBucket(type, tmp);
     }
 
     @Override
@@ -72,8 +71,8 @@ public class RawBucket extends XrootdBucket
     public String toString() {
         StringBuilder sb = new StringBuilder(super.toString()+" hex dump:");
 
-        for (int i = 0; i < _data.length;i++) {
-            sb.append(" ").append(Integer.toHexString(_data[i]));
+        for (byte b : _data) {
+            sb.append(" ").append(Integer.toHexString(b));
         }
 
         return sb.toString();

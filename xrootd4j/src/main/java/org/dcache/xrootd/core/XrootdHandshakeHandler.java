@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
  */
 public class XrootdHandshakeHandler extends SimpleChannelUpstreamHandler
 {
-    private final static Logger _log =
+    private static final Logger _log =
         LoggerFactory.getLogger(XrootdHandshakeHandler.class);
 
     private final int _serverType;

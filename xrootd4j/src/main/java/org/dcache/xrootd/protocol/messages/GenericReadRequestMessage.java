@@ -60,7 +60,7 @@ public abstract class GenericReadRequestMessage extends XrootdRequest
         }
     }
 
-    private final static Logger _log =
+    private static final Logger _log =
         LoggerFactory.getLogger(GenericReadRequestMessage.class);
 
     private final int pathid;

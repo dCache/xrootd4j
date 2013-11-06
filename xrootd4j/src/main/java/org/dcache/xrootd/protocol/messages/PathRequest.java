@@ -30,7 +30,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
  */
 public class PathRequest extends XrootdRequest
 {
-    private final static byte OPAQUE_DELIMITER = (byte) 0x3f;
+    private static final byte OPAQUE_DELIMITER = (byte) 0x3f;
 
     private String _path;
     private String _opaque;

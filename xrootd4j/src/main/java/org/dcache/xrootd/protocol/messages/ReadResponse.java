@@ -31,7 +31,7 @@ import org.jboss.netty.buffer.ChannelBuffers;
 
 public class ReadResponse extends AbstractResponseMessage
 {
-    public final static int READ_LIST_HEADER_SIZE = 16;
+    public static final int READ_LIST_HEADER_SIZE = 16;
 
     public ReadResponse(XrootdRequest request, int length)
     {

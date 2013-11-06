@@ -235,7 +235,7 @@ public class ChunkedFileChannelReadvResponseTest
     /** A builder of EmbeddedReadRequest with a fluent interface. */
     private static class ReadRequestMaker
     {
-        private GenericReadRequestMessage.EmbeddedReadRequest _request;
+        private final GenericReadRequestMessage.EmbeddedReadRequest _request;
 
         private ReadRequestMaker(GenericReadRequestMessage.EmbeddedReadRequest request) {
             _request = request;

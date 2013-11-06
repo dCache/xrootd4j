@@ -26,7 +26,7 @@ import org.dcache.xrootd.plugins.AuthenticationFactory;
 
 public class GSIAuthenticationProvider implements AuthenticationProvider
 {
-    private final static String NAME = "gsi";
+    private static final String NAME = "gsi";
 
     @Override
     public AuthenticationFactory createFactory(String plugin, Properties properties)

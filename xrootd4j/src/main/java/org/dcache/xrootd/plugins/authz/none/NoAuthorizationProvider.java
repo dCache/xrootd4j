@@ -28,7 +28,7 @@ import com.google.common.collect.ImmutableSet;
 
 public class NoAuthorizationProvider implements AuthorizationProvider
 {
-    private final static ImmutableSet<String> PLUGINS =
+    private static final ImmutableSet<String> PLUGINS =
         ImmutableSet.of(NoAuthorizationFactory.NAME,
                         "org.dcache.xrootd.security.plugins.tokenauthz.NoAuthorizationFactory");
 

@@ -64,7 +64,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.*;
  */
 public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
 {
-    private final static Logger _log =
+    private static final Logger _log =
         LoggerFactory.getLogger(XrootdAuthenticationHandler.class);
 
     private static final ImmutableSet<Integer> WITHOUT_LOGIN =
@@ -72,7 +72,7 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
     private static final ImmutableSet<Integer> WITHOUT_AUTH =
         ImmutableSet.of(kXR_auth, kXR_bind, kXR_login, kXR_ping, kXR_protocol);
 
-    private final static ConcurrentMap<XrootdSessionIdentifier,XrootdSession> _sessions =
+    private static final ConcurrentMap<XrootdSessionIdentifier,XrootdSession> _sessions =
         Maps.newConcurrentMap();
 
     private final XrootdSessionIdentifier _sessionId = new XrootdSessionIdentifier();

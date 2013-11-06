@@ -29,7 +29,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 public abstract class XrootdRequest
 {
-    protected final static Charset XROOTD_CHARSET = Charset.forName("ASCII");
+    protected static final Charset XROOTD_CHARSET = Charset.forName("ASCII");
 
     protected final int _streamId;
     protected final int _requestId;

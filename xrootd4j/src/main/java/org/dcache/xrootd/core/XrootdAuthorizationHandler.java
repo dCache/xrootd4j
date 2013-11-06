@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
 @Sharable
 public class XrootdAuthorizationHandler extends XrootdRequestHandler
 {
-    private final static Logger _log =
+    private static final Logger _log =
         LoggerFactory.getLogger(XrootdAuthorizationHandler.class);
 
     private final AuthorizationFactory _authorizationFactory;

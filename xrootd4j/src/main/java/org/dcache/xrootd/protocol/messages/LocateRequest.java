@@ -25,7 +25,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_locate;
 
 public class LocateRequest extends PathRequest
 {
-    private int options;
+    private final int options;
 
     public LocateRequest(ChannelBuffer buffer)
     {

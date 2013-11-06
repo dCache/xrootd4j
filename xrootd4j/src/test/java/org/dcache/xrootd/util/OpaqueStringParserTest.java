@@ -27,20 +27,20 @@ import org.junit.Test;
 
 public class OpaqueStringParserTest
 {
-    private final static String EDITOR_KEY = "editor";
-    private final static String EDITOR_VALUE = "vim";
-    private final static String OS_KEY = "os";
-    private final static String OS_VALUE = "linux";
-    private final static String DISTRIBUTION_KEY = "distribution";
-    private final static String DISTRIBUTION_VALUE = "ubuntu";
+    private static final String EDITOR_KEY = "editor";
+    private static final String EDITOR_VALUE = "vim";
+    private static final String OS_KEY = "os";
+    private static final String OS_VALUE = "linux";
+    private static final String DISTRIBUTION_KEY = "distribution";
+    private static final String DISTRIBUTION_VALUE = "ubuntu";
 
-    private final static String DCACHE_MOVER_KEY = "org.dcache.uuid";
-    private final static String DCACHE_MOVER_VALUE = "787c932b-2dea-46b7-809d-d3c4b0f4707b";
+    private static final String DCACHE_MOVER_KEY = "org.dcache.uuid";
+    private static final String DCACHE_MOVER_VALUE = "787c932b-2dea-46b7-809d-d3c4b0f4707b";
 
-    private final static String RT5946_EXAMPLE =
+    private static final String RT5946_EXAMPLE =
         "filetype=raw";
-    private final static String RT5946_KEY = "filetype";
-    private final static String RT5946_VALUE = "raw";
+    private static final String RT5946_KEY = "filetype";
+    private static final String RT5946_VALUE = "raw";
 
     /*
      * if we send back opaque information in the redirect response, xrootd
@@ -49,10 +49,10 @@ public class OpaqueStringParserTest
      *
      * original_opaque=value?&our_opaque_key=our_opaque_value&...
      */
-    private final static char OPAQUE_STRING_PREFIX = '?';
-    private final static char OPAQUE_PREFIX =
+    private static final char OPAQUE_STRING_PREFIX = '?';
+    private static final char OPAQUE_PREFIX =
         OpaqueStringParser.OPAQUE_PREFIX;
-    private final static char OPAQUE_SEPARATOR =
+    private static final char OPAQUE_SEPARATOR =
         OpaqueStringParser.OPAQUE_SEPARATOR;
 
     @Test

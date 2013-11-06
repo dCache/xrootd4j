@@ -76,24 +76,24 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
     public static final String SUPPORTED_CIPHER_ALGORITHMS = "aes-128-cbc";
     public static final String SUPPORTED_DIGESTS = "sha1:md5";
 
-    private final static Logger _logger =
+    private static final Logger _logger =
         LoggerFactory.getLogger(GSIAuthenticationHandler.class);
 
     /**
      * RSA algorithm, no block chaining mode (not a block-cipher) and PKCS1
      * padding, which is recommended to be used in conjunction with RSA
      */
-    private final static String SERVER_ASYNC_CIPHER_MODE = "RSA/NONE/PKCS1Padding";
+    private static final String SERVER_ASYNC_CIPHER_MODE = "RSA/NONE/PKCS1Padding";
 
     /** the sync cipher mode supported by the server. Unless this is made
      * configurable (todo), it has to match the SUPPORTED_CIPHER_ALGORITHMS
      * advertised by the server
      */
-    private final static String SERVER_SYNC_CIPHER_MODE = "AES/CBC/PKCS5Padding";
-    private final static String SERVER_SYNC_CIPHER_NAME = "AES";
+    private static final String SERVER_SYNC_CIPHER_MODE = "AES/CBC/PKCS5Padding";
+    private static final String SERVER_SYNC_CIPHER_NAME = "AES";
     /** blocksize in bytes */
-    private final static int SERVER_SYNC_CIPHER_BLOCKSIZE = 16;
-    private final static int CHALLENGE_BYTES = 8;
+    private static final int SERVER_SYNC_CIPHER_BLOCKSIZE = 16;
+    private static final int CHALLENGE_BYTES = 8;
 
     /** cryptographic helper classes */
     private static final SecureRandom _random = new SecureRandom();
@@ -102,10 +102,10 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
 
 
     /** certificates/keys/trust-anchors */
-    private TrustedCertificates _trustedCerts;
-    private X509Certificate _hostCertificate;
-    private PrivateKey _hostKey;
-    private CertificateRevocationLists _crls;
+    private final TrustedCertificates _trustedCerts;
+    private final X509Certificate _hostCertificate;
+    private final PrivateKey _hostKey;
+    private final CertificateRevocationLists _crls;
 
     private String _challenge = "";
     private Cipher _challengeCipher;
@@ -115,7 +115,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
      * Container for principals and credentials found during the authentication
      * process.
      */
-    private Subject _subject;
+    private final Subject _subject;
 
     private boolean _finished = false;
 
@@ -140,8 +140,8 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
     }
 
     class XrootdBucketContainer {
-        private int _size;
-        private List<XrootdBucket> _buckets;
+        private final int _size;
+        private final List<XrootdBucket> _buckets;
 
         public XrootdBucketContainer(List<XrootdBucket> buckets, int size) {
             _buckets = buckets;
@@ -350,7 +350,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                          proxyCert.getIssuerDN());
 
             X509Certificate[] proxyCertChain =
-                clientCerts.toArray(new X509Certificate[0]);
+                    clientCerts.toArray(new X509Certificate[clientCerts.size()]);
             _subject.getPublicCredentials().add(proxyCertChain);
 
             _proxyValidator.validate(proxyCertChain,
@@ -439,14 +439,14 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                                                        String hostCertificate)
     {
         int responseLength = 0;
-        List<XrootdBucket> responseList = new ArrayList<XrootdBucket>();
+        List<XrootdBucket> responseList = new ArrayList<>();
 
         RawBucket signedRtagBucket =
             new RawBucket(BucketType.kXRS_signed_rtag, signedChallenge);
         StringBucket randomTagBucket = new StringBucket(kXRS_rtag, newChallenge);
 
         Map<BucketType, XrootdBucket> nestedBuckets =
-            new EnumMap<BucketType, XrootdBucket>(BucketType.class);
+            new EnumMap<>(BucketType.class);
         nestedBuckets.put(signedRtagBucket.getType(), signedRtagBucket);
         nestedBuckets.put(randomTagBucket.getType(), randomTagBucket);
 
@@ -490,7 +490,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
      * @return challenge string
      */
     private String generateChallengeString() {
-        String result = "";
+        String result;
         byte[] challengeBytes = new byte[CHALLENGE_BYTES];
 
         /*
@@ -522,11 +522,10 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
         String subjectHash =
             CertUtil.computeMD5Hash(_hostCertificate.getIssuerX500Principal());
 
-        String protocol = "&P=" + PROTOCOL + "," +
-                          "v:" + PROTOCOL_VERSION + "," +
-                          "c:" + CRYPTO_MODE + "," +
-                          "ca:" + subjectHash;
-        return protocol;
+        return "&P=" + PROTOCOL + "," +
+                "v:" + PROTOCOL_VERSION + "," +
+                "c:" + CRYPTO_MODE + "," +
+                "ca:" + subjectHash;
     }
 
     @Override

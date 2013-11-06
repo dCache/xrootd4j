@@ -78,19 +78,19 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 public class DataServerHandler extends XrootdRequestHandler
 {
-    private final static Logger _log =
+    private static final Logger _log =
         LoggerFactory.getLogger(DataServerHandler.class);
 
     /**
      * Maximum frame size of a read or readv reply. Does not include the size
      * of the frame header.
      */
-    private final static int MAX_FRAME_SIZE = 2 << 20;
+    private static final int MAX_FRAME_SIZE = 2 << 20;
 
     private final ChannelGroup _allChannels;
 
     private final List<RandomAccessFile> _openFiles =
-        new ArrayList<RandomAccessFile>();
+        new ArrayList<>();
 
     private final DataServerConfiguration _configuration;
 

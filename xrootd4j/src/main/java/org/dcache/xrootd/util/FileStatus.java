@@ -26,9 +26,10 @@ package org.dcache.xrootd.util;
  */
 public class FileStatus
 {
-    private long size, modtime;
-    private int flags;
-    private long id;
+    private final long size;
+    private final long modtime;
+    private final int flags;
+    private final long id;
 
     public FileStatus(long id, long size, int flags, long modtime)
     {

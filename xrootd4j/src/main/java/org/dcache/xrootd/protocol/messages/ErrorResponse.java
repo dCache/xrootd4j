@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 
 public class ErrorResponse extends AbstractResponseMessage
 {
-    private final static Logger _log = LoggerFactory.getLogger(ErrorResponse.class);
+    private static final Logger _log = LoggerFactory.getLogger(ErrorResponse.class);
 
     private final int _errnum;
     private final String _errmsg;

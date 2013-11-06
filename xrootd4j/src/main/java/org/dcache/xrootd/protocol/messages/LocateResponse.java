@@ -27,7 +27,7 @@ import org.dcache.xrootd.protocol.XrootdProtocol;
 
 public class LocateResponse extends AbstractResponseMessage
 {
-    private String encoded;
+    private final String encoded;
 
     public LocateResponse(XrootdRequest request, InfoElement... info)
     {
@@ -50,7 +50,7 @@ public class LocateResponse extends AbstractResponseMessage
     {
         MANAGER("M"), MANAGER_PENDING("m"), SERVER("S"), SERVER_PENDING("s");
 
-        String value;
+        final String value;
 
         Node(String value)
         {
@@ -62,7 +62,7 @@ public class LocateResponse extends AbstractResponseMessage
     {
         READ("r"), WRITE("w");
 
-        String value;
+        final String value;
 
         Access(String value)
         {

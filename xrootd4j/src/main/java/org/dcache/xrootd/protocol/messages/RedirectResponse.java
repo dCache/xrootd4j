@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 
 public class RedirectResponse extends AbstractResponseMessage
 {
-    private final static Logger _logger =
+    private static final Logger _logger =
         LoggerFactory.getLogger(RedirectResponse.class);
 
     private final String _host;

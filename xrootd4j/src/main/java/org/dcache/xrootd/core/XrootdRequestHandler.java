@@ -60,7 +60,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.*;
  */
 public class XrootdRequestHandler extends IdleStateAwareChannelHandler
 {
-    private final static Logger _log =
+    private static final Logger _log =
         LoggerFactory.getLogger(XrootdRequestHandler.class);
 
     public XrootdRequestHandler()

@@ -19,6 +19,11 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.binary.StringUtils;
+
+import javax.security.auth.x500.X500Principal;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
@@ -32,11 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.security.auth.x500.X500Principal;
-
-import org.apache.commons.codec.binary.StringUtils;
-import org.apache.commons.codec.binary.Base64;
-
 import static org.globus.gsi.CertUtil.readCertificate;
 
 /**
@@ -49,8 +49,8 @@ import static org.globus.gsi.CertUtil.readCertificate;
  */
 public class CertUtil
 {
-    private static Map<X500Principal,String> _hashCache =
-        new ConcurrentHashMap<X500Principal,String>();
+    private static final Map<X500Principal,String> _hashCache =
+        new ConcurrentHashMap<>();
 
     /**
      * Decodes PEM by removing the given header and footer, and decodes
@@ -151,12 +151,10 @@ public class CertUtil
      */
     public static String computeMD5Hash(X500Principal principal)
     {
-        MessageDigest md = null;
+        MessageDigest md;
         try {
             md = MessageDigest.getInstance("MD5", "BC");
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        } catch (NoSuchProviderException e) {
+        } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
             throw new IllegalStateException(e);
         }
 
@@ -237,8 +235,8 @@ public class CertUtil
             throw new IllegalArgumentException("no inputstream given");
         }
 
-        List<X509Certificate> list = new LinkedList<X509Certificate>();
-        X509Certificate cert = null;
+        List<X509Certificate> list = new LinkedList<>();
+        X509Certificate cert;
         BufferedReader reader = new BufferedReader(in);
         try {
             while ((cert = readCertificate(reader)) != null) {

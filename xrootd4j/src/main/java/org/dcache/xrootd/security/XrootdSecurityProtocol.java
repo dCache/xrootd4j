@@ -26,31 +26,31 @@ import java.util.Map;
 public class XrootdSecurityProtocol {
 
     // server status codes (returned in responses)
-    public final static int kgST_error    = -1;      // error occured
-    public final static int kgST_ok       =  0;      // ok
-    public final static int kgST_more     =  1;       // need more info
+    public static final int kgST_error    = -1;      // error occured
+    public static final int kgST_ok       =  0;      // ok
+    public static final int kgST_more     =  1;       // need more info
 
     // client processing steps
-    public final static int kXGC_none =     0;
-    public final static int kXGC_certreq =  1000;   // 1000: request server certificate
-    public final static int kXGC_cert =     1001;   // 1001: packet with (proxy) certificate
-    public final static int kXGC_sigpxy =   1002;   // 1002: packet with signed proxy certificate
-    public final static int kXGC_reserved = 1003;
+    public static final int kXGC_none =     0;
+    public static final int kXGC_certreq =  1000;   // 1000: request server certificate
+    public static final int kXGC_cert =     1001;   // 1001: packet with (proxy) certificate
+    public static final int kXGC_sigpxy =   1002;   // 1002: packet with signed proxy certificate
+    public static final int kXGC_reserved = 1003;
 
     // server processing steps
-    public final static int kXGS_none =     0;
-    public final static int kXGS_init =     2000;   // 2000: fake code used the first time
-    public final static int kXGS_cert =     2001;   // 2001: packet with certificate
-    public final static int kXGS_pxyreq =   2002;   // 2002: packet with proxy req to be signed
-    public final static int kXGS_reserved = 2003;
+    public static final int kXGS_none =     0;
+    public static final int kXGS_init =     2000;   // 2000: fake code used the first time
+    public static final int kXGS_cert =     2001;   // 2001: packet with certificate
+    public static final int kXGS_pxyreq =   2002;   // 2002: packet with proxy req to be signed
+    public static final int kXGS_reserved = 2003;
 
     // handshake options
-    public final static int kOptsDlgPxy     = 1;      // 0x0001: Ask for a delegated proxy
-    public final static int kOptsFwdPxy     = 2;      // 0x0002: Forward local proxy
-    public final static int kOptsSigReq     = 4;      // 0x0004: Accept to sign delegated proxy
-    public final static int kOptsSrvReq     = 8;      // 0x0008: Server request for delegated proxy
-    public final static int kOptsPxFile     = 16;     // 0x0010: Save delegated proxies in file
-    public final static int kOptsDelChn     = 32;      // 0x0020: Delete chain
+    public static final int kOptsDlgPxy     = 1;      // 0x0001: Ask for a delegated proxy
+    public static final int kOptsFwdPxy     = 2;      // 0x0002: Forward local proxy
+    public static final int kOptsSigReq     = 4;      // 0x0004: Accept to sign delegated proxy
+    public static final int kOptsSrvReq     = 8;      // 0x0008: Server request for delegated proxy
+    public static final int kOptsPxFile     = 16;     // 0x0010: Save delegated proxies in file
+    public static final int kOptsDelChn     = 32;      // 0x0020: Delete chain
 
     public static enum BucketType {
         kXRS_none           (0),    // end-of-vector
@@ -86,7 +86,7 @@ public class XrootdSecurityProtocol {
         kXRS_reserved       (3028); // Reserved
 
         private static final Map<Integer,BucketType> _lookup
-                                        = new HashMap<Integer,BucketType>();
+                                        = new HashMap<>();
 
         static {
             for(BucketType s : EnumSet.allOf(BucketType.class)) {

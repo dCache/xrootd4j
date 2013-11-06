@@ -19,32 +19,34 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.EnumMap;
 import java.util.Map;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 import org.dcache.xrootd.security.XrootdBucket;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
 
 public class AuthenticationRequest extends XrootdRequest
 {
-    private final static Logger _logger =
+    private static final Logger _logger =
         LoggerFactory.getLogger(AuthenticationRequest.class);
 
     /** the protocol as it is send by the client, zero-padded char[4] */
-    private String _protocol;
+    private final String _protocol;
     /** the step as it is send by the client, int32 */
-    private int _step;
+    private final int _step;
     /** store the buckets (kind of a serialized datatype with an
      * int32 block of metadata) received from the client
      */
-    private Map<BucketType, XrootdBucket> _bucketMap =
-        new EnumMap<BucketType, XrootdBucket>(BucketType.class);
+    private final Map<BucketType, XrootdBucket> _bucketMap =
+        new EnumMap<>(BucketType.class);
 
     /**
      * Deserialize protocol, processing step and all the bucks sent by the
@@ -89,7 +91,7 @@ public class AuthenticationRequest extends XrootdRequest
         _logger.debug("Deserializing a bucket with code {}", bucketCode);
 
         Map<BucketType, XrootdBucket> buckets =
-            new EnumMap<BucketType,XrootdBucket>(BucketType.class);
+            new EnumMap<>(BucketType.class);
 
         while (bucketType != BucketType.kXRS_none) {
             int bucketLength = buffer.readInt();
@@ -119,8 +121,7 @@ public class AuthenticationRequest extends XrootdRequest
     }
 
     public static int deserializeStep(ChannelBuffer buffer) {
-        int step = buffer.readInt();
-        return step;
+        return buffer.readInt();
     }
 
     public Map<BucketType, XrootdBucket> getBuckets() {

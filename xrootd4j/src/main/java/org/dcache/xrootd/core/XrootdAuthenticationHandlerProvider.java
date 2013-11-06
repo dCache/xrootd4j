@@ -31,9 +31,9 @@ import java.util.ServiceLoader;
 
 public class XrootdAuthenticationHandlerProvider implements ChannelHandlerProvider
 {
-    private final static Logger _log =
+    private static final Logger _log =
         LoggerFactory.getLogger(XrootdAuthenticationHandlerProvider.class);
-    final static String PREFIX = "authn:";
+    static final String PREFIX = "authn:";
 
     private static ClassLoader _classLoader;
 

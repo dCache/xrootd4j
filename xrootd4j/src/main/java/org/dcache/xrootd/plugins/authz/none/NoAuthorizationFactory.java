@@ -24,9 +24,9 @@ import org.dcache.xrootd.plugins.AuthorizationHandler;
 
 public class NoAuthorizationFactory implements AuthorizationFactory
 {
-    public final static String NAME = "none";
+    public static final String NAME = "none";
 
-    private final static AuthorizationHandler HANDLER =
+    private static final AuthorizationHandler HANDLER =
         new NoAuthorizationHandler();
 
     @Override

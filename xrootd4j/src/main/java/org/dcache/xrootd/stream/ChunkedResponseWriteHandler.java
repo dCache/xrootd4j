@@ -84,10 +84,10 @@ import static org.jboss.netty.channel.Channels.*;
 public class ChunkedResponseWriteHandler
     implements ChannelUpstreamHandler, ChannelDownstreamHandler, LifeCycleAwareChannelHandler
 {
-    private final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(ChunkedResponseWriteHandler.class);
 
-    private final Queue<MessageEvent> queue = new ConcurrentLinkedQueue<MessageEvent>();
+    private final Queue<MessageEvent> queue = new ConcurrentLinkedQueue<>();
 
     private final AtomicBoolean flush = new AtomicBoolean(false);
     private MessageEvent currentEvent;

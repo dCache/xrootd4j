@@ -19,37 +19,37 @@
  */
 package org.dcache.xrootd.standalone;
 
+import com.google.common.io.PatternFilenameFilter;
+import joptsimple.OptionSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FilenameFilter;
-import java.io.InputStream;
 import java.io.IOException;
-import java.util.NoSuchElementException;
-import java.util.ServiceLoader;
-import java.util.Properties;
-import java.util.List;
-import java.util.ArrayList;
-import java.net.URL;
+import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Properties;
+import java.util.ServiceLoader;
 
-import joptsimple.OptionSet;
-
-import com.google.common.io.PatternFilenameFilter;
 import org.dcache.xrootd.core.XrootdAuthenticationHandlerProvider;
 import org.dcache.xrootd.core.XrootdAuthorizationHandlerProvider;
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
 import org.dcache.xrootd.plugins.ChannelHandlerProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DataServerConfiguration
 {
-    private final static Logger _log =
+    private static final Logger _log =
         LoggerFactory.getLogger(DataServerConfiguration.class);
 
-    private final static FilenameFilter JAR_FILTER =
+    private static final FilenameFilter JAR_FILTER =
         new PatternFilenameFilter(".*\\.jar");
-    private final static FilenameFilter PROPERTIES_FILTER =
+    private static final FilenameFilter PROPERTIES_FILTER =
         new PatternFilenameFilter(".*\\.properties");
 
     private final ClassLoader _pluginLoader;
@@ -82,13 +82,13 @@ public class DataServerConfiguration
         _log.info("Searching the following additional jars for plugins: {}", jars);
 
         _pluginLoader =
-            new URLClassLoader(jars.toArray(new URL[0]));
+            new URLClassLoader(jars.toArray(new URL[jars.size()]));
         XrootdAuthenticationHandlerProvider.setPluginClassLoader(_pluginLoader);
         XrootdAuthorizationHandlerProvider.setPluginClassLoader(_pluginLoader);
         _channelHandlerProviders =
             ServiceLoader.load(ChannelHandlerProvider.class, _pluginLoader);
 
-        channelHandlerFactories = new ArrayList<ChannelHandlerFactory>();
+        channelHandlerFactories = new ArrayList<>();
         for (String plugin: channelHandlerPlugins) {
             channelHandlerFactories.add(createHandlerFactory(plugin));
         }
@@ -112,7 +112,7 @@ public class DataServerConfiguration
     private static List<URL> findPluginFiles(List<File> paths, FilenameFilter filter)
         throws MalformedURLException
     {
-        ArrayList<URL> urls = new ArrayList<URL>();
+        ArrayList<URL> urls = new ArrayList<>();
         for (File dir: paths) {
             File[] plugins = dir.listFiles();
             if (plugins != null) {

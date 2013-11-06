@@ -59,9 +59,9 @@ import java.util.Map;
  *
  */
 public class OpaqueStringParser {
-    public final static char OPAQUE_STRING_PREFIX = '?';
-    public final static char OPAQUE_PREFIX = '&';
-    public final static char OPAQUE_SEPARATOR = '=';
+    public static final char OPAQUE_STRING_PREFIX = '?';
+    public static final char OPAQUE_PREFIX = '&';
+    public static final char OPAQUE_SEPARATOR = '=';
 
     /**
      * The opaque information is included in the path in a format similar to
@@ -87,7 +87,7 @@ public class OpaqueStringParser {
         if (opaque == null || opaque.isEmpty()) {
             return Collections.emptyMap();
         } else {
-            Map<String,String> map = new HashMap<String,String>();
+            Map<String,String> map = new HashMap<>();
 
             String [] prefixBlocks = opaque.split("\\?");
 

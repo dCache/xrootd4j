@@ -31,10 +31,10 @@ import java.util.ServiceLoader;
 
 public class XrootdAuthorizationHandlerProvider implements ChannelHandlerProvider
 {
-    private final static Logger _log =
+    private static final Logger _log =
         LoggerFactory.getLogger(XrootdAuthorizationHandlerProvider.class);
 
-    final static String PREFIX = "authz:";
+    static final String PREFIX = "authz:";
 
     private static ClassLoader _classLoader;
 
