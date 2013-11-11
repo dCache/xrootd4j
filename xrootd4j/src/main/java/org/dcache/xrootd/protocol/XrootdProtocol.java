@@ -73,6 +73,8 @@ public interface XrootdProtocol {
     public static final int   kXR_ChkSumErr      = 3019;
     public static final int   kXR_inProgress     = 3020;
     public static final int   kXR_noErrorYet     = 10000;
+    @Deprecated // Kept for compatibility with plugins
+    public static final int   kXR_FileLockedr    = 3003;
 
     // client's request types
     public static final int   kXR_handshake = 0;
@@ -144,6 +146,8 @@ public interface XrootdProtocol {
     public static final int kXR_writable= 32;
     public static final int kXR_poscpend= 64;
 
+    @Deprecated // Kept for compatibility with plugins
+    public static final int kXR_opscpend= 64;
 
     // attn response codes
     public static final int kXR_asyncab         = 5000;
