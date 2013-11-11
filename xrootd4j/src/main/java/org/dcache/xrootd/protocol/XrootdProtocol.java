@@ -55,6 +55,8 @@ public interface XrootdProtocol {
     public final static int   kXR_ArgMissing     = 3001;
     public final static int   kXR_ArgTooLong     = 3002;
     public final static int   kXR_FileLocked     = 3003;
+    @Deprecated // Kept for compatibility with plugins
+    public final static int   kXR_FileLockedr    = 3003;
     public final static int   kXR_FileNotOpen    = 3004;
     public final static int   kXR_FSError        = 3005;
     public final static int   kXR_InvalidRequest = 3006;
@@ -144,6 +146,8 @@ public interface XrootdProtocol {
     public final static int kXR_writable= 32;
     public final static int kXR_poscpend= 64;
 
+    @Deprecated // Kept for compatibility with plugins
+    public final static int kXR_opscpend= 64;
 
     // attn response codes
     public final static int kXR_asyncab         = 5000;
