@@ -26,6 +26,10 @@ package org.dcache.xrootd.util;
  */
 public class FileStatus
 {
+    @Deprecated // Kept for compatibility with plugins
+    public static final FileStatus FILE_NOT_FOUND =
+            new FileStatus(-1, -1, -1, -1);
+
     private long size, modtime;
     private int flags;
     private long id;
