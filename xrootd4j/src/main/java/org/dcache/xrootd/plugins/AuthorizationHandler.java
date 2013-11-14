@@ -19,12 +19,13 @@
  */
 package org.dcache.xrootd.plugins;
 
-import java.util.Map;
-import java.net.InetSocketAddress;
-
-import java.security.GeneralSecurityException;
 import javax.security.auth.Subject;
 
+import java.net.InetSocketAddress;
+import java.security.GeneralSecurityException;
+import java.util.Map;
+
+import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.protocol.XrootdProtocol.FilePerm;
 
 /**
@@ -47,15 +48,16 @@ public interface AuthorizationHandler
      * @param opaque the opaque data from the request
      * @param request xrootd request id of the operation
      * @param mode the requested mode
-     * @throws AccessControlException when the requested access is
-     * denied
+     * @throws SecurityException when the requested access is denied
      * @throws GeneralSecurityException when the process of
-     * authorizing fails
+     *         authorizing fails
+     * @throws XrootdException when some specific error should be propagated
+     *         back to the xrootd client.
      */
     String authorize(Subject subject,
                      InetSocketAddress localAddress,
                      InetSocketAddress remoteAddress,
                      String path, Map<String,String> opaque,
                      int request, FilePerm mode)
-        throws SecurityException, GeneralSecurityException;
+        throws XrootdException, SecurityException, GeneralSecurityException;
 }

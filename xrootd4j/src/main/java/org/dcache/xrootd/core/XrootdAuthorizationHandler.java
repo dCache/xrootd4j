@@ -19,23 +19,41 @@
  */
 package org.dcache.xrootd.core;
 
+import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelHandler.Sharable;
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.MessageEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import org.dcache.xrootd.protocol.XrootdProtocol.FilePerm;
-import org.dcache.xrootd.protocol.messages.*;
 import org.dcache.xrootd.plugins.AuthorizationFactory;
 import org.dcache.xrootd.plugins.AuthorizationHandler;
+import org.dcache.xrootd.protocol.XrootdProtocol.*;
+import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
+import org.dcache.xrootd.protocol.messages.CloseRequest;
+import org.dcache.xrootd.protocol.messages.DirListRequest;
+import org.dcache.xrootd.protocol.messages.MkDirRequest;
+import org.dcache.xrootd.protocol.messages.MvRequest;
+import org.dcache.xrootd.protocol.messages.OpenRequest;
+import org.dcache.xrootd.protocol.messages.PathRequest;
+import org.dcache.xrootd.protocol.messages.PrepareRequest;
+import org.dcache.xrootd.protocol.messages.ProtocolRequest;
+import org.dcache.xrootd.protocol.messages.ReadRequest;
+import org.dcache.xrootd.protocol.messages.ReadVRequest;
+import org.dcache.xrootd.protocol.messages.RmDirRequest;
+import org.dcache.xrootd.protocol.messages.RmRequest;
+import org.dcache.xrootd.protocol.messages.StatRequest;
+import org.dcache.xrootd.protocol.messages.StatxRequest;
+import org.dcache.xrootd.protocol.messages.SyncRequest;
+import org.dcache.xrootd.protocol.messages.WriteRequest;
+import org.dcache.xrootd.protocol.messages.XrootdRequest;
 import org.dcache.xrootd.util.OpaqueStringParser;
 import org.dcache.xrootd.util.ParseException;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.ChannelHandler.Sharable;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 @Sharable
 public class XrootdAuthorizationHandler extends XrootdRequestHandler
@@ -314,7 +332,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
                                      request.getRequestId(),
                                      neededPerm);
         } catch (GeneralSecurityException e) {
-            throw new XrootdException(kXR_NotAuthorized,
+            throw new XrootdException(kXR_ServerError,
                                       "Authorization check failed: " +
                                       e.getMessage());
         } catch (SecurityException e) {
