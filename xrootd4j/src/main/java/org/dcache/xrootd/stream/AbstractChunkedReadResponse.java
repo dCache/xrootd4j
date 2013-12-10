@@ -33,6 +33,7 @@ public abstract class AbstractChunkedReadResponse implements ChunkedResponse
     protected final int maxFrameSize;
     protected long position;
     protected int length;
+    protected boolean isEndOfInput;
 
     public AbstractChunkedReadResponse(ReadRequest request, int maxFrameSize)
     {
@@ -51,22 +52,26 @@ public abstract class AbstractChunkedReadResponse implements ChunkedResponse
     @Override
     public ReadResponse nextChunk() throws Exception
     {
-        if (length == 0) {
+        if (isEndOfInput) {
             return null;
         }
-
-        int chunkLength = Math.min(length, maxFrameSize);
-
-        ChannelBuffer buffer = read(position, chunkLength);
-        chunkLength = buffer.readableBytes();
-        position += chunkLength;
-        length -= chunkLength;
-
         ReadResponse response = new ReadResponse(request, 0);
-        response.append(buffer);
-        response.setIncomplete(length != 0);
-
+        response.append(readNext());
+        response.setIncomplete(!isEndOfInput);
         return response;
+    }
+
+    private ChannelBuffer readNext() throws IOException
+    {
+        int chunkLength = Math.min(length, maxFrameSize);
+        ChannelBuffer buffer = read(position, chunkLength);
+        int readableBytes = buffer.readableBytes();
+        position += readableBytes;
+        length = (readableBytes < chunkLength) ? 0 : length - readableBytes;
+        if (length == 0) {
+            isEndOfInput = true;
+        }
+        return buffer;
     }
 
     protected abstract ChannelBuffer read(long srcIndex, int length)
@@ -75,7 +80,7 @@ public abstract class AbstractChunkedReadResponse implements ChunkedResponse
     @Override
     public boolean isEndOfInput() throws Exception
     {
-        return (length == 0);
+        return isEndOfInput;
     }
 
     @Override
