@@ -44,6 +44,7 @@ import org.dcache.xrootd.protocol.messages.ReadRequest;
 import org.dcache.xrootd.protocol.messages.ReadVRequest;
 import org.dcache.xrootd.protocol.messages.RmDirRequest;
 import org.dcache.xrootd.protocol.messages.RmRequest;
+import org.dcache.xrootd.protocol.messages.SetRequest;
 import org.dcache.xrootd.protocol.messages.StatRequest;
 import org.dcache.xrootd.protocol.messages.StatxRequest;
 import org.dcache.xrootd.protocol.messages.SyncRequest;
@@ -160,6 +161,9 @@ public class XrootdRequestHandler extends IdleStateAwareChannelHandler
                 response =
                         doOnQuery(ctx, event, (QueryRequest) req);
                 break;
+            case kXR_set :
+                response =
+                        doOnSet(ctx, event, (SetRequest) req);
             default:
                 response =
                     unsupported(ctx, event, req);
@@ -356,5 +360,11 @@ public class XrootdRequestHandler extends IdleStateAwareChannelHandler
         throws XrootdException
     {
         return unsupported(ctx, e, msg);
+    }
+
+    protected Object doOnSet(ChannelHandlerContext ctx, MessageEvent event, SetRequest request)
+            throws XrootdException
+    {
+        return unsupported(ctx, event, request);
     }
 }

@@ -69,6 +69,8 @@ import org.dcache.xrootd.protocol.messages.ReadRequest;
 import org.dcache.xrootd.protocol.messages.ReadVRequest;
 import org.dcache.xrootd.protocol.messages.RmDirRequest;
 import org.dcache.xrootd.protocol.messages.RmRequest;
+import org.dcache.xrootd.protocol.messages.SetRequest;
+import org.dcache.xrootd.protocol.messages.SetResponse;
 import org.dcache.xrootd.protocol.messages.StatRequest;
 import org.dcache.xrootd.protocol.messages.StatResponse;
 import org.dcache.xrootd.protocol.messages.StatxRequest;
@@ -554,6 +556,21 @@ public class DataServerHandler extends XrootdRequestHandler
         default:
             throw new XrootdException(kXR_Unsupported, "Unsupported kXR_query reqcode: " + msg.getReqcode());
         }
+    }
+
+    @Override
+    protected Object doOnSet(ChannelHandlerContext ctx, MessageEvent event, SetRequest request) throws XrootdException
+    {
+        /* The xrootd spec states that we should include 80 characters in our log.
+         */
+        final String APPID_PREFIX = "appid ";
+        final int APPID_PREFIX_LENGTH = APPID_PREFIX.length();
+        final int APPID_MSG_LENGTH = 80;
+        String data = request.getData();
+        if (data.startsWith(APPID_PREFIX)) {
+            _log.info(data.substring(APPID_PREFIX_LENGTH, Math.min(APPID_PREFIX_LENGTH + APPID_MSG_LENGTH, data.length())));
+        }
+        return new SetResponse(request, "");
     }
 
     private String stripLeadingAsterix(String s)

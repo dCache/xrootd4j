@@ -46,6 +46,7 @@ import org.dcache.xrootd.protocol.messages.ReadRequest;
 import org.dcache.xrootd.protocol.messages.ReadVRequest;
 import org.dcache.xrootd.protocol.messages.RmDirRequest;
 import org.dcache.xrootd.protocol.messages.RmRequest;
+import org.dcache.xrootd.protocol.messages.SetRequest;
 import org.dcache.xrootd.protocol.messages.StatRequest;
 import org.dcache.xrootd.protocol.messages.StatxRequest;
 import org.dcache.xrootd.protocol.messages.SyncRequest;
@@ -306,6 +307,13 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
             req.setArgs(authorize(event, req, FilePerm.READ, path, opaque));
             break;
         }
+        ctx.sendUpstream(event);
+        return null;
+    }
+
+    @Override
+    protected Object doOnSet(ChannelHandlerContext ctx, MessageEvent event, SetRequest request) throws XrootdException
+    {
         ctx.sendUpstream(event);
         return null;
     }

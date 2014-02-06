@@ -19,12 +19,27 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import org.dcache.xrootd.protocol.XrootdProtocol;
+import org.jboss.netty.buffer.ChannelBuffer;
 
-public class QueryResponse extends StringResponse
+public class SetRequest extends QueryRequest
 {
-    public QueryResponse(XrootdRequest request, String info)
+    private final String data;
+
+    public SetRequest(ChannelBuffer buffer)
     {
-        super(request, XrootdProtocol.kXR_ok, info);
+        super(buffer);
+        int dlen = buffer.getInt(20);
+        data = buffer.toString(24, dlen, XROOTD_CHARSET);
+    }
+
+    public String getData()
+    {
+        return data;
+    }
+
+    @Override
+    public String toString()
+    {
+        return String.format("set[%s]", data);
     }
 }

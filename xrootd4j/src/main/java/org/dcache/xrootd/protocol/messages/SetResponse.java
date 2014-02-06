@@ -21,10 +21,10 @@ package org.dcache.xrootd.protocol.messages;
 
 import org.dcache.xrootd.protocol.XrootdProtocol;
 
-public class QueryResponse extends StringResponse
+public class SetResponse extends StringResponse
 {
-    public QueryResponse(XrootdRequest request, String info)
+    public SetResponse(XrootdRequest request, String resp)
     {
-        super(request, XrootdProtocol.kXR_ok, info);
+        super(request, XrootdProtocol.kXR_ok, resp);
     }
 }

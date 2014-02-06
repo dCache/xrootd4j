@@ -19,12 +19,23 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import org.dcache.xrootd.protocol.XrootdProtocol;
+import com.google.common.base.CaseFormat;
 
-public class QueryResponse extends StringResponse
+public class StringResponse extends AbstractResponseMessage
 {
-    public QueryResponse(XrootdRequest request, String info)
+    protected final String response;
+
+    public StringResponse(XrootdRequest request, int stat, String response)
     {
-        super(request, XrootdProtocol.kXR_ok, info);
+        super(request, stat, response.length());
+        this.response = response;
+        putCharSequence(response);
+    }
+
+    @Override
+    public String toString()
+    {
+        String type = CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_HYPHEN, getClass().getSimpleName());
+        return String.format("%s[%s]", type, response);
     }
 }

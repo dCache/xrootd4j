@@ -128,6 +128,8 @@ public class XrootdDecoder extends FrameDecoder
             return new LocateRequest(frame);
         case kXR_query:
             return new QueryRequest(frame);
+        case kXR_set:
+            return new SetRequest(frame);
         default:
             return new UnknownRequest(frame);
         }
