@@ -25,22 +25,23 @@ import org.slf4j.LoggerFactory;
 
 public class ErrorResponse extends AbstractResponseMessage
 {
-    private final static Logger _log = LoggerFactory.getLogger(ErrorResponse.class);
+    private static final Logger _log = LoggerFactory.getLogger(ErrorResponse.class);
 
     private final int _errnum;
     private final String _errmsg;
 
     public ErrorResponse(XrootdRequest request, int errnum, String errmsg)
     {
-        super(request, XrootdProtocol.kXR_error, errmsg.length() + 4);
+        super(request, XrootdProtocol.kXR_error, errmsg.length() + 5);
 
         _errnum = errnum;
         _errmsg = errmsg;
 
         putSignedInt(errnum);
         putCharSequence(errmsg);
+        putUnsignedChar('\0');
 
-        _log.info("Xrootd-Error-Response: ErrorNr="+ errnum +" ErrorMsg="+ errmsg);
+        _log.info("Xrootd-Error-Response: ErrorNr={} ErrorMsg={}", errnum, errmsg);
     }
 
     @Override
