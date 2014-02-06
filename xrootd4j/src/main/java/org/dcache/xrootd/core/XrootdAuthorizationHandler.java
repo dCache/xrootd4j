@@ -31,10 +31,12 @@ import java.security.GeneralSecurityException;
 
 import org.dcache.xrootd.plugins.AuthorizationFactory;
 import org.dcache.xrootd.plugins.AuthorizationHandler;
+import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.protocol.XrootdProtocol.*;
 import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
 import org.dcache.xrootd.protocol.messages.DirListRequest;
+import org.dcache.xrootd.protocol.messages.LocateRequest;
 import org.dcache.xrootd.protocol.messages.MkDirRequest;
 import org.dcache.xrootd.protocol.messages.MvRequest;
 import org.dcache.xrootd.protocol.messages.OpenRequest;
@@ -205,6 +207,21 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
                                                   MessageEvent event,
                                                   PrepareRequest msg)
     {
+        ctx.sendUpstream(event);
+        return null;
+    }
+
+    @Override
+    protected Void doOnLocate(ChannelHandlerContext ctx, MessageEvent event, LocateRequest msg)
+            throws XrootdException
+    {
+        String path = msg.getPath();
+        if (!path.startsWith("*")) {
+            path = authorize(event, msg, FilePerm.READ, path, msg.getOpaque());
+        } else if (!path.equals("*")) {
+            path = authorize(event, msg, FilePerm.READ, path.substring(1), msg.getOpaque());
+        }
+        msg.setPath(path);
         ctx.sendUpstream(event);
         return null;
     }
