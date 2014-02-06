@@ -39,6 +39,7 @@ import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.dcache.xrootd.protocol.messages.OpenRequest;
 import org.dcache.xrootd.protocol.messages.PrepareRequest;
 import org.dcache.xrootd.protocol.messages.ProtocolRequest;
+import org.dcache.xrootd.protocol.messages.QueryRequest;
 import org.dcache.xrootd.protocol.messages.ReadRequest;
 import org.dcache.xrootd.protocol.messages.ReadVRequest;
 import org.dcache.xrootd.protocol.messages.RmDirRequest;
@@ -154,6 +155,10 @@ public class XrootdRequestHandler extends IdleStateAwareChannelHandler
             case kXR_locate :
                 response =
                         doOnLocate(ctx, event, (LocateRequest) req);
+                break;
+            case kXR_query :
+                response =
+                        doOnQuery(ctx, event, (QueryRequest) req);
                 break;
             default:
                 response =
@@ -340,6 +345,14 @@ public class XrootdRequestHandler extends IdleStateAwareChannelHandler
     protected Object doOnLocate(ChannelHandlerContext ctx,
                                 MessageEvent e,
                                 LocateRequest msg)
+        throws XrootdException
+    {
+        return unsupported(ctx, e, msg);
+    }
+
+    protected Object doOnQuery(ChannelHandlerContext ctx,
+                               MessageEvent e,
+                               QueryRequest msg)
         throws XrootdException
     {
         return unsupported(ctx, e, msg);

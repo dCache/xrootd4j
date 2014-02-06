@@ -41,6 +41,7 @@ import org.dcache.xrootd.protocol.messages.OpenRequest;
 import org.dcache.xrootd.protocol.messages.PathRequest;
 import org.dcache.xrootd.protocol.messages.PrepareRequest;
 import org.dcache.xrootd.protocol.messages.ProtocolRequest;
+import org.dcache.xrootd.protocol.messages.QueryRequest;
 import org.dcache.xrootd.protocol.messages.ReadRequest;
 import org.dcache.xrootd.protocol.messages.ReadVRequest;
 import org.dcache.xrootd.protocol.messages.RmDirRequest;
@@ -193,7 +194,6 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
         if (path.isEmpty()) {
             throw new XrootdException(kXR_ArgMissing, "no source path specified");
         }
-
         authorize(event, request, FilePerm.READ);
         ctx.sendUpstream(event);
         return null;
@@ -281,6 +281,31 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
                                                           ProtocolRequest msg)
         throws XrootdException
     {
+        ctx.sendUpstream(event);
+        return null;
+    }
+
+    @Override
+    protected Object doOnQuery(ChannelHandlerContext ctx, MessageEvent event, QueryRequest req)
+            throws XrootdException
+    {
+        switch (req.getReqcode()) {
+        case kXR_Qcksum:
+        case kXR_Qxattr:
+            String args = req.getArgs();
+            int pos = args.indexOf(OPAQUE_DELIMITER);
+            String path;
+            String opaque;
+            if (pos > -1) {
+                path = args.substring(0, pos);
+                opaque = args.substring(pos + 1);
+            } else {
+                path = args;
+                opaque = "";
+            }
+            req.setArgs(authorize(event, req, FilePerm.READ, path, opaque));
+            break;
+        }
         ctx.sendUpstream(event);
         return null;
     }

@@ -19,6 +19,9 @@
  */
 package org.dcache.xrootd.standalone;
 
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hashing;
+import com.google.common.io.Files;
 import org.apache.commons.io.FilenameUtils;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -60,6 +63,8 @@ import org.dcache.xrootd.protocol.messages.OpenResponse;
 import org.dcache.xrootd.protocol.messages.PrepareRequest;
 import org.dcache.xrootd.protocol.messages.ProtocolRequest;
 import org.dcache.xrootd.protocol.messages.ProtocolResponse;
+import org.dcache.xrootd.protocol.messages.QueryRequest;
+import org.dcache.xrootd.protocol.messages.QueryResponse;
 import org.dcache.xrootd.protocol.messages.ReadRequest;
 import org.dcache.xrootd.protocol.messages.ReadVRequest;
 import org.dcache.xrootd.protocol.messages.RmDirRequest;
@@ -507,6 +512,47 @@ public class DataServerHandler extends XrootdRequestHandler
                             (InetSocketAddress) e.getChannel().getLocalAddress(),
                             LocateResponse.Node.SERVER,
                             file.canWrite() ? LocateResponse.Access.WRITE : LocateResponse.Access.READ));
+        }
+    }
+
+    @Override
+    protected Object doOnQuery(ChannelHandlerContext ctx, MessageEvent event, QueryRequest msg) throws XrootdException
+    {
+        switch (msg.getReqcode()) {
+        case kXR_Qconfig:
+            StringBuilder s = new StringBuilder();
+            for (String name: msg.getArgs().split(" ")) {
+                if (name.equals("bind_max")) {
+                    s.append(0);
+                } else if (name.equals("readv_ior_max")) {
+                    s.append(MAX_FRAME_SIZE);
+                } else if (name.equals("readv_iov_max")) {
+                    s.append(Integer.MAX_VALUE);
+                } else if (name.equals("readv_iov_max")) {
+                    s.append(Integer.MAX_VALUE);
+                } else if (name.equals("csname")) {
+                    s.append("1:ADLER32");
+                } else if (name.equals("version")) {
+                    s.append("xrootd4j");
+                } else {
+                    s.append(name);
+                }
+                s.append('\n');
+            }
+            return new QueryResponse(msg, s.toString());
+
+        case kXR_Qcksum:
+            try {
+                HashCode hash = Files.asByteSource(getFile(msg.getArgs())).hash(Hashing.adler32());
+                return new QueryResponse(msg, "ADLER32 " + hash);
+            } catch (FileNotFoundException e) {
+                throw new XrootdException(kXR_NotFound, e.getMessage());
+            } catch (IOException e) {
+                throw new XrootdException(kXR_IOError, e.getMessage());
+            }
+
+        default:
+            throw new XrootdException(kXR_Unsupported, "Unsupported kXR_query reqcode: " + msg.getReqcode());
         }
     }
 

@@ -19,6 +19,7 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.jboss.netty.buffer.ChannelBuffer;
 
 /**
@@ -30,8 +31,6 @@ import org.jboss.netty.buffer.ChannelBuffer;
  */
 public class PathRequest extends XrootdRequest
 {
-    private static final byte OPAQUE_DELIMITER = (byte) 0x3f;
-
     private String _path;
     private String _opaque;
 
@@ -49,7 +48,7 @@ public class PathRequest extends XrootdRequest
     private void setPathAndOpaque(ChannelBuffer buffer, int begin, int length)
     {
         int end = begin + length;
-        int pos = buffer.indexOf(begin, end, OPAQUE_DELIMITER);
+        int pos = buffer.indexOf(begin, end, XrootdProtocol.OPAQUE_DELIMITER);
         if (pos > -1) {
             setPath(buffer.toString(begin, pos - begin, XROOTD_CHARSET));
             setOpaque(buffer.toString(pos + 1, end - (pos + 1), XROOTD_CHARSET));

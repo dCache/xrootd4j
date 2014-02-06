@@ -19,22 +19,24 @@
  */
 package org.dcache.xrootd.standalone;
 
-import java.net.InetSocketAddress;
-import java.util.NoSuchElementException;
-import java.util.concurrent.Executors;
-
-import joptsimple.OptionSet;
 import joptsimple.OptionException;
-
-import org.jboss.netty.channel.ChannelPipelineFactory;
+import joptsimple.OptionSet;
+import org.jboss.netty.bootstrap.ServerBootstrap;
+import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFactory;
+import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.group.ChannelGroup;
 import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.socket.oio.OioServerSocketChannelFactory;
 import org.jboss.netty.logging.InternalLoggerFactory;
 import org.jboss.netty.logging.Slf4JLoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.InetSocketAddress;
+import java.util.NoSuchElementException;
+import java.util.concurrent.Executors;
 
 public class DataServer
 {
@@ -45,6 +47,8 @@ public class DataServer
     {
         InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory());
     }
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DataServer.class);
 
     private final DataServerConfiguration _configuration;
 
@@ -72,6 +76,10 @@ public class DataServer
         bootstrap.setOption("child.keepAlive", true);
         bootstrap.setPipelineFactory(pipelineFactory);
         allChannels.add(bootstrap.bind(new InetSocketAddress(_configuration.port)));
+
+        for (Channel channel : allChannels) {
+            LOGGER.info("Channel bound to {}", channel.getLocalAddress());
+        }
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
                 @Override
