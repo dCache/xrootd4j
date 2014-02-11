@@ -27,9 +27,15 @@ public class StatResponse extends AbstractResponseMessage
 
     public StatResponse(XrootdRequest request, FileStatus fs)
     {
-        super(request, XrootdProtocol.kXR_ok, 256);
+        this(request, fs, fs.toString());
+    }
+
+    private StatResponse(XrootdRequest request, FileStatus fs, String info)
+    {
+        super(request, XrootdProtocol.kXR_ok, info.length() + 1);
         _fs = fs;
-        putCharSequence(fs.toString() + '\0');
+        putCharSequence(info);
+        putUnsignedChar('\0');
     }
 
     @Override
