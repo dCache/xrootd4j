@@ -40,7 +40,7 @@ public class ChunkedFileChannelReadResponse extends AbstractChunkedReadResponse
     }
 
     @Override
-    public ChannelBuffer read(long position, int length)
+    protected ChannelBuffer read(long position, int length)
         throws IOException
     {
         ByteBuffer chunk = ByteBuffer.allocate(length);
