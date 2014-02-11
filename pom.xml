@@ -55,12 +55,6 @@
       <url>https://download.dcache.org/nexus/content/repositories/snapshots/</url>
       <layout>default</layout>
     </snapshotRepository>
-
-    <site>
-      <id>github</id>
-      <name>xrootd4j</name>
-      <url>http://github.com/dCache/xrootd4j/</url>
-    </site>
   </distributionManagement>
 
   <issueManagement>
@@ -244,6 +238,13 @@
                   <pushChanges>false</pushChanges>
                   <localCheckout>true</localCheckout>
               </configuration>
+              <dependencies>
+                  <dependency>
+                      <groupId>org.apache.maven.scm</groupId>
+                      <artifactId>maven-scm-provider-gitexe</artifactId>
+                      <version>1.9</version>
+                  </dependency>
+              </dependencies>
           </plugin>
       </plugins>
   </build>
