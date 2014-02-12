@@ -29,6 +29,7 @@
     <connection>scm:git:git://github.com/dCache/xrootd4j.git</connection>
     <developerConnection>scm:git:git@github.com:dCache/xrootd4j.git</developerConnection>
     <url>http://github.com/dCache/xrootd4j</url>
+    <tag>release/1.3</tag>
   </scm>
 
   <repositories>
