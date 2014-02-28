@@ -21,17 +21,19 @@ package org.dcache.xrootd.protocol.messages;
 
 import org.dcache.xrootd.core.XrootdSessionIdentifier;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 public class LoginResponse extends AbstractResponseMessage
 {
     public LoginResponse(XrootdRequest request, XrootdSessionIdentifier sessionId, String sec)
     {
-        super(request, kXR_ok, sec.length() + SESSION_ID_SIZE);
+        super(request, kXR_ok, (sec.isEmpty() ? 0 : sec.length() + 1) + SESSION_ID_SIZE);
 
         //		.. put sessionId and security info
         put(sessionId.getBytes());
-        putCharSequence(sec);
+        if (!sec.isEmpty()) {
+            putCharSequence(sec);
+            putUnsignedChar('\0');
+        }
     }
 }
