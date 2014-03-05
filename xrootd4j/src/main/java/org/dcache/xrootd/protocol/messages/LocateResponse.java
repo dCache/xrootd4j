@@ -36,9 +36,10 @@ public class LocateResponse extends AbstractResponseMessage
 
     private LocateResponse(XrootdRequest request, String encoded)
     {
-        super(request, XrootdProtocol.kXR_ok, encoded.length());
+        super(request, XrootdProtocol.kXR_ok, encoded.length() + 1);
         this.encoded = encoded;
         putCharSequence(encoded);
+        putUnsignedChar('\0');
     }
 
     public static String encode(InfoElement[] info)
