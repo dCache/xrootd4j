@@ -57,6 +57,7 @@ public class OpenResponse extends AbstractResponseMessage
 
             if (fs != null) {
                 putCharSequence(fs.toString());
+                putUnsignedChar('\0');
             }
         } catch (UnsupportedEncodingException e) {
             /* We cannot possibly recover from this option, so
