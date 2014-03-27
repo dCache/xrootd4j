@@ -44,6 +44,16 @@ public class ErrorResponse extends AbstractResponseMessage
         _log.info("Xrootd-Error-Response: ErrorNr={} ErrorMsg={}", errnum, errmsg);
     }
 
+    public int getErrorNumber()
+    {
+        return _errnum;
+    }
+
+    public String getErrorMessage()
+    {
+        return _errmsg;
+    }
+
     @Override
     public String toString()
     {
