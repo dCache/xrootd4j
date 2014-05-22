@@ -20,6 +20,7 @@
 package org.dcache.xrootd.protocol.messages;
 
 import com.google.common.base.Joiner;
+import com.google.common.net.InetAddresses;
 
 import java.net.InetSocketAddress;
 
@@ -88,7 +89,7 @@ public class LocateResponse extends AbstractResponseMessage
         @Override
         public String toString()
         {
-            return node.value + access.value + "[::" + address.getAddress().getHostAddress() + "]:" + address.getPort();
+            return node.value + access.value + InetAddresses.toUriString(address.getAddress()) + ":" + address.getPort();
         }
     }
 
