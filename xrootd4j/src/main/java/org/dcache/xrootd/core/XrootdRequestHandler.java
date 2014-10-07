@@ -164,6 +164,7 @@ public class XrootdRequestHandler extends IdleStateAwareChannelHandler
             case kXR_set :
                 response =
                         doOnSet(ctx, event, (SetRequest) req);
+                break;
             default:
                 response =
                     unsupported(ctx, event, req);
