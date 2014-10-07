@@ -21,13 +21,15 @@ package org.dcache.xrootd.protocol.messages;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
-public class SetRequest extends QueryRequest
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_set;
+
+public class SetRequest extends XrootdRequest
 {
     private final String data;
 
     public SetRequest(ChannelBuffer buffer)
     {
-        super(buffer);
+        super(buffer, kXR_set);
         int dlen = buffer.getInt(20);
         data = buffer.toString(24, dlen, XROOTD_CHARSET);
     }
