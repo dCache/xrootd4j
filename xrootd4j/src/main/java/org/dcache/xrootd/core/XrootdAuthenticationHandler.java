@@ -20,7 +20,6 @@
 package org.dcache.xrootd.core;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
@@ -32,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import javax.security.auth.Subject;
 
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
@@ -48,40 +48,34 @@ import org.dcache.xrootd.protocol.messages.XrootdRequest;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 /**
- * Netty handler implementing Xrootd kXR_login and kXR_auth.
+ * Netty handler implementing Xrootd kXR_login, kXR_auth, and kXR_endsess.
  *
- * Delegates the authentication steps to an
- * AuthenticationHandler. Rejects all other messages until login has
- * completed.
+ * Delegates the authentication steps to an AuthenticationHandler. Rejects
+ * all other messages until login has completed.
  *
- * Note the difference between this class and
- * AuthenticationHandler. The latter is part of a plugin implementing
- * the core authentication logic whereas this class is a Netty handler.
+ * Note the difference between this class and AuthenticationHandler. The
+ * latter is part of a plugin implementing the core authentication logic
+ * whereas this class is a Netty handler.
  *
- * The class may be subclassed to override the
- * <code>authenticated</code> method to add additional operations
- * after authentication.
+ * The class may be subclassed to override the <code>authenticated</code> method
+ * to add additional operations after authentication.
  */
 public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
 {
     private static final Logger _log =
         LoggerFactory.getLogger(XrootdAuthenticationHandler.class);
 
-    private static final ImmutableSet<Integer> WITHOUT_LOGIN =
-        ImmutableSet.of(kXR_bind, kXR_login, kXR_protocol);
-    private static final ImmutableSet<Integer> WITHOUT_AUTH =
-        ImmutableSet.of(kXR_auth, kXR_bind, kXR_login, kXR_ping, kXR_protocol);
-
     private static final ConcurrentMap<XrootdSessionIdentifier,XrootdSession> _sessions =
         Maps.newConcurrentMap();
 
+    private final AtomicBoolean _isInProgress = new AtomicBoolean(false);
     private final XrootdSessionIdentifier _sessionId = new XrootdSessionIdentifier();
 
     private final AuthenticationFactory _authenticationFactory;
     private AuthenticationHandler _authenticationHandler;
 
     private enum State { NO_LOGIN, NO_AUTH, AUTH }
-    private State _state = State.NO_LOGIN;
+    private volatile State _state = State.NO_LOGIN;
 
     private XrootdSession _session;
 
@@ -94,6 +88,7 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
     public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception
     {
         _sessions.remove(_sessionId);
+        super.channelDisconnected(ctx, e);
     }
 
     @Override
@@ -112,28 +107,69 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
         int reqId = request.getRequestId();
 
         try {
-            /* Enforce login and authentication.
-             */
-            if (_state == State.NO_LOGIN && !WITHOUT_LOGIN.contains(reqId)) {
-                throw new XrootdException(kXR_NotAuthorized, "Login required");
-            }
-            if (_state == State.NO_AUTH && !WITHOUT_AUTH.contains(reqId)) {
-                throw new XrootdException(kXR_NotAuthorized, "Authentication required");
-            }
-
-            /* Dispatch request.
-             */
             switch (reqId) {
             case kXR_login:
-                doOnLogin(ctx, event, (LoginRequest) request);
+                if (_isInProgress.compareAndSet(false, true)) {
+                    try {
+                        _state = State.NO_LOGIN;
+                        _session = new XrootdSession(_sessionId, ctx.getChannel(), (LoginRequest) request);
+                        request.setSession(_session);
+                        doOnLogin(ctx, event, (LoginRequest) request);
+                    } finally {
+                        _isInProgress.set(false);
+                    }
+                } else {
+                    throw new XrootdException(kXR_inProgress, "Login in progress");
+                }
                 break;
             case kXR_auth:
-                doOnAuthentication(ctx, event, (AuthenticationRequest) request);
+                if (_isInProgress.compareAndSet(false, true)) {
+                    try {
+                        switch (_state) {
+                        case NO_LOGIN:
+                            throw new XrootdException(kXR_NotAuthorized, "Login required");
+                        case AUTH:
+                            throw new XrootdException(kXR_InvalidRequest, "Already authenticated");
+                        }
+                        request.setSession(_session);
+                        doOnAuthentication(ctx, event, (AuthenticationRequest) request);
+                    } finally {
+                        _isInProgress.set(false);
+                    }
+                } else {
+                    throw new XrootdException(kXR_inProgress, "Login in progress");
+                }
                 break;
             case kXR_endsess:
+                switch (_state) {
+                case NO_LOGIN:
+                    throw new XrootdException(kXR_NotAuthorized, "Login required");
+                case NO_AUTH:
+                    throw new XrootdException(kXR_NotAuthorized, "Authentication required");
+                }
+                request.setSession(_session);
                 doOnEndSession(ctx, event, (EndSessionRequest) request);
                 break;
+
+            case kXR_bind:
+            case kXR_protocol:
+                request.setSession(_session);
+                ctx.sendUpstream(event);
+                break;
+            case kXR_ping:
+                if (_state == State.NO_LOGIN) {
+                    throw new XrootdException(kXR_NotAuthorized, "Login required");
+                }
+                request.setSession(_session);
+                ctx.sendUpstream(event);
+                break;
             default:
+                switch (_state) {
+                case NO_LOGIN:
+                    throw new XrootdException(kXR_NotAuthorized, "Login required");
+                case NO_AUTH:
+                    throw new XrootdException(kXR_NotAuthorized, "Authentication required");
+                }
                 request.setSession(_session);
                 ctx.sendUpstream(event);
                 break;
@@ -158,15 +194,7 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
         throws XrootdException
     {
         try {
-            /* Any login request resets the authentication status.
-             */
-            _state = State.NO_LOGIN;
-
-            _session =
-                new XrootdSession(_sessionId, context.getChannel(), request);
-
-            _authenticationHandler =
-                _authenticationFactory.createHandler();
+            _authenticationHandler = _authenticationFactory.createHandler();
 
             LoginResponse response =
                 new LoginResponse(request, _sessionId,
