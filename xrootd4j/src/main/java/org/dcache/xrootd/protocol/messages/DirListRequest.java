@@ -29,4 +29,10 @@ public class DirListRequest extends PathRequest
     {
         super(buffer, kXR_dirlist);
     }
+
+    @Override
+    public String toString()
+    {
+        return "dirlist[" + getPath() + "," + getOpaque() + "]";
+    }
 }

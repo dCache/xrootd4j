@@ -79,4 +79,10 @@ public class LoginRequest extends XrootdRequest
     {
         return _token;
     }
+
+    @Override
+    public String toString()
+    {
+        return "login[" + _username + "," + _pid + "," + _capver + "," + _role + "," + _token + "]";
+    }
 }

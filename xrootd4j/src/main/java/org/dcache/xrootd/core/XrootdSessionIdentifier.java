@@ -19,6 +19,8 @@
  */
 package org.dcache.xrootd.core;
 
+import com.google.common.io.BaseEncoding;
+
 import java.security.SecureRandom;
 import java.util.Arrays;
 
@@ -65,5 +67,11 @@ public class XrootdSessionIdentifier
     public int hashCode()
     {
         return Arrays.hashCode(_sessionId);
+    }
+
+    @Override
+    public String toString()
+    {
+        return BaseEncoding.base16().encode(_sessionId);
     }
 }

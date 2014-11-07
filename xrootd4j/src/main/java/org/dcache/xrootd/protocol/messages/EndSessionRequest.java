@@ -19,11 +19,12 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.SESSION_ID_SIZE;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_endsess;
+import org.jboss.netty.buffer.ChannelBuffer;
 
 import org.dcache.xrootd.core.XrootdSessionIdentifier;
-import org.jboss.netty.buffer.ChannelBuffer;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.SESSION_ID_SIZE;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_endsess;
 
 public class EndSessionRequest extends XrootdRequest
 {
@@ -38,5 +39,11 @@ public class EndSessionRequest extends XrootdRequest
     public XrootdSessionIdentifier getSessionId()
     {
         return new XrootdSessionIdentifier(_session);
+    }
+
+    @Override
+    public String toString()
+    {
+        return "endsess[" + getSessionId() + ']';
     }
 }

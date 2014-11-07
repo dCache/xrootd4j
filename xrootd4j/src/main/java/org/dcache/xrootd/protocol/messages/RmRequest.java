@@ -29,4 +29,10 @@ public class RmRequest extends PathRequest
     {
         super(buffer, kXR_rm);
     }
+
+    @Override
+    public String toString()
+    {
+        return "rm[" + getPath() + "," + getOpaque() + "]";
+    }
 }

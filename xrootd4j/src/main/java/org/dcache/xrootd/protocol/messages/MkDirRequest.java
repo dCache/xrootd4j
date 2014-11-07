@@ -51,4 +51,10 @@ public class MkDirRequest extends PathRequest
     public int getMode() {
         return _mode;
     }
+
+    @Override
+    public String toString()
+    {
+        return "mkdir[" + getPath() + "," + getOpaque() + "]";
+    }
 }
