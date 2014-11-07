@@ -36,4 +36,10 @@ public class StatRequest extends PathRequest
     {
         return (_opts & kXR_vfs) == kXR_vfs;
     }
+
+    @Override
+    public String toString()
+    {
+        return "stat[" + getPath() + "," + getOpaque() + "," + _opts + "]";
+    }
 }

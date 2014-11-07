@@ -38,6 +38,26 @@ public class StatResponse extends AbstractResponseMessage
         putUnsignedChar('\0');
     }
 
+    public long getSize()
+    {
+        return _fs.getSize();
+    }
+
+    public int getFlags()
+    {
+        return _fs.getFlags();
+    }
+
+    public long getId()
+    {
+        return _fs.getId();
+    }
+
+    public long getModificationTime()
+    {
+        return _fs.getModificationTime();
+    }
+
     @Override
     public String toString()
     {
