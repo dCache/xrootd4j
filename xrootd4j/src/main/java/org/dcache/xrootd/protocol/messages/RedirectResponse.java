@@ -66,6 +66,26 @@ public class RedirectResponse extends AbstractResponseMessage
         }
     }
 
+    public String getHost()
+    {
+        return _host;
+    }
+
+    public int getPort()
+    {
+        return _port;
+    }
+
+    public String getOpaque()
+    {
+        return _opaque;
+    }
+
+    public String getToken()
+    {
+        return _token;
+    }
+
     @Override
     public String toString()
     {

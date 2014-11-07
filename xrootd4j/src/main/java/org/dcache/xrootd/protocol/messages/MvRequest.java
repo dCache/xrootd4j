@@ -92,4 +92,10 @@ public class MvRequest extends XrootdRequest
     {
         return _targetPath;
     }
+
+    @Override
+    public String toString()
+    {
+        return "mv[" + getSourcePath() + "," + getTargetPath() + "," + getOpaque() + "]";
+    }
 }

@@ -33,6 +33,11 @@ public class ProtocolResponse extends AbstractResponseMessage
         putSignedInt(flags);
     }
 
+    public int getFlags()
+    {
+        return _flags;
+    }
+
     @Override
     public String toString()
     {

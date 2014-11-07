@@ -32,6 +32,11 @@ public class StringResponse extends AbstractResponseMessage
         putCharSequence(response);
     }
 
+    public String getResponse()
+    {
+        return response;
+    }
+
     @Override
     public String toString()
     {

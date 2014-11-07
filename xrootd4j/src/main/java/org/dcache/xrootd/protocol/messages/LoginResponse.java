@@ -25,9 +25,15 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 public class LoginResponse extends AbstractResponseMessage
 {
+    private final XrootdSessionIdentifier sessionId;
+    private final String sec;
+
     public LoginResponse(XrootdRequest request, XrootdSessionIdentifier sessionId, String sec)
     {
         super(request, kXR_ok, (sec.isEmpty() ? 0 : sec.length() + 1) + SESSION_ID_SIZE);
+
+        this.sessionId = sessionId;
+        this.sec = sec;
 
         //		.. put sessionId and security info
         put(sessionId.getBytes());
@@ -35,5 +41,21 @@ public class LoginResponse extends AbstractResponseMessage
             putCharSequence(sec);
             putUnsignedChar('\0');
         }
+    }
+
+    public XrootdSessionIdentifier getSessionId()
+    {
+        return sessionId;
+    }
+
+    public String getSec()
+    {
+        return sec;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "login-response[" + sessionId + "," + sec + "]";
     }
 }

@@ -29,4 +29,10 @@ public class RmDirRequest extends PathRequest
     {
         super(buffer, kXR_rmdir);
     }
+
+    @Override
+    public String toString()
+    {
+        return "rmdir[" + getPath() + "," + getOpaque() + "]";
+    }
 }
