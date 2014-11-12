@@ -120,34 +120,34 @@ public interface XrootdProtocol {
     public static final short kXR_ox = 0x001;
 
     // open request options
-    public static final short kXR_compress  = 1;
-    public static final short kXR_delete    = 2;
-    public static final short kXR_force     = 4;
-    public static final short kXR_new       = 8;
-    public static final short kXR_open_read = 16;
-    public static final short kXR_open_updt = 32;
-    public static final short kXR_async     = 64;
-    public static final short kXR_refresh       = 128;
-    public static final short kXR_mkpath        = 256;
-    public static final short kXR_open_apnd     = 512;
-    public static final short kXR_retstat       = 1024;
-    public static final short kXR_replica       = 2048;
-    public static final short kXR_posc          = 4096;
-    public static final short kXR_nowait        = 8192;
-    public static final short kXR_seqio         = 16384;
+    public static final short kXR_compress  = 0x0001;
+    public static final short kXR_delete    = 0x0002;
+    public static final short kXR_force     = 0x0004;
+    public static final short kXR_new       = 0x0008;
+    public static final short kXR_open_read = 0x0010;
+    public static final short kXR_open_updt = 0x0020;
+    public static final short kXR_async     = 0x0040;
+    public static final short kXR_refresh   = 0x0080;
+    public static final short kXR_mkpath    = 0x0100;
+    public static final short kXR_open_apnd = 0x0200;
+    public static final short kXR_retstat   = 0x0400;
+    public static final short kXR_replica   = 0x0800;
+    public static final short kXR_posc      = 0x1000;
+    public static final short kXR_nowait    = 0x2000;
+    public static final short kXR_seqio     = 0x4000;
 
     // stat response flags
-    public static final int kXR_file    =  0;
-    public static final int kXR_xset    =  1;
-    public static final int kXR_isDir   =  2;
-    public static final int kXR_other   =  4;
-    public static final int kXR_offline =  8;
-    public static final int kXR_readable= 16;
-    public static final int kXR_writable= 32;
-    public static final int kXR_poscpend= 64;
+    public static final int kXR_file     = 0x00;
+    public static final int kXR_xset     = 0x01;
+    public static final int kXR_isDir    = 0x02;
+    public static final int kXR_other    = 0x04;
+    public static final int kXR_offline  = 0x08;
+    public static final int kXR_readable = 0x10;
+    public static final int kXR_writable = 0x20;
+    public static final int kXR_poscpend = 0x40;
 
     @Deprecated // Kept for compatibility with plugins
-    public static final int kXR_opscpend= 64;
+    public static final int kXR_opscpend = 0x40;
 
     // attn response codes
     public static final int kXR_asyncab         = 5000;
@@ -161,13 +161,13 @@ public interface XrootdProtocol {
     public static final int kXR_asynresp        = 5008;
 
     // prepare request options
-    public static final int kXR_cancel = 1;
-    public static final int kXR_notify = 2;
-    public static final int kXR_noerrs = 4;
-    public static final int kXR_stage  = 8;
-    public static final int kXR_wmode  = 16;
-    public static final int kXR_coloc  = 32;
-    public static final int kXR_fresh  = 64;
+    public static final int kXR_cancel = 0x01;
+    public static final int kXR_notify = 0x02;
+    public static final int kXR_noerrs = 0x04;
+    public static final int kXR_stage  = 0x08;
+    public static final int kXR_wmode  = 0x10;
+    public static final int kXR_coloc  = 0x20;
+    public static final int kXR_fresh  = 0x40;
 
     // verification options
     public static final int kXR_nocrc = 0;
