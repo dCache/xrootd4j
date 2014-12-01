@@ -19,8 +19,9 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import io.netty.buffer.ByteBuf;
+
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import org.jboss.netty.buffer.ChannelBuffer;
 
 public class LoginRequest extends XrootdRequest
 {
@@ -30,7 +31,7 @@ public class LoginRequest extends XrootdRequest
     private final int _pid;
     private final String _token;
 
-    public LoginRequest(ChannelBuffer buffer)
+    public LoginRequest(ByteBuf buffer)
     {
         super(buffer, kXR_login);
 

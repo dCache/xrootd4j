@@ -35,6 +35,8 @@ import java.util.List;
 import java.util.Map;
 import javax.crypto.Cipher;
 import javax.security.auth.Subject;
+
+import static io.netty.buffer.Unpooled.wrappedBuffer;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
@@ -54,8 +56,7 @@ import org.globus.gsi.CertificateRevocationLists;
 import org.globus.gsi.TrustedCertificates;
 import org.globus.gsi.proxy.ProxyPathValidator;
 import org.globus.gsi.proxy.ProxyPathValidatorException;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
+import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -323,7 +324,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                                                    SERVER_SYNC_CIPHER_BLOCKSIZE,
                                                    encrypted);
 
-            ChannelBuffer buffer = ChannelBuffers.wrappedBuffer(decrypted);
+            ByteBuf buffer = wrappedBuffer(decrypted);
             NestedBucketBuffer nestedBucket =
                 NestedBucketBuffer.deserialize(kXRS_main, buffer);
 

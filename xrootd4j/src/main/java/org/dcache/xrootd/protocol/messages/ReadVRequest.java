@@ -22,11 +22,11 @@ package org.dcache.xrootd.protocol.messages;
 import java.util.Arrays;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_readv;
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public class ReadVRequest extends GenericReadRequestMessage
 {
-    public ReadVRequest(ChannelBuffer buffer)
+    public ReadVRequest(ByteBuf buffer)
     {
         super(buffer, kXR_readv);
     }

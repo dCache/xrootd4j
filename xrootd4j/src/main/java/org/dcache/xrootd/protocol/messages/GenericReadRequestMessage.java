@@ -21,7 +21,7 @@ package org.dcache.xrootd.protocol.messages;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public abstract class GenericReadRequestMessage extends XrootdRequest
 {
@@ -66,7 +66,7 @@ public abstract class GenericReadRequestMessage extends XrootdRequest
     private final int pathid;
     private final EmbeddedReadRequest[] readList;
 
-    public GenericReadRequestMessage(ChannelBuffer buffer, int requestId)
+    public GenericReadRequestMessage(ByteBuf buffer, int requestId)
     {
         super(buffer, requestId);
 

@@ -22,7 +22,7 @@ package org.dcache.xrootd.protocol.messages;
 import java.util.Arrays;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public class PrepareRequest extends XrootdRequest
 {
@@ -30,7 +30,7 @@ public class PrepareRequest extends XrootdRequest
     private final int _priority;
     private final String[] _plist;
 
-    public PrepareRequest(ChannelBuffer buffer)
+    public PrepareRequest(ByteBuf buffer)
     {
         super(buffer, kXR_prepare);
 

@@ -17,55 +17,46 @@
  * License along with xrootd4j.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
-/* The file is based on ChunkedWriteHandler version 3.6.3 from the Netty Project.
+/* The file is based on ChunkedWriteHandler version 4.0.24 from the Netty Project.
  *
  * Copyright 2012 The Netty Project
  */
 package org.dcache.xrootd.stream;
 
-import com.google.common.base.Strings;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelDownstreamHandler;
-import org.jboss.netty.channel.ChannelEvent;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelStateEvent;
-import org.jboss.netty.channel.ChannelUpstreamHandler;
-import org.jboss.netty.channel.LifeCycleAwareChannelHandler;
-import org.jboss.netty.channel.MessageEvent;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufHolder;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelDuplexHandler;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelProgressivePromise;
+import io.netty.channel.ChannelPromise;
+import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
+import java.util.ArrayDeque;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.dcache.xrootd.core.XrootdException;
-import org.dcache.xrootd.protocol.messages.ErrorResponse;
-
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_IOError;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
-import static org.jboss.netty.channel.Channels.*;
 
 /**
- * A {@link org.jboss.netty.channel.ChannelHandler} that adds support for writing chunked xrootd replies.
+ * A {@link io.netty.channel.ChannelHandler} that adds support for writing chunked xrootd replies.
  *
- * Loosely based on org.jboss.netty.handler.stream.ChunkedWriteHandler, but specialized for xrootd.
+ * Loosely based on io.netty.handler.stream.ChunkedWriteHandler, but specialized for xrootd.
  * Xrootd allows replies to be delivered out of order, which means that unchunked responses do not
  * have to be queued and can be passed downstream right away.
  *
  * Since the handler is protocol specific, it can generated proper xrootd error responses in case
  * of faults.
  *
- * XrootdChunkedWriteHandler does not support suspended transfers.
+ * ChunkedResponseWriteHandler does not support suspended transfers.
  *
  * To use {@link ChunkedResponseWriteHandler}, you have to insert
  * a new {@link ChunkedResponseWriteHandler} instance:
  * <pre>
- * {@link org.jboss.netty.channel.ChannelPipeline} p = ...;
+ * {@link io.netty.channel.ChannelPipeline} p = ...;
  * p.addLast("streamer", <b>new {@link ChunkedResponseWriteHandler}()</b>);
  * p.addLast("handler", new MyHandler());
  * </pre>
@@ -73,7 +64,7 @@ import static org.jboss.netty.channel.Channels.*;
  * {@link ChunkedResponseWriteHandler} can pick it up and fetch the content of the
  * stream chunk by chunk and write the fetched chunk downstream:
  * <pre>
- * {@link org.jboss.netty.channel.Channel} ch = ...;
+ * {@link io.netty.channel.Channel} ch = ...;
  * {@link org.dcache.xrootd.protocol.messages.ReadRequest} request = ...;
  * long maxFrameSize = 2 << 20;
  * {@link java.nio.channels.FileChannel} channel = ...;
@@ -82,276 +73,225 @@ import static org.jboss.netty.channel.Channels.*;
  *
  */
 public class ChunkedResponseWriteHandler
-    implements ChannelUpstreamHandler, ChannelDownstreamHandler, LifeCycleAwareChannelHandler
+        extends ChannelDuplexHandler
 {
     private static final Logger logger =
-        LoggerFactory.getLogger(ChunkedResponseWriteHandler.class);
+            LoggerFactory.getLogger(ChunkedResponseWriteHandler.class);
 
-    private final Queue<MessageEvent> queue = new ConcurrentLinkedQueue<>();
-
-    private final AtomicBoolean flush = new AtomicBoolean(false);
-    private MessageEvent currentEvent;
-    private volatile boolean flushNeeded;
+    private final Queue<PendingWrite> queue = new ArrayDeque<>();
+    private PendingWrite currentWrite;
 
     @Override
-    public void handleDownstream(ChannelHandlerContext ctx, ChannelEvent e)
-            throws Exception {
-        if (!(e instanceof MessageEvent)) {
-            ctx.sendDownstream(e);
-            return;
-        }
-
-        Object m = ((MessageEvent) e).getMessage();
-        if (!(m instanceof ChunkedResponse)) {
-            ctx.sendDownstream(e);
-            return;
-        }
-
-        boolean offered = queue.offer((MessageEvent) e);
-        assert offered;
-
-        final Channel channel = ctx.getChannel();
-        // call flush if the channel is writable or not connected. flush(..) will take care of the rest
-
-        if (channel.isWritable() || !channel.isConnected()) {
-            flush(ctx, false);
+    public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception
+    {
+        if (msg instanceof ChunkedResponse) {
+            queue.add(new PendingWrite((ChunkedResponse) msg, promise));
+        } else {
+            ctx.write(msg, promise);
         }
     }
 
     @Override
-    public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent e)
-            throws Exception {
-        if (e instanceof ChannelStateEvent) {
-            ChannelStateEvent cse = (ChannelStateEvent) e;
-            switch (cse.getState()) {
-            case INTEREST_OPS:
-                // Continue writing when the channel becomes writable.
-                flush(ctx, true);
-                break;
-            case OPEN:
-                if (!Boolean.TRUE.equals(cse.getValue())) {
-                    // Fail all pending writes
-                    flush(ctx, true);
-                }
-                break;
+    public void flush(ChannelHandlerContext ctx) throws Exception
+    {
+        if (queue.isEmpty()) {
+            ctx.flush();
+        } else {
+            Channel channel = ctx.channel();
+            if (channel.isWritable() || !channel.isActive()) {
+                doFlush(ctx);
             }
         }
-        ctx.sendUpstream(e);
     }
 
-    private void discard(ChannelHandlerContext ctx, boolean fireNow) {
-        ClosedChannelException cause = null;
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception
+    {
+        doFlush(ctx);
+        super.channelInactive(ctx);
+    }
 
+    @Override
+    public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception
+    {
+        if (ctx.channel().isWritable()) {
+            // channel is writable again try to continue flushing
+            doFlush(ctx);
+        }
+        ctx.fireChannelWritabilityChanged();
+    }
+
+    private void discard(Throwable cause)
+    {
         for (;;) {
-            MessageEvent currentEvent = this.currentEvent;
+            PendingWrite currentWrite = this.currentWrite;
 
-            if (this.currentEvent == null) {
-                currentEvent = queue.poll();
+            if (this.currentWrite == null) {
+                currentWrite = queue.poll();
             } else {
-                this.currentEvent = null;
+                this.currentWrite = null;
             }
 
-            if (currentEvent == null) {
+            if (currentWrite == null) {
                 break;
             }
-
-            closeInput((ChunkedResponse) currentEvent.getMessage());
-
-            // Trigger a ClosedChannelException
-            if (cause == null) {
-                cause = new ClosedChannelException();
-            }
-            currentEvent.getFuture().setFailure(cause);
-        }
-
-        if (cause != null) {
-            if (fireNow) {
-                fireExceptionCaught(ctx.getChannel(), cause);
-            } else {
-                fireExceptionCaughtLater(ctx.getChannel(), cause);
-            }
-        }
-    }
-
-    private void flush(ChannelHandlerContext ctx, boolean fireNow) throws Exception {
-        boolean acquired;
-        final Channel channel = ctx.getChannel();
-        flushNeeded = true;
-        // use CAS to see if the have flush already running, if so we don't need to take further actions
-        if (acquired = flush.compareAndSet(false, true)) {
-            flushNeeded = false;
+            ChunkedResponse in = currentWrite.msg;
             try {
-                if (!channel.isConnected()) {
-                    discard(ctx, fireNow);
-                    return;
+                if (!in.isEndOfInput()) {
+                    if (cause == null) {
+                        cause = new ClosedChannelException();
+                    }
+                    currentWrite.fail(cause);
+                } else {
+                    currentWrite.success();
                 }
-
-                while (channel.isWritable()) {
-                    if (currentEvent == null) {
-                        currentEvent = queue.poll();
-                    }
-
-                    if (currentEvent == null) {
-                        break;
-                    }
-
-                    if (currentEvent.getFuture().isDone()) {
-                        // Skip the current request because the previous partial write
-                        // attempt for the current request has been failed.
-                        currentEvent = null;
-                    } else {
-                        final MessageEvent currentEvent = this.currentEvent;
-                        final ChunkedResponse chunks = (ChunkedResponse) currentEvent.getMessage();
-                        Object chunk;
-                        boolean endOfInput;
-                        try {
-                            chunk = chunks.nextChunk();
-                            endOfInput = chunks.isEndOfInput();
-                        } catch (XrootdException e) {
-                            currentEvent.getFuture().setFailure(e);
-                            chunk = new ErrorResponse(chunks.getRequest(), e.getError(),
-                                    Strings.nullToEmpty(e.getMessage()));
-                            endOfInput = true;
-                        } catch (IOException e) {
-                            logger.warn("xrootd I/O error: {}", e.toString());
-                            currentEvent.getFuture().setFailure(e);
-                            chunk = new ErrorResponse(chunks.getRequest(), kXR_IOError,
-                                    Strings.nullToEmpty(e.getMessage()));
-                            endOfInput = true;
-                        } catch (RuntimeException e) {
-                            logger.error("xrootd server error (please report this to support@dcache.org)", e);
-                            currentEvent.getFuture().setFailure(e);
-                            chunk = new ErrorResponse(chunks.getRequest(), kXR_ServerError,
-                                    Strings.nullToEmpty(e.getMessage()));
-                            endOfInput = true;
-                        } catch (Exception e) {
-                            logger.warn("xrootd server error: {}", e.toString());
-                            currentEvent.getFuture().setFailure(e);
-                            chunk = new ErrorResponse(chunks.getRequest(), kXR_ServerError,
-                                    Strings.nullToEmpty(e.getMessage()));
-                            endOfInput = true;
-                        } catch (Error t) {
-                            this.currentEvent = null;
-
-                            currentEvent.getFuture().setFailure(t);
-                            if (fireNow) {
-                                fireExceptionCaught(ctx, t);
-                            } else {
-                                fireExceptionCaughtLater(ctx, t);
-                            }
-
-                            closeInput(chunks);
-                            break;
-                        }
-
-                        ChannelFuture writeFuture;
-                        if (endOfInput) {
-                            this.currentEvent = null;
-                            writeFuture = currentEvent.getFuture();
-
-                            // Register a listener which will close the input once the write
-                            // is complete. This is needed because the Chunk may have some
-                            // resource bound that can not be closed before its not written
-                            //
-                            // See https://github.com/netty/netty/issues/303
-                            writeFuture.addListener(new ChannelFutureListener() {
-
-                                public void operationComplete(ChannelFuture future) throws Exception {
-                                    closeInput(chunks);
-                                }
-                            });
-                        } else {
-                            writeFuture = future(channel);
-                            writeFuture.addListener(new ChannelFutureListener() {
-                                public void operationComplete(ChannelFuture future) throws Exception {
-                                    if (!future.isSuccess()) {
-                                        currentEvent.getFuture().setFailure(future.getCause());
-                                        closeInput((ChunkedResponse) currentEvent.getMessage());
-                                    }
-                                }
-                            });
-                        }
-
-                        write(
-                                ctx, writeFuture, chunk,
-                                currentEvent.getRemoteAddress());
-                    }
-
-                    if (!channel.isConnected()) {
-                        discard(ctx, fireNow);
-                        return;
-                    }
-                }
-            } finally {
-                // mark the flush as done
-                flush.set(false);
+            } catch (Exception e) {
+                currentWrite.fail(e);
+                logger.warn(ChunkedResponse.class.getSimpleName() + ".isEndOfInput() failed", e);
             }
         }
+    }
 
-        if (acquired && (!channel.isConnected() || channel.isWritable() && !queue.isEmpty() || flushNeeded)) {
-            flush(ctx, fireNow);
+    private void doFlush(final ChannelHandlerContext ctx) throws Exception
+    {
+        final Channel channel = ctx.channel();
+        if (!channel.isActive()) {
+            discard(null);
+            return;
         }
-    }
-
-    static void closeInput(ChunkedResponse chunks) {
-        try {
-            chunks.close();
-        } catch (Throwable t) {
-            logger.warn("Failed to close a chunked input.", t);
-        }
-    }
-
-    @Override
-    public void beforeAdd(ChannelHandlerContext ctx) throws Exception {
-        // nothing to do
-    }
-
-    @Override
-    public void afterAdd(ChannelHandlerContext ctx) throws Exception {
-        // nothing to do
-    }
-
-    @Override
-    public void beforeRemove(ChannelHandlerContext ctx) throws Exception {
-        // try to flush again a last time.
-        //
-        // See #304
-        flush(ctx, false);
-    }
-
-    // This method should not need any synchronization as the ChunkedWriteHandler will not receive any new events
-    @Override
-    public void afterRemove(ChannelHandlerContext ctx) throws Exception {
-        // Fail all MessageEvent's that are left. This is needed because otherwise we would never notify the
-        // ChannelFuture and the registered FutureListener. See #304
-        Throwable cause = null;
-        boolean fireExceptionCaught = false;
-
-        for (;;) {
-            MessageEvent currentEvent = this.currentEvent;
-
-            if (this.currentEvent == null) {
-                currentEvent = queue.poll();
-            } else {
-                this.currentEvent = null;
+        while (channel.isWritable()) {
+            if (currentWrite == null) {
+                currentWrite = queue.poll();
             }
 
-            if (currentEvent == null) {
+            if (currentWrite == null) {
+                break;
+            }
+            final PendingWrite currentWrite = this.currentWrite;
+            final ChunkedResponse pendingMessage = currentWrite.msg;
+
+            boolean endOfInput;
+            Object message = null;
+            try {
+                message = pendingMessage.nextChunk();
+                endOfInput = pendingMessage.isEndOfInput();
+            } catch (final Throwable t) {
+                this.currentWrite = null;
+
+                if (message != null) {
+                    ReferenceCountUtil.release(message);
+                }
+
+                currentWrite.fail(t);
                 break;
             }
 
-            closeInput((ChunkedResponse) currentEvent.getMessage());
-
-            // Create exception
-            if (cause == null) {
-                cause = new IOException("Unable to flush event, discarding");
+            if (message == null) {
+                // If message is null write an empty ByteBuf.
+                // See https://github.com/netty/netty/issues/1671
+                message = Unpooled.EMPTY_BUFFER;
             }
-            currentEvent.getFuture().setFailure(cause);
-            fireExceptionCaught = true;
+
+            final int amount = amount(message);
+            ChannelFuture f = ctx.write(message);
+            if (endOfInput) {
+                this.currentWrite = null;
+
+                // Register a listener which will close the input once the write is complete.
+                // This is needed because the Chunk may have some resource bound that can not
+                // be closed before its not written.
+                //
+                // See https://github.com/netty/netty/issues/303
+                f.addListener(new ChannelFutureListener() {
+                    @Override
+                    public void operationComplete(ChannelFuture future) throws Exception {
+                        if (!future.isSuccess()) {
+                            currentWrite.fail(future.cause());
+                        } else {
+                            currentWrite.progress(amount);
+                            currentWrite.success();
+                        }
+                    }
+                });
+            } else {
+                f.addListener(new ChannelFutureListener() {
+                    @Override
+                    public void operationComplete(ChannelFuture future) throws Exception {
+                        if (!future.isSuccess()) {
+                            currentWrite.fail(future.cause());
+                        } else {
+                            currentWrite.progress(amount);
+                        }
+                    }
+                });
+            }
+
+            // Always need to flush
+            ctx.flush();
+
+            if (!channel.isActive()) {
+                discard(new ClosedChannelException());
+                return;
+            }
+        }
+    }
+
+    private static final class PendingWrite {
+        final ChunkedResponse msg;
+        final ChannelPromise promise;
+        private long progress;
+
+        PendingWrite(ChunkedResponse msg, ChannelPromise promise) {
+            this.msg = msg;
+            this.promise = promise;
         }
 
-        if (fireExceptionCaught) {
-            fireExceptionCaughtLater(ctx.getChannel(), cause);
+        void closeInput() {
+            try {
+                msg.close();
+            } catch (Throwable t) {
+                if (logger.isWarnEnabled()) {
+                    logger.warn("Failed to close a chunked input.", t);
+                }
+            }
+            ReferenceCountUtil.release(msg);
         }
+
+        void fail(Throwable cause) {
+            closeInput();
+            promise.tryFailure(cause);
+        }
+
+        void success() {
+            closeInput();
+            if (promise.isDone()) {
+                // No need to notify the progress or fulfill the promise because it's done already.
+                return;
+            }
+
+            if (promise instanceof ChannelProgressivePromise) {
+                // Now we know what the total is.
+                ((ChannelProgressivePromise) promise).tryProgress(progress, progress);
+            }
+
+            promise.trySuccess();
+        }
+
+        void progress(int amount) {
+            progress += amount;
+            if (promise instanceof ChannelProgressivePromise) {
+                ((ChannelProgressivePromise) promise).tryProgress(progress, -1);
+            }
+        }
+    }
+
+    private static int amount(Object msg) {
+        if (msg instanceof ByteBuf) {
+            return ((ByteBuf) msg).readableBytes();
+        }
+        if (msg instanceof ByteBufHolder) {
+            return ((ByteBufHolder) msg).content().readableBytes();
+        }
+        return 1;
     }
 }

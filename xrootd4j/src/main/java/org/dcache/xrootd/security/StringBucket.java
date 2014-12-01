@@ -19,7 +19,7 @@
  */
 package org.dcache.xrootd.security;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 import java.nio.charset.Charset;
 
@@ -46,14 +46,14 @@ public class StringBucket extends XrootdBucket {
         return _data;
     }
 
-    public static StringBucket deserialize(BucketType type, ChannelBuffer buffer) {
+    public static StringBucket deserialize(BucketType type, ByteBuf buffer) {
 
         String s = buffer.toString(Charset.forName("ASCII"));
         return new StringBucket(type, s);
     }
 
     @Override
-    public void serialize(ChannelBuffer out) {
+    public void serialize(ByteBuf out) {
         super.serialize(out);
         out.writeInt(_data.length());
         out.writeBytes(_data.getBytes());

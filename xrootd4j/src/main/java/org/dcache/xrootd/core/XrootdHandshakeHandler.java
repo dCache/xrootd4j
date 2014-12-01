@@ -21,17 +21,15 @@ package org.dcache.xrootd.core;
 
 import java.util.Arrays;
 
-
-import static org.jboss.netty.channel.Channels.*;
-import static org.jboss.netty.buffer.ChannelBuffers.*;
-import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.MessageEvent;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.ChannelHandlerContext;
 
 import org.dcache.xrootd.protocol.messages.XrootdRequest;
 import org.dcache.xrootd.protocol.messages.HandshakeRequest;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
+import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +39,7 @@ import org.slf4j.LoggerFactory;
  * are passed on. Failure to handshake causes the channel to be
  * closed.
  */
-public class XrootdHandshakeHandler extends SimpleChannelUpstreamHandler
+public class XrootdHandshakeHandler extends ChannelInboundHandlerAdapter
 {
     private static final Logger _log =
         LoggerFactory.getLogger(XrootdHandshakeHandler.class);
@@ -56,49 +54,52 @@ public class XrootdHandshakeHandler extends SimpleChannelUpstreamHandler
     }
 
     @Override
-    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e)
-        throws Exception
+    public void channelRead(ChannelHandlerContext ctx, Object obj) throws Exception
     {
-        XrootdRequest msg = (XrootdRequest) e.getMessage();
+        XrootdRequest msg = (XrootdRequest) obj;
 
         if (!_isHandshaked) {
-            if (!(msg instanceof HandshakeRequest)) {
-                _log.error("Invalid handshake");
-                close(ctx, e.getFuture());
+            try {
+                if (!(msg instanceof HandshakeRequest)) {
+                    _log.error("Invalid handshake");
+                    ctx.close();
+                    return;
+                }
+
+                byte[] request = ((HandshakeRequest) msg).getHandshake();
+                if (!Arrays.equals(request, HANDSHAKE_REQUEST)) {
+                    _log.error("Received corrupt handshake message ("
+                               + request.length + " bytes).");
+                    ctx.close();
+                    return;
+                }
+
+                byte[] response;
+                switch (_serverType) {
+                case LOAD_BALANCER:
+                    response = HANDSHAKE_RESPONSE_LOADBALANCER;
+                    break;
+
+                case DATA_SERVER:
+                    response = HANDSHAKE_RESPONSE_DATASERVER;
+                    break;
+
+                default:
+                    _log.error("Unknown server type (" + _serverType + ")");
+                    ctx.close();
+                    return;
+                }
+
+                ctx.writeAndFlush(Unpooled.wrappedBuffer(response));
+
+                _isHandshaked = true;
+
                 return;
+            } finally {
+                ReferenceCountUtil.release(msg);
             }
-
-            byte[] request = ((HandshakeRequest) msg).getHandshake();
-            if (!Arrays.equals(request, HANDSHAKE_REQUEST)) {
-                _log.error("Received corrupt handshake message ("
-                           + request.length + " bytes).");
-                close(ctx, e.getFuture());
-                return;
-            }
-
-            byte[] response;
-            switch (_serverType) {
-            case LOAD_BALANCER:
-                response = HANDSHAKE_RESPONSE_LOADBALANCER;
-                break;
-
-            case DATA_SERVER:
-                response = HANDSHAKE_RESPONSE_DATASERVER;
-                break;
-
-            default:
-                _log.error("Unknown server type (" + _serverType + ")");
-                close(ctx, e.getFuture());
-                return;
-            }
-
-            write(ctx, e.getFuture(), wrappedBuffer(response));
-
-            _isHandshaked = true;
-
-            return;
         }
 
-        super.messageReceived(ctx, e);
+        super.channelRead(ctx, msg);
     }
 }

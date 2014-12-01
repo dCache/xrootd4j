@@ -19,14 +19,15 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import io.netty.buffer.ByteBuf;
+
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import org.jboss.netty.buffer.ChannelBuffer;
 
 public class CloseRequest extends XrootdRequest
 {
     private final int _fileHandle;
 
-    public CloseRequest(ChannelBuffer buffer)
+    public CloseRequest(ByteBuf buffer)
     {
         super(buffer, kXR_close);
         _fileHandle = buffer.getInt(4);

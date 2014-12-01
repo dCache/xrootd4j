@@ -19,7 +19,7 @@
  */
 package org.dcache.xrootd.stream;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 import java.io.IOException;
 
@@ -61,10 +61,10 @@ public abstract class AbstractChunkedReadResponse implements ChunkedResponse
         return response;
     }
 
-    private ChannelBuffer readNext() throws IOException
+    private ByteBuf readNext() throws IOException
     {
         int chunkLength = Math.min(length, maxFrameSize);
-        ChannelBuffer buffer = read(position, chunkLength);
+        ByteBuf buffer = read(position, chunkLength);
         int readableBytes = buffer.readableBytes();
         position += readableBytes;
         length = (readableBytes < chunkLength) ? 0 : length - readableBytes;
@@ -74,7 +74,7 @@ public abstract class AbstractChunkedReadResponse implements ChunkedResponse
         return buffer;
     }
 
-    protected abstract ChannelBuffer read(long srcIndex, int length)
+    protected abstract ByteBuf read(long srcIndex, int length)
         throws IOException;
 
     @Override

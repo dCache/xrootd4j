@@ -20,18 +20,19 @@
 package org.dcache.xrootd.protocol.messages;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import static org.jboss.netty.buffer.ChannelBuffers.wrappedBuffer;
 
 import java.nio.channels.ScatteringByteChannel;
 import java.io.IOException;
 
 import org.dcache.xrootd.protocol.messages.GenericReadRequestMessage.EmbeddedReadRequest;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 public class ReadResponse extends AbstractResponseMessage
 {
     public static final int READ_LIST_HEADER_SIZE = 16;
+
+    // TODO: Use a composite buffer
 
     public ReadResponse(XrootdRequest request, int length)
     {
@@ -67,9 +68,9 @@ public class ReadResponse extends AbstractResponseMessage
         return 16;
     }
 
-    private ChannelBuffer createReadListHeader(EmbeddedReadRequest request, int actualLength)
+    private ByteBuf createReadListHeader(EmbeddedReadRequest request, int actualLength)
     {
-        ChannelBuffer buffer = ChannelBuffers.buffer(16);
+        ByteBuf buffer = Unpooled.buffer(16);
         buffer.writeInt(request.getFileHandle());
         buffer.writeInt(actualLength);
         buffer.writeLong(request.getOffset());
@@ -77,21 +78,21 @@ public class ReadResponse extends AbstractResponseMessage
     }
 
     public void write(EmbeddedReadRequest[] requests,
-                      ChannelBuffer[] buffers,
+                      ByteBuf[] buffers,
                       int offset, int length)
     {
-        ChannelBuffer[] reply = new ChannelBuffer[2 * length + 1];
+        ByteBuf[] reply = new ByteBuf[2 * length + 1];
         reply[0] = _buffer;
         for (int i = 0; i < length; i++) {
             reply[2 * i + 1] = createReadListHeader(requests[offset + i], buffers[offset + i].readableBytes());
             reply[2 * i + 2] = buffers[offset + i];
         }
-        _buffer = wrappedBuffer(reply);
+        _buffer = Unpooled.wrappedBuffer(reply);
     }
 
-    public void append(ChannelBuffer buffer)
+    public void append(ByteBuf buffer)
     {
-        _buffer = wrappedBuffer(_buffer, buffer);
+        _buffer = Unpooled.wrappedBuffer(_buffer, buffer);
     }
 
     /**

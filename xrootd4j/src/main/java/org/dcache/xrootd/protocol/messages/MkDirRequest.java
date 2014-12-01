@@ -21,7 +21,7 @@ package org.dcache.xrootd.protocol.messages;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 /**
  * FIXME the mode field is currently unsupported, because the owner of the file
@@ -33,7 +33,7 @@ public class MkDirRequest extends PathRequest
     private final short _options;
     private final int _mode;
 
-    public MkDirRequest(ChannelBuffer buffer) {
+    public MkDirRequest(ByteBuf buffer) {
         super(buffer, kXR_mkdir);
 
         _options = buffer.getByte(4);

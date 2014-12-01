@@ -19,34 +19,30 @@
  */
 package org.dcache.xrootd.core;
 
-import static org.jboss.netty.channel.Channels.*;
-
-import org.jboss.netty.channel.SimpleChannelHandler;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.ChannelHandler.Sharable;
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandler.Sharable;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelOutboundHandlerAdapter;
+import io.netty.channel.ChannelPromise;
 
 import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
 
 /**
  * Downstream ChannelHandler encoding AbstractResponseMessage objects
- * into ChannelBuffer objects.
+ * into ByteBuf objects.
  */
 @Sharable
-public class XrootdEncoder extends SimpleChannelHandler
+public class XrootdEncoder extends ChannelOutboundHandlerAdapter
 {
     @Override
-    public void writeRequested(ChannelHandlerContext ctx, MessageEvent e)
+    public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception
     {
-        Object msg = e.getMessage();
         if (msg instanceof AbstractResponseMessage) {
-            AbstractResponseMessage response =
-                (AbstractResponseMessage) msg;
-            ChannelBuffer buffer = response.getBuffer();
+            AbstractResponseMessage response = (AbstractResponseMessage) msg;
+            ByteBuf buffer = response.getBuffer();
             buffer.setInt(4, buffer.readableBytes() - 8);
             msg = buffer;
         }
-        write(ctx, e.getFuture(), msg);
+        super.write(ctx, msg, promise);
     }
 }

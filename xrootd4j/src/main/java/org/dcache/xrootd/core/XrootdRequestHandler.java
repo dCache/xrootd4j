@@ -20,10 +20,10 @@
 package org.dcache.xrootd.core;
 
 import com.google.common.base.Strings;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.handler.timeout.IdleStateAwareChannelHandler;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,133 +54,137 @@ import org.dcache.xrootd.protocol.messages.XrootdRequest;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 /**
- * A SimpleChannelHandler dispatch xrootd events to handler methods.
+ * A ChannelInboundHandler to dispatch xrootd events to handler methods.
  *
  * Default response to all request messages from a client is
  * kXR_Unsupported. Sub-classes may override handler methods to
  * implement request handling.
+ *
+ * Releases the reference to XrootdRequest if the handler method throws
+ * an exception or returns a response. If the handler returns null the
+ * subclass assumes responsibility to release the request, typically
+ * by passing it on the next ChannelHandler in the pipeline.
  */
-public class XrootdRequestHandler extends IdleStateAwareChannelHandler
+public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
 {
     private static final Logger _log =
         LoggerFactory.getLogger(XrootdRequestHandler.class);
 
-    public XrootdRequestHandler()
-    {
-    }
-
     @Override
-    public void messageReceived(ChannelHandlerContext ctx, MessageEvent event)
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception
     {
-        Object msg = event.getMessage();
         if (msg instanceof XrootdRequest) {
-            requestReceived(ctx, event, (XrootdRequest) msg);
+            requestReceived(ctx, (XrootdRequest) msg);
+        } else {
+            ctx.fireChannelRead(msg);
         }
     }
 
-    protected void requestReceived(ChannelHandlerContext ctx,
-                                   MessageEvent event,
-                                   XrootdRequest req)
+    protected void requestReceived(ChannelHandlerContext ctx, XrootdRequest req)
     {
         try {
             Object response;
             switch (req.getRequestId()) {
             case kXR_auth:
                 response =
-                    doOnAuthentication(ctx, event, (AuthenticationRequest) req);
+                    doOnAuthentication(ctx, (AuthenticationRequest) req);
                 break;
             case kXR_login:
                 response =
-                    doOnLogin(ctx, event, (LoginRequest) req);
+                    doOnLogin(ctx, (LoginRequest) req);
                 break;
             case kXR_open:
                 response =
-                    doOnOpen(ctx, event, (OpenRequest) req);
+                    doOnOpen(ctx, (OpenRequest) req);
                 break;
             case kXR_stat:
                 response =
-                    doOnStat(ctx, event, (StatRequest) req);
+                    doOnStat(ctx, (StatRequest) req);
                 break;
             case kXR_statx:
                 response =
-                    doOnStatx(ctx, event, (StatxRequest) req);
+                    doOnStatx(ctx, (StatxRequest) req);
                 break;
             case kXR_read:
                 response =
-                    doOnRead(ctx, event, (ReadRequest) req);
+                    doOnRead(ctx, (ReadRequest) req);
                 break;
             case kXR_readv:
                 response =
-                    doOnReadV(ctx, event, (ReadVRequest) req);
+                    doOnReadV(ctx, (ReadVRequest) req);
                 break;
             case kXR_write:
                 response =
-                    doOnWrite(ctx, event, (WriteRequest) req);
+                    doOnWrite(ctx, (WriteRequest) req);
                 break;
             case kXR_sync:
                 response =
-                    doOnSync(ctx, event, (SyncRequest) req);
+                    doOnSync(ctx, (SyncRequest) req);
                 break;
             case kXR_close:
                 response =
-                    doOnClose(ctx, event, (CloseRequest) req);
+                    doOnClose(ctx, (CloseRequest) req);
                 break;
             case kXR_protocol:
                 response =
-                    doOnProtocolRequest(ctx, event, (ProtocolRequest) req);
+                    doOnProtocolRequest(ctx, (ProtocolRequest) req);
                 break;
             case kXR_rm:
                 response =
-                    doOnRm(ctx, event, (RmRequest) req);
+                    doOnRm(ctx, (RmRequest) req);
                 break;
             case kXR_rmdir:
                 response =
-                    doOnRmDir(ctx, event, (RmDirRequest) req);
+                    doOnRmDir(ctx, (RmDirRequest) req);
                 break;
             case kXR_mkdir:
                 response =
-                    doOnMkDir(ctx, event, (MkDirRequest) req);
+                    doOnMkDir(ctx, (MkDirRequest) req);
                 break;
             case kXR_mv:
                 response =
-                    doOnMv(ctx, event, (MvRequest) req);
+                    doOnMv(ctx, (MvRequest) req);
                 break;
             case kXR_dirlist:
                 response =
-                    doOnDirList(ctx, event, (DirListRequest) req);
+                    doOnDirList(ctx, (DirListRequest) req);
                 break;
             case kXR_prepare:
                 response =
-                    doOnPrepare(ctx, event, (PrepareRequest) req);
+                    doOnPrepare(ctx, (PrepareRequest) req);
                 break;
             case kXR_locate :
                 response =
-                        doOnLocate(ctx, event, (LocateRequest) req);
+                        doOnLocate(ctx, (LocateRequest) req);
                 break;
             case kXR_query :
                 response =
-                        doOnQuery(ctx, event, (QueryRequest) req);
+                        doOnQuery(ctx, (QueryRequest) req);
                 break;
             case kXR_set :
                 response =
-                        doOnSet(ctx, event, (SetRequest) req);
+                        doOnSet(ctx, (SetRequest) req);
                 break;
             default:
                 response =
-                    unsupported(ctx, event, req);
+                    unsupported(ctx, req);
                 break;
             }
             if (response != null) {
-                respond(ctx, event, response);
+                respond(ctx, response);
+            } else {
+                req = null; // Do not release reference
             }
         } catch (XrootdException e) {
-            respond(ctx, event, withError(req, e.getError(), e.getMessage()));
+            respond(ctx, withError(req, e.getError(), e.getMessage()));
         } catch (RuntimeException e) {
             _log.error("xrootd server error while processing " + req + " (please report this to support@dcache.org)", e);
-            respond(ctx, event,
+            respond(ctx,
                 withError(req, kXR_ServerError,
                     String.format("Internal server error (%s)",
                         e.getMessage())));
+        } finally {
+            ReferenceCountUtil.release(req);
         }
     }
 
@@ -194,15 +198,12 @@ public class XrootdRequestHandler extends IdleStateAwareChannelHandler
         return new ErrorResponse(req, errorCode, Strings.nullToEmpty(errMsg));
     }
 
-    protected ChannelFuture respond(ChannelHandlerContext ctx,
-                                    MessageEvent e,
-                                    Object response)
+    protected ChannelFuture respond(ChannelHandlerContext ctx, Object response)
     {
-        return e.getChannel().write(response);
+        return ctx.writeAndFlush(response);
     }
 
     protected Object unsupported(ChannelHandlerContext ctx,
-                                 MessageEvent e,
                                  XrootdRequest msg)
         throws XrootdException
     {
@@ -212,160 +213,142 @@ public class XrootdRequestHandler extends IdleStateAwareChannelHandler
     }
 
     protected Object doOnLogin(ChannelHandlerContext ctx,
-                               MessageEvent e,
                                LoginRequest msg)
         throws XrootdException
     {
-        return unsupported(ctx, e, msg);
+        return unsupported(ctx, msg);
     }
 
     protected Object doOnAuthentication(ChannelHandlerContext ctx,
-                                        MessageEvent e,
                                         AuthenticationRequest msg)
         throws XrootdException
     {
-        return unsupported(ctx, e, msg);
+        return unsupported(ctx, msg);
     }
 
     protected Object doOnOpen(ChannelHandlerContext ctx,
-                              MessageEvent e,
                               OpenRequest msg)
         throws XrootdException
     {
-        return unsupported(ctx, e, msg);
+        return unsupported(ctx, msg);
     }
 
     protected Object doOnStat(ChannelHandlerContext ctx,
-                              MessageEvent e,
                               StatRequest msg)
         throws XrootdException
     {
-        return unsupported(ctx, e, msg);
+        return unsupported(ctx, msg);
     }
 
     protected Object doOnStatx(ChannelHandlerContext ctx,
-                               MessageEvent e,
                                StatxRequest msg)
         throws XrootdException
     {
-        return unsupported(ctx, e, msg);
+        return unsupported(ctx, msg);
     }
 
     protected Object doOnRead(ChannelHandlerContext ctx,
-                              MessageEvent e,
                               ReadRequest msg)
         throws XrootdException
     {
-        return unsupported(ctx, e, msg);
+        return unsupported(ctx, msg);
     }
 
     protected Object doOnReadV(ChannelHandlerContext ctx,
-                               MessageEvent e,
                                ReadVRequest msg)
         throws XrootdException
     {
-        return unsupported(ctx, e, msg);
+        return unsupported(ctx, msg);
     }
 
     protected Object doOnWrite(ChannelHandlerContext ctx,
-                               MessageEvent e,
                                WriteRequest msg)
         throws XrootdException
     {
-        return unsupported(ctx, e, msg);
+        return unsupported(ctx, msg);
     }
 
     protected Object doOnSync(ChannelHandlerContext ctx,
-                              MessageEvent e,
                               SyncRequest msg)
         throws XrootdException
     {
-        return unsupported(ctx, e, msg);
+        return unsupported(ctx, msg);
     }
 
     protected Object doOnClose(ChannelHandlerContext ctx,
-                               MessageEvent e,
                                CloseRequest msg)
         throws XrootdException
     {
-        return unsupported(ctx, e, msg);
+        return unsupported(ctx, msg);
     }
 
     protected Object doOnProtocolRequest(ChannelHandlerContext ctx,
-                                         MessageEvent e,
                                          ProtocolRequest msg)
         throws XrootdException
     {
-        return unsupported(ctx, e, msg);
+        return unsupported(ctx, msg);
     }
 
     protected Object doOnRm(ChannelHandlerContext ctx,
-                            MessageEvent e,
                             RmRequest msg)
         throws XrootdException
     {
-        return unsupported(ctx, e, msg);
+        return unsupported(ctx, msg);
     }
 
     protected Object doOnRmDir(ChannelHandlerContext ctx,
-                               MessageEvent e,
                                RmDirRequest msg)
         throws XrootdException
     {
-        return unsupported(ctx, e, msg);
+        return unsupported(ctx, msg);
     }
 
     protected Object doOnMkDir(ChannelHandlerContext ctx,
-                               MessageEvent e,
                                MkDirRequest msg)
         throws XrootdException
     {
-        return unsupported(ctx, e, msg);
+        return unsupported(ctx, msg);
     }
 
     protected Object doOnMv(ChannelHandlerContext ctx,
-                            MessageEvent e,
                             MvRequest msg)
         throws XrootdException
     {
-        return unsupported(ctx, e, msg);
+        return unsupported(ctx, msg);
     }
 
     protected Object doOnDirList(ChannelHandlerContext ctx,
-                                 MessageEvent e,
                                  DirListRequest msg)
         throws XrootdException
     {
-        return unsupported(ctx, e, msg);
+        return unsupported(ctx, msg);
     }
 
     protected Object doOnPrepare(ChannelHandlerContext ctx,
-                                 MessageEvent e,
                                  PrepareRequest msg)
         throws XrootdException
     {
-        return unsupported(ctx, e, msg);
+        return unsupported(ctx, msg);
     }
 
     protected Object doOnLocate(ChannelHandlerContext ctx,
-                                MessageEvent e,
                                 LocateRequest msg)
         throws XrootdException
     {
-        return unsupported(ctx, e, msg);
+        return unsupported(ctx, msg);
     }
 
     protected Object doOnQuery(ChannelHandlerContext ctx,
-                               MessageEvent e,
                                QueryRequest msg)
         throws XrootdException
     {
-        return unsupported(ctx, e, msg);
+        return unsupported(ctx, msg);
     }
 
-    protected Object doOnSet(ChannelHandlerContext ctx, MessageEvent event, SetRequest request)
+    protected Object doOnSet(ChannelHandlerContext ctx,
+                             SetRequest request)
             throws XrootdException
     {
-        return unsupported(ctx, event, request);
+        return unsupported(ctx, request);
     }
 }

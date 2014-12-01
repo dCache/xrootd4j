@@ -19,7 +19,7 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +53,7 @@ public class AuthenticationRequest extends XrootdRequest
      * client
      * @param buffer The buffer containing the above
      */
-    public AuthenticationRequest(ChannelBuffer buffer)
+    public AuthenticationRequest(ByteBuf buffer)
     {
         super(buffer, kXR_auth);
 
@@ -82,7 +82,7 @@ public class AuthenticationRequest extends XrootdRequest
      * @return Map from bucket-type to deserialized buckets
      * @throws IOException Failure of deserialization
      */
-    public static Map<BucketType, XrootdBucket> deserializeBuckets(ChannelBuffer buffer)
+    public static Map<BucketType, XrootdBucket> deserializeBuckets(ByteBuf buffer)
         throws IOException {
 
         int bucketCode = buffer.readInt();
@@ -110,7 +110,7 @@ public class AuthenticationRequest extends XrootdRequest
         return buckets;
     }
 
-    public static String deserializeProtocol(ChannelBuffer buffer) {
+    public static String deserializeProtocol(ByteBuf buffer) {
        String protocol = buffer.toString(buffer.readerIndex(),
                                          4,
                                          Charset.forName("ASCII")).trim();
@@ -120,7 +120,7 @@ public class AuthenticationRequest extends XrootdRequest
        return protocol;
     }
 
-    public static int deserializeStep(ChannelBuffer buffer) {
+    public static int deserializeStep(ByteBuf buffer) {
         return buffer.readInt();
     }
 

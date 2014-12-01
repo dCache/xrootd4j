@@ -19,19 +19,15 @@
  */
 package org.dcache.xrootd.core;
 
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelHandler.Sharable;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.MessageEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler.Sharable;
+import io.netty.channel.ChannelHandlerContext;
 
 import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
 
 import org.dcache.xrootd.plugins.AuthorizationFactory;
 import org.dcache.xrootd.plugins.AuthorizationHandler;
-import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.protocol.XrootdProtocol.*;
 import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
@@ -62,9 +58,6 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 @Sharable
 public class XrootdAuthorizationHandler extends XrootdRequestHandler
 {
-    private static final Logger _log =
-        LoggerFactory.getLogger(XrootdAuthorizationHandler.class);
-
     private final AuthorizationFactory _authorizationFactory;
 
     public XrootdAuthorizationHandler(AuthorizationFactory authorizationFactory)
@@ -74,18 +67,16 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
 
     @Override
     protected AbstractResponseMessage doOnStat(ChannelHandlerContext ctx,
-                                               MessageEvent event,
                                                StatRequest req)
         throws XrootdException
     {
-        authorize(event, req, FilePerm.READ);
-        ctx.sendUpstream(event);
+        authorize(ctx, req, FilePerm.READ);
+        ctx.fireChannelRead(req);
         return null;
     }
 
     @Override
     protected AbstractResponseMessage doOnStatx(ChannelHandlerContext ctx,
-                                                MessageEvent event,
                                                 StatxRequest req)
         throws XrootdException
     {
@@ -97,7 +88,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
         String[] opaques = req.getOpaques();
         int[] flags = new int[paths.length];
         for (int i = 0; i < paths.length; i++) {
-            paths[i] = authorize(event,
+            paths[i] = authorize(ctx,
                                  req,
                                  FilePerm.READ,
                                  paths[i],
@@ -105,27 +96,25 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
         }
         req.setPaths(paths);
 
-        ctx.sendUpstream(event);
+        ctx.fireChannelRead(req);
         return null;
     }
 
     @Override
     protected AbstractResponseMessage doOnRm(ChannelHandlerContext ctx,
-                                             MessageEvent event,
                                              RmRequest req)
         throws XrootdException
     {
         if (req.getPath().isEmpty()) {
             throw new XrootdException(kXR_ArgMissing, "no path specified");
         }
-        authorize(event, req, FilePerm.DELETE);
-        ctx.sendUpstream(event);
+        authorize(ctx, req, FilePerm.DELETE);
+        ctx.fireChannelRead(req);
         return null;
     }
 
     @Override
     protected AbstractResponseMessage doOnRmDir(ChannelHandlerContext ctx,
-                                                MessageEvent event,
                                                 RmDirRequest req)
         throws XrootdException
     {
@@ -133,14 +122,13 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
             throw new XrootdException(kXR_ArgMissing, "no path specified");
         }
 
-        authorize(event, req, FilePerm.DELETE);
-        ctx.sendUpstream(event);
+        authorize(ctx, req, FilePerm.DELETE);
+        ctx.fireChannelRead(req);
         return null;
     }
 
     @Override
     protected AbstractResponseMessage doOnMkDir(ChannelHandlerContext ctx,
-                                                MessageEvent event,
                                                 MkDirRequest req)
         throws XrootdException
     {
@@ -148,14 +136,13 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
             throw new XrootdException(kXR_ArgMissing, "no path specified");
         }
 
-        authorize(event, req, FilePerm.WRITE);
-        ctx.sendUpstream(event);
+        authorize(ctx, req, FilePerm.WRITE);
+        ctx.fireChannelRead(req);
         return null;
     }
 
     @Override
     protected AbstractResponseMessage doOnMv(ChannelHandlerContext ctx,
-                                             MessageEvent event,
                                              MvRequest req)
         throws XrootdException
     {
@@ -169,66 +156,62 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
             throw new XrootdException(kXR_ArgMissing, "No target path specified");
         }
 
-        req.setSourcePath(authorize(event,
+        req.setSourcePath(authorize(ctx,
                                     req,
                                     FilePerm.DELETE,
                                     req.getSourcePath(),
                                     req.getOpaque()));
-        req.setTargetPath(authorize(event,
+        req.setTargetPath(authorize(ctx,
                                     req,
                                     FilePerm.WRITE,
                                     req.getTargetPath(),
                                     req.getOpaque()));
-        ctx.sendUpstream(event);
+        ctx.fireChannelRead(req);
         return null;
     }
 
     @Override
     protected AbstractResponseMessage doOnDirList(ChannelHandlerContext ctx,
-                                                  MessageEvent event,
                                                   DirListRequest request)
         throws XrootdException
     {
-        Channel channel = event.getChannel();
         InetSocketAddress localAddress =
-            (InetSocketAddress) channel.getLocalAddress();
+            (InetSocketAddress) ctx.channel().localAddress();
 
         String path = request.getPath();
         if (path.isEmpty()) {
             throw new XrootdException(kXR_ArgMissing, "no source path specified");
         }
-        authorize(event, request, FilePerm.READ);
-        ctx.sendUpstream(event);
+        authorize(ctx, request, FilePerm.READ);
+        ctx.fireChannelRead(request);
         return null;
     }
 
     @Override
     protected AbstractResponseMessage doOnPrepare(ChannelHandlerContext ctx,
-                                                  MessageEvent event,
                                                   PrepareRequest msg)
     {
-        ctx.sendUpstream(event);
+        ctx.fireChannelRead(msg);
         return null;
     }
 
     @Override
-    protected Void doOnLocate(ChannelHandlerContext ctx, MessageEvent event, LocateRequest msg)
+    protected Void doOnLocate(ChannelHandlerContext ctx, LocateRequest msg)
             throws XrootdException
     {
         String path = msg.getPath();
         if (!path.startsWith("*")) {
-            path = authorize(event, msg, FilePerm.READ, path, msg.getOpaque());
+            path = authorize(ctx, msg, FilePerm.READ, path, msg.getOpaque());
         } else if (!path.equals("*")) {
-            path = authorize(event, msg, FilePerm.READ, path.substring(1), msg.getOpaque());
+            path = authorize(ctx, msg, FilePerm.READ, path.substring(1), msg.getOpaque());
         }
         msg.setPath(path);
-        ctx.sendUpstream(event);
+        ctx.fireChannelRead(msg);
         return null;
     }
 
     @Override
     protected AbstractResponseMessage doOnOpen(ChannelHandlerContext ctx,
-                                               MessageEvent event,
                                                OpenRequest msg)
         throws XrootdException
     {
@@ -238,73 +221,67 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
         } else {
             neededPerm = FilePerm.READ;
         }
-        authorize(event, msg, neededPerm);
-        ctx.sendUpstream(event);
+        authorize(ctx, msg, neededPerm);
+        ctx.fireChannelRead(msg);
         return null;
     }
 
     @Override
     protected AbstractResponseMessage doOnRead(ChannelHandlerContext ctx,
-                                               MessageEvent event,
                                                ReadRequest msg)
         throws XrootdException
     {
-        ctx.sendUpstream(event);
+        ctx.fireChannelRead(msg);
         return null;
     }
 
     @Override
     protected AbstractResponseMessage doOnReadV(ChannelHandlerContext ctx,
-                                                MessageEvent event,
                                                 ReadVRequest msg)
         throws XrootdException
     {
-        ctx.sendUpstream(event);
+        ctx.fireChannelRead(msg);
         return null;
     }
 
     @Override
     protected AbstractResponseMessage doOnWrite(ChannelHandlerContext ctx,
-                                                MessageEvent event,
                                                 WriteRequest msg)
         throws XrootdException
     {
-        ctx.sendUpstream(event);
+        ctx.fireChannelRead(msg);
         return null;
     }
 
     @Override
     protected AbstractResponseMessage doOnSync(ChannelHandlerContext ctx,
-                                               MessageEvent event,
                                                SyncRequest msg)
         throws XrootdException
     {
-        ctx.sendUpstream(event);
+        ctx.fireChannelRead(msg);
         return null;
     }
 
     @Override
     protected AbstractResponseMessage doOnClose(ChannelHandlerContext ctx,
-                                                MessageEvent event,
                                                 CloseRequest msg)
         throws XrootdException
     {
-        ctx.sendUpstream(event);
+        ctx.fireChannelRead(msg);
         return null;
     }
 
     @Override
     protected AbstractResponseMessage doOnProtocolRequest(ChannelHandlerContext ctx,
-                                                          MessageEvent event,
                                                           ProtocolRequest msg)
         throws XrootdException
     {
-        ctx.sendUpstream(event);
+        ctx.fireChannelRead(msg);
         return null;
     }
 
     @Override
-    protected Object doOnQuery(ChannelHandlerContext ctx, MessageEvent event, QueryRequest req)
+    protected Object doOnQuery(ChannelHandlerContext ctx, QueryRequest req)
             throws XrootdException
     {
         switch (req.getReqcode()) {
@@ -321,26 +298,26 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
                 path = args;
                 opaque = "";
             }
-            req.setArgs(authorize(event, req, FilePerm.READ, path, opaque));
+            req.setArgs(authorize(ctx, req, FilePerm.READ, path, opaque));
             break;
         }
-        ctx.sendUpstream(event);
+        ctx.fireChannelRead(req);
         return null;
     }
 
     @Override
-    protected Object doOnSet(ChannelHandlerContext ctx, MessageEvent event, SetRequest request) throws XrootdException
+    protected Object doOnSet(ChannelHandlerContext ctx, SetRequest request) throws XrootdException
     {
-        ctx.sendUpstream(event);
+        ctx.fireChannelRead(request);
         return null;
     }
 
-    private void authorize(MessageEvent event,
+    private void authorize(ChannelHandlerContext ctx,
                            PathRequest request,
                            FilePerm neededPerm)
         throws XrootdException
     {
-        request.setPath(authorize(event,
+        request.setPath(authorize(ctx,
                                   request,
                                   neededPerm,
                                   request.getPath(),
@@ -350,7 +327,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     /**
      * Performs authorization check and path mapping.
      *
-     * @param event The Netty MessageEvent for this request
+     * @param ctx The ChannelHandlerContext
      * @param request The xrootd message
      * @param neededPerm The permission level that is required for the operation
      * @param path The path to which access is requested
@@ -358,7 +335,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
      * @return The path to which access is granted.
      * @throws XrootdException if the request is denied
      */
-    private String authorize(MessageEvent event,
+    private String authorize(ChannelHandlerContext ctx,
                              XrootdRequest request,
                              FilePerm neededPerm,
                              String path,
@@ -366,11 +343,11 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
         throws XrootdException
     {
         try {
-            Channel channel = event.getChannel();
+            Channel channel = ctx.channel();
             InetSocketAddress localAddress =
-                (InetSocketAddress) channel.getLocalAddress();
+                (InetSocketAddress) channel.localAddress();
             InetSocketAddress remoteAddress =
-                (InetSocketAddress) channel.getRemoteAddress();
+                (InetSocketAddress) channel.remoteAddress();
 
             AuthorizationHandler handler =
                 _authorizationFactory.createHandler();

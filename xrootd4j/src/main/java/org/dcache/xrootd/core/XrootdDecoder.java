@@ -19,13 +19,15 @@
  */
 package org.dcache.xrootd.core;
 
-import org.jboss.netty.handler.codec.frame.FrameDecoder;
+import io.netty.handler.codec.ByteToMessageDecoder;
 
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.Channel;
+import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 import org.dcache.xrootd.protocol.messages.*;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
@@ -37,7 +39,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.*;
  * TODO: Implement zero-copy handling of write requests by splitting
  * the request into fragments.
  */
-public class XrootdDecoder extends FrameDecoder
+public class XrootdDecoder extends ByteToMessageDecoder
 {
     private static final Logger _logger =
         LoggerFactory.getLogger(XrootdDecoder.class);
@@ -45,93 +47,115 @@ public class XrootdDecoder extends FrameDecoder
     private boolean gotHandshake = false;
 
     @Override
-    protected Object decode(ChannelHandlerContext ctx, Channel channel,
-                            ChannelBuffer buffer)
+    protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out)
     {
-        int readable = buffer.readableBytes();
+        int readable = in.readableBytes();
 
         /* The first 20 bytes form a handshake.
          */
         if (!gotHandshake) {
             if (readable < CLIENT_HANDSHAKE_LEN) {
-                return null;
+                return;
             }
             gotHandshake = true;
 
-            return new HandshakeRequest(buffer.readSlice(CLIENT_HANDSHAKE_LEN));
+            out.add(new HandshakeRequest(in.readSlice(CLIENT_HANDSHAKE_LEN)));
+            return;
         }
 
         /* All other requests have a common framing format with a
          * fixed length header.
          */
         if (readable < CLIENT_REQUEST_LEN) {
-            return null;
+            return;
         }
 
-        int pos = buffer.readerIndex();
-        int headerFrameLength = buffer.getInt(pos + 20);
+        int pos = in.readerIndex();
+        int headerFrameLength = in.getInt(pos + 20);
 
         if (headerFrameLength < 0) {
             _logger.error("Received illegal frame length in xrootd header: {}."
                           + " Closing channel.", headerFrameLength);
-            channel.close();
-            return null;
+            ctx.channel().close();
+            return;
         }
 
         int length = CLIENT_REQUEST_LEN + headerFrameLength;
 
         if (readable < length) {
-            return null;
+            return;
         }
 
-        ChannelBuffer frame = buffer.readBytes(length);
+        ByteBuf frame = in.readSlice(length);
         int requestID = frame.getUnsignedShort(2);
 
         switch (requestID) {
         case kXR_login:
-            return new LoginRequest(frame);
+            out.add(new LoginRequest(frame));
+            break;
         case kXR_prepare:
-            return new PrepareRequest(frame);
+            out.add(new PrepareRequest(frame));
+            break;
         case kXR_open:
-            return new OpenRequest(frame);
+            out.add(new OpenRequest(frame));
+            break;
         case kXR_stat:
-            return new StatRequest(frame);
+            out.add(new StatRequest(frame));
+            break;
         case kXR_statx:
-            return new StatxRequest(frame);
+            out.add(new StatxRequest(frame));
+            break;
         case kXR_read:
-            return new ReadRequest(frame);
+            out.add(new ReadRequest(frame));
+            break;
         case kXR_readv:
-            return new ReadVRequest(frame);
+            out.add(new ReadVRequest(frame));
+            break;
         case kXR_write:
-            return new WriteRequest(frame);
+            out.add(new WriteRequest(frame));
+            break;
         case kXR_sync:
-            return new SyncRequest(frame);
+            out.add(new SyncRequest(frame));
+            break;
         case kXR_close:
-            return new CloseRequest(frame);
+            out.add(new CloseRequest(frame));
+            break;
         case kXR_protocol:
-            return new ProtocolRequest(frame);
+            out.add(new ProtocolRequest(frame));
+            break;
         case kXR_rm:
-            return new RmRequest(frame);
+            out.add(new RmRequest(frame));
+            break;
         case kXR_rmdir:
-            return new RmDirRequest(frame);
+            out.add(new RmDirRequest(frame));
+            break;
         case kXR_mkdir:
-            return new MkDirRequest(frame);
+            out.add(new MkDirRequest(frame));
+            break;
         case kXR_mv:
-            return new MvRequest(frame);
+            out.add(new MvRequest(frame));
+            break;
         case kXR_dirlist:
-            return new DirListRequest(frame);
+            out.add(new DirListRequest(frame));
+            break;
         case kXR_auth:
-            return new AuthenticationRequest(frame);
+            out.add(new AuthenticationRequest(frame));
+            break;
         case kXR_endsess:
-            return new EndSessionRequest(frame);
+            out.add(new EndSessionRequest(frame));
+            break;
         case kXR_locate :
-            return new LocateRequest(frame);
+            out.add(new LocateRequest(frame));
+            break;
         case kXR_query:
-            return new QueryRequest(frame);
+            out.add(new QueryRequest(frame));
+            break;
         case kXR_set:
-            return new SetRequest(frame);
+            out.add(new SetRequest(frame));
+            break;
         default:
-            return new UnknownRequest(frame);
+            out.add(new UnknownRequest(frame));
+            break;
         }
     }
 }

@@ -19,7 +19,7 @@
  */
 package org.dcache.xrootd.security;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,7 +81,7 @@ public class NestedBucketBuffer extends XrootdBucket {
      * @return Deserialized buffer
      * @throws IOException Deserialization fails
      */
-    public static NestedBucketBuffer deserialize(BucketType type, ChannelBuffer buffer)
+    public static NestedBucketBuffer deserialize(BucketType type, ByteBuf buffer)
         throws IOException {
 
         /* kXRS_main can be a nested or an encrypted (raw) bucket. Try whether it
@@ -126,9 +126,9 @@ public class NestedBucketBuffer extends XrootdBucket {
     /**
      * Serialize all the buckets in that buffer to an outputstream.
      *
-     * @param out The ChannelBuffer to which this buffer will be serialized
+     * @param out The ByteBuf to which this buffer will be serialized
      */
-    public void serialize(ChannelBuffer out) {
+    public void serialize(ByteBuf out) {
 
         super.serialize(out);
 

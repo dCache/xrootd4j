@@ -20,7 +20,7 @@
 package org.dcache.xrootd.protocol.messages;
 
 import com.google.common.base.CharMatcher;
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_query;
 
@@ -31,7 +31,7 @@ public class QueryRequest extends XrootdRequest
     private final int fhandle;
     private String args;
 
-    public QueryRequest(ChannelBuffer buffer)
+    public QueryRequest(ByteBuf buffer)
     {
         super(buffer, kXR_query);
         reqcode = buffer.getUnsignedShort(4);

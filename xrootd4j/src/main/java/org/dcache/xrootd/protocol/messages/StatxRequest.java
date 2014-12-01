@@ -20,14 +20,14 @@
 package org.dcache.xrootd.protocol.messages;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public class StatxRequest extends XrootdRequest
 {
     private String[] _paths;
     private String[] _opaques;
 
-    public StatxRequest(ChannelBuffer buffer)
+    public StatxRequest(ByteBuf buffer)
     {
         super(buffer, kXR_statx);
 

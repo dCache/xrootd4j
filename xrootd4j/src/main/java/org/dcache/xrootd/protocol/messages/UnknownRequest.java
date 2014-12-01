@@ -19,11 +19,11 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public class UnknownRequest extends XrootdRequest
 {
-    public UnknownRequest(ChannelBuffer buffer)
+    public UnknownRequest(ByteBuf buffer)
     {
         super(buffer);
     }

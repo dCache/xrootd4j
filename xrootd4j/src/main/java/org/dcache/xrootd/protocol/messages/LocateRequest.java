@@ -19,7 +19,7 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_locate;
 
@@ -27,7 +27,7 @@ public class LocateRequest extends PathRequest
 {
     private final int options;
 
-    public LocateRequest(ChannelBuffer buffer)
+    public LocateRequest(ByteBuf buffer)
     {
         super(buffer, kXR_locate);
         options = buffer.getUnsignedMedium(4);

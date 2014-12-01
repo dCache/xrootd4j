@@ -19,37 +19,21 @@
  */
 package org.dcache.xrootd.standalone;
 
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.oio.OioEventLoopGroup;
+import io.netty.channel.socket.ServerSocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.channel.socket.oio.OioServerSocketChannel;
 import joptsimple.OptionException;
 import joptsimple.OptionSet;
-import org.jboss.netty.bootstrap.ServerBootstrap;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFactory;
-import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.group.ChannelGroup;
-import org.jboss.netty.channel.group.DefaultChannelGroup;
-import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-import org.jboss.netty.channel.socket.oio.OioServerSocketChannelFactory;
-import org.jboss.netty.logging.InternalLoggerFactory;
-import org.jboss.netty.logging.Slf4JLoggerFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.net.InetSocketAddress;
 import java.util.NoSuchElementException;
-import java.util.concurrent.Executors;
 
 public class DataServer
 {
-    /**
-     * Switch Netty to slf4j for logging.
-     */
-    static
-    {
-        InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory());
-    }
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(DataServer.class);
-
     private final DataServerConfiguration _configuration;
 
     public DataServer(DataServerConfiguration configuration)
@@ -57,37 +41,45 @@ public class DataServer
         _configuration = configuration;
     }
 
-    public void start()
+    public void start() throws InterruptedException
     {
-        final ChannelGroup allChannels =
-            new DefaultChannelGroup(DataServer.class.getName());
-        ChannelPipelineFactory pipelineFactory =
-            new DataServerPipelineFactory(_configuration, allChannels);
-        ChannelFactory factory =
-            _configuration.useBlockingIo
-                ? new OioServerSocketChannelFactory(
-                Executors.newCachedThreadPool(),
-                Executors.newCachedThreadPool())
-                : new NioServerSocketChannelFactory(
-                Executors.newCachedThreadPool(),
-                Executors.newCachedThreadPool());
-        final ServerBootstrap bootstrap = new ServerBootstrap(factory);
-        bootstrap.setOption("child.tcpNoDelay", true);
-        bootstrap.setOption("child.keepAlive", true);
-        bootstrap.setPipelineFactory(pipelineFactory);
-        allChannels.add(bootstrap.bind(new InetSocketAddress(_configuration.port)));
-
-        for (Channel channel : allChannels) {
-            LOGGER.info("Channel bound to {}", channel.getLocalAddress());
+        final EventLoopGroup bossGroup;
+        final EventLoopGroup workerGroup;
+        Class<? extends ServerSocketChannel> channelClass;
+        if (_configuration.useBlockingIo) {
+            bossGroup = new OioEventLoopGroup();
+            workerGroup = new OioEventLoopGroup();
+            channelClass = OioServerSocketChannel.class;
+        } else {
+            bossGroup = new NioEventLoopGroup();
+            workerGroup = new NioEventLoopGroup();
+            channelClass = NioServerSocketChannel.class;
         }
-
         Runtime.getRuntime().addShutdownHook(new Thread() {
-                @Override
-                public void run() {
-                    allChannels.close().awaitUninterruptibly();
-                    bootstrap.releaseExternalResources();
+            @Override
+            public void run() {
+                // Shut down all event loops to terminate all threads.
+                bossGroup.shutdownGracefully();
+                workerGroup.shutdownGracefully();
+
+                try {
+                    // Wait until all threads are terminated.
+                    bossGroup.terminationFuture().sync();
+                    workerGroup.terminationFuture().sync();
+                } catch (InterruptedException ignored) {
                 }
-            });
+            }
+        });
+        ServerBootstrap bootstrap = new ServerBootstrap()
+                .group(bossGroup, workerGroup)
+                .channel(channelClass)
+                .localAddress(_configuration.port)
+                .option(ChannelOption.MAX_MESSAGES_PER_READ, 1)
+                .childOption(ChannelOption.TCP_NODELAY, true)
+                .childOption(ChannelOption.SO_KEEPALIVE, true)
+                .childHandler(new DataServerChannelInitializer(_configuration));
+
+        bootstrap.bind().sync().channel().closeFuture().sync();
     }
 
     public static DataServerConfiguration loadConfiguration(String[] args)

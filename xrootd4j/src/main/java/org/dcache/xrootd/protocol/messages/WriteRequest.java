@@ -24,23 +24,25 @@ import java.nio.channels.GatheringByteChannel;
 import java.nio.ByteBuffer;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_write;
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
+import io.netty.util.ReferenceCounted;
 
-public class WriteRequest extends XrootdRequest
+public class WriteRequest extends XrootdRequest implements ReferenceCounted
 {
     private final int _fhandle;
     private final long _offset;
     private final int _dlen;
-    private final ChannelBuffer _buffer;
+    private final ByteBuf _buffer;
 
-    public WriteRequest(ChannelBuffer buffer)
+    public WriteRequest(ByteBuf buffer)
     {
         super(buffer, kXR_write);
 
         _fhandle = buffer.getInt(4);
         _offset = buffer.getLong(8);
         _dlen = buffer.getInt(20);
-        _buffer = buffer;
+        _buffer = buffer.alloc().ioBuffer(_dlen); // Most likely this will be written to disk
+        buffer.getBytes(24, _buffer);
     }
 
     public int getFileHandle()
@@ -61,7 +63,7 @@ public class WriteRequest extends XrootdRequest
     public void getData(GatheringByteChannel out)
         throws IOException
     {
-        int index = 24;
+        int index = 0;
         int len = _dlen;
         while (len > 0) {
             int written = _buffer.getBytes(index, out, len);
@@ -74,12 +76,10 @@ public class WriteRequest extends XrootdRequest
      * Converts this requests's payload into an array of NIO
      * buffers. The returned buffers might or might not share the
      * content with this request.
-     *
-     * @see ChannelBuffers.toByteBuffers
      */
     public ByteBuffer[] toByteBuffers()
     {
-        return _buffer.toByteBuffers(24, _dlen);
+        return (_buffer.nioBufferCount() == -1 ? _buffer.copy() : _buffer).nioBuffers();
     }
 
     @Override
@@ -87,5 +87,37 @@ public class WriteRequest extends XrootdRequest
     {
         return String.format("write[handle=%d,offset=%d,length=%d]",
                              _fhandle, _offset, _dlen);
+    }
+
+    @Override
+    public int refCnt()
+    {
+        return _buffer.refCnt();
+    }
+
+    @Override
+    public boolean release()
+    {
+        return _buffer.release();
+    }
+
+    @Override
+    public boolean release(int decrement)
+    {
+        return _buffer.release(decrement);
+    }
+
+    @Override
+    public WriteRequest retain(int increment)
+    {
+        _buffer.retain(increment);
+        return this;
+    }
+
+    @Override
+    public WriteRequest retain()
+    {
+        _buffer.retain();
+        return this;
     }
 }

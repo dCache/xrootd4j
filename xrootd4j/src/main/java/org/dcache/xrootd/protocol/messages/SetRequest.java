@@ -19,7 +19,7 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_set;
 
@@ -27,7 +27,7 @@ public class SetRequest extends XrootdRequest
 {
     private final String data;
 
-    public SetRequest(ChannelBuffer buffer)
+    public SetRequest(ByteBuf buffer)
     {
         super(buffer, kXR_set);
         int dlen = buffer.getInt(20);

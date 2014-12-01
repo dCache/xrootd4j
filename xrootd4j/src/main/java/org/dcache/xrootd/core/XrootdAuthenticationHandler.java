@@ -21,10 +21,9 @@ package org.dcache.xrootd.core;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelStateEvent;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +59,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.*;
  * The class may be subclassed to override the <code>authenticated</code> method
  * to add additional operations after authentication.
  */
-public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
+public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
 {
     private static final Logger _log =
         LoggerFactory.getLogger(XrootdAuthenticationHandler.class);
@@ -85,21 +84,19 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
     }
 
     @Override
-    public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception
     {
         _sessions.remove(_sessionId);
-        super.channelDisconnected(ctx, e);
+        super.channelInactive(ctx);
     }
 
     @Override
-    public void messageReceived(ChannelHandlerContext ctx, MessageEvent event)
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception
     {
-        Object msg = event.getMessage();
-
         /* Pass along any message that is not an xrootd requests.
          */
         if (!(msg instanceof XrootdRequest)) {
-            ctx.sendUpstream(event);
+            super.channelRead(ctx, msg);
             return;
         }
 
@@ -109,87 +106,102 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
         try {
             switch (reqId) {
             case kXR_login:
-                if (_isInProgress.compareAndSet(false, true)) {
-                    try {
-                        _state = State.NO_LOGIN;
-                        _session = new XrootdSession(_sessionId, ctx.getChannel(), (LoginRequest) request);
-                        request.setSession(_session);
-                        doOnLogin(ctx, event, (LoginRequest) request);
-                    } finally {
-                        _isInProgress.set(false);
+                try {
+                    if (_isInProgress.compareAndSet(false, true)) {
+                        try {
+                            _state = State.NO_LOGIN;
+                            _session = new XrootdSession(_sessionId, ctx.channel(), (LoginRequest) request);
+                            request.setSession(_session);
+                            doOnLogin(ctx, (LoginRequest) request);
+                            _sessions.put(_sessionId, _session);
+                        } finally {
+                            _isInProgress.set(false);
+                        }
+                    } else {
+                        throw new XrootdException(kXR_inProgress, "Login in progress");
                     }
-                } else {
-                    throw new XrootdException(kXR_inProgress, "Login in progress");
+                } finally {
+                    ReferenceCountUtil.release(request);
                 }
                 break;
             case kXR_auth:
-                if (_isInProgress.compareAndSet(false, true)) {
-                    try {
-                        switch (_state) {
-                        case NO_LOGIN:
-                            throw new XrootdException(kXR_NotAuthorized, "Login required");
-                        case AUTH:
-                            throw new XrootdException(kXR_InvalidRequest, "Already authenticated");
+                try {
+                    if (_isInProgress.compareAndSet(false, true)) {
+                        try {
+                            switch (_state) {
+                            case NO_LOGIN:
+                                throw new XrootdException(kXR_NotAuthorized, "Login required");
+                            case AUTH:
+                                throw new XrootdException(kXR_InvalidRequest, "Already authenticated");
+                            }
+                            request.setSession(_session);
+                            doOnAuthentication(ctx, (AuthenticationRequest) request);
+                        } finally {
+                            _isInProgress.set(false);
                         }
-                        request.setSession(_session);
-                        doOnAuthentication(ctx, event, (AuthenticationRequest) request);
-                    } finally {
-                        _isInProgress.set(false);
+                    } else {
+                        throw new XrootdException(kXR_inProgress, "Login in progress");
                     }
-                } else {
-                    throw new XrootdException(kXR_inProgress, "Login in progress");
+                } finally {
+                    ReferenceCountUtil.release(request);
                 }
                 break;
             case kXR_endsess:
-                switch (_state) {
-                case NO_LOGIN:
-                    throw new XrootdException(kXR_NotAuthorized, "Login required");
-                case NO_AUTH:
-                    throw new XrootdException(kXR_NotAuthorized, "Authentication required");
+                try {
+                    switch (_state) {
+                    case NO_LOGIN:
+                        throw new XrootdException(kXR_NotAuthorized, "Login required");
+                    case NO_AUTH:
+                        throw new XrootdException(kXR_NotAuthorized, "Authentication required");
+                    }
+                    request.setSession(_session);
+                    doOnEndSession(ctx, (EndSessionRequest) request);
+                } finally {
+                    ReferenceCountUtil.release(request);
                 }
-                request.setSession(_session);
-                doOnEndSession(ctx, event, (EndSessionRequest) request);
                 break;
 
             case kXR_bind:
             case kXR_protocol:
                 request.setSession(_session);
-                ctx.sendUpstream(event);
+                super.channelRead(ctx, msg);
                 break;
             case kXR_ping:
                 if (_state == State.NO_LOGIN) {
+                    ReferenceCountUtil.release(request);
                     throw new XrootdException(kXR_NotAuthorized, "Login required");
                 }
                 request.setSession(_session);
-                ctx.sendUpstream(event);
+                super.channelRead(ctx, msg);
                 break;
             default:
                 switch (_state) {
                 case NO_LOGIN:
+                    ReferenceCountUtil.release(request);
                     throw new XrootdException(kXR_NotAuthorized, "Login required");
                 case NO_AUTH:
+                    ReferenceCountUtil.release(request);
                     throw new XrootdException(kXR_NotAuthorized, "Authentication required");
                 }
                 request.setSession(_session);
-                ctx.sendUpstream(event);
+                super.channelRead(ctx, msg);
                 break;
             }
         } catch (XrootdException e) {
             ErrorResponse error =
                 new ErrorResponse(request, e.getError(), Strings.nullToEmpty(e.getMessage()));
-            event.getChannel().write(error);
+            ctx.writeAndFlush(error);
         } catch (RuntimeException e) {
             _log.error("xrootd server error while processing " + msg + " (please report this to support@dcache.org)", e);
             ErrorResponse error =
                 new ErrorResponse(request, kXR_ServerError,
                                   String.format("Internal server error (%s)",
                                                 e.getMessage()));
-            event.getChannel().write(error);
+            ctx.writeAndFlush(error);
         }
     }
 
     private void doOnLogin(ChannelHandlerContext context,
-                           MessageEvent event,
                            LoginRequest request)
         throws XrootdException
     {
@@ -206,9 +218,7 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
                 _state = State.NO_AUTH;
             }
 
-            event.getChannel().write(response);
-
-            _sessions.put(_sessionId, _session);
+            context.writeAndFlush(response);
         } catch (InvalidHandlerConfigurationException e) {
             _log.error("Could not instantiate authentication handler: {}", e);
             throw new XrootdException(kXR_ServerError, "Internal server error");
@@ -216,7 +226,6 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
     }
 
     private void doOnAuthentication(ChannelHandlerContext context,
-                                    MessageEvent event,
                                     AuthenticationRequest request)
         throws XrootdException
     {
@@ -229,10 +238,10 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
             _state = State.NO_LOGIN;
             authenticated(context, _authenticationHandler.getSubject());
         }
-        event.getChannel().write(response);
+        context.writeAndFlush(response);
     }
 
-    private void doOnEndSession(ChannelHandlerContext ctx, MessageEvent event, EndSessionRequest request)
+    private void doOnEndSession(ChannelHandlerContext ctx, EndSessionRequest request)
         throws XrootdException
     {
         XrootdSession session = _sessions.get(request.getSessionId());
@@ -243,7 +252,7 @@ public class XrootdAuthenticationHandler extends SimpleChannelUpstreamHandler
             throw new XrootdException(kXR_NotAuthorized, "not session owner");
         }
         session.getChannel().close();
-        event.getChannel().write(new OkResponse(request));
+        ctx.writeAndFlush(new OkResponse(request));
     }
 
     private void authenticated(ChannelHandlerContext context, Subject subject)

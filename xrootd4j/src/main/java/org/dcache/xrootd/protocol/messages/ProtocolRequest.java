@@ -20,11 +20,11 @@
 package org.dcache.xrootd.protocol.messages;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public class ProtocolRequest extends XrootdRequest
 {
-    public ProtocolRequest(ChannelBuffer buffer)
+    public ProtocolRequest(ByteBuf buffer)
     {
         super(buffer, kXR_protocol);
     }

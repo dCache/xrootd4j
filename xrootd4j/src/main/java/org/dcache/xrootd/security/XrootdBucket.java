@@ -19,7 +19,7 @@
  */
 package org.dcache.xrootd.security;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -49,7 +49,7 @@ public abstract class XrootdBucket
         return _type;
     }
 
-    public void serialize(ChannelBuffer out) {
+    public void serialize(ByteBuf out) {
         out.writeInt(_type.getCode());
     }
 
@@ -66,7 +66,7 @@ public abstract class XrootdBucket
      * @param buffer The buffer containing the buckets
      * @return The deserialized bucket
      */
-    public static XrootdBucket deserialize(BucketType type, ChannelBuffer buffer)
+    public static XrootdBucket deserialize(BucketType type, ByteBuf buffer)
         throws IOException {
 
         XrootdBucket bucket;

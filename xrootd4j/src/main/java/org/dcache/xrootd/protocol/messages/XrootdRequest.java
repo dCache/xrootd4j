@@ -23,7 +23,8 @@ import java.nio.charset.Charset;
 import javax.security.auth.Subject;
 
 import org.dcache.xrootd.core.XrootdSession;
-import org.jboss.netty.buffer.ChannelBuffer;
+
+import io.netty.buffer.ByteBuf;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -41,13 +42,13 @@ public abstract class XrootdRequest
         _requestId = 0;
     }
 
-    public XrootdRequest(ChannelBuffer buffer, int requestId)
+    public XrootdRequest(ByteBuf buffer, int requestId)
     {
         this(buffer);
         checkState(_requestId == requestId);
     }
 
-    public XrootdRequest(ChannelBuffer buffer)
+    public XrootdRequest(ByteBuf buffer)
     {
         _streamId = buffer.getUnsignedShort(0);
         _requestId = buffer.getUnsignedShort(2);

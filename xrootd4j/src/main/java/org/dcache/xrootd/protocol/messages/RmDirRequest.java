@@ -21,11 +21,11 @@ package org.dcache.xrootd.protocol.messages;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public class RmDirRequest extends PathRequest
 {
-    public RmDirRequest(ChannelBuffer buffer)
+    public RmDirRequest(ByteBuf buffer)
     {
         super(buffer, kXR_rmdir);
     }
