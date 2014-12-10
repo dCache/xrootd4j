@@ -20,6 +20,7 @@
 package org.dcache.xrootd.stream;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 
 import java.io.IOException;
 
@@ -50,7 +51,7 @@ public abstract class AbstractChunkedReadvResponse implements ChunkedResponse
     }
 
     @Override
-    public ReadResponse nextChunk() throws Exception
+    public ReadResponse nextChunk(ByteBufAllocator alloc) throws Exception
     {
         if (isEndOfInput()) {
             return null;
@@ -59,7 +60,7 @@ public abstract class AbstractChunkedReadvResponse implements ChunkedResponse
         int count = getChunksInNextFrame(maxFrameSize);
         ByteBuf[] chunks = new ByteBuf[requests.length];
         for (int i = index; i < index + count; i++) {
-            chunks[i] = read(requests[i]);
+            chunks[i] = read(alloc, requests[i]);
         }
 
         ReadResponse response = new ReadResponse(request, 0);
@@ -106,14 +107,14 @@ public abstract class AbstractChunkedReadvResponse implements ChunkedResponse
         return count;
     }
 
-    private ByteBuf read(GenericReadRequestMessage.EmbeddedReadRequest request)
+    private ByteBuf read(ByteBufAllocator alloc, GenericReadRequestMessage.EmbeddedReadRequest request)
         throws IOException, XrootdException
     {
-        return read(request.getFileHandle(), request.getOffset(), request.BytesToRead());
+        return read(alloc, request.getFileHandle(), request.getOffset(), request.BytesToRead());
     }
 
     protected abstract long getSize(int fd) throws IOException, XrootdException;
 
-    protected abstract ByteBuf read(int fd, long position, int length)
+    protected abstract ByteBuf read(ByteBufAllocator alloc, int fd, long position, int length)
         throws IOException, XrootdException;
 }

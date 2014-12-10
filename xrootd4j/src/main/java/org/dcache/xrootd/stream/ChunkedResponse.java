@@ -19,6 +19,8 @@
  */
 package org.dcache.xrootd.stream;
 
+import io.netty.buffer.ByteBufAllocator;
+
 import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
 import org.dcache.xrootd.protocol.messages.XrootdRequest;
 
@@ -38,7 +40,7 @@ public interface ChunkedResponse
      *
      * @return the fetched chunk
      */
-    AbstractResponseMessage nextChunk() throws Exception;
+    AbstractResponseMessage nextChunk(ByteBufAllocator alloc) throws Exception;
 
     /**
      * Return {@code true} if and only if there is no data left in the stream

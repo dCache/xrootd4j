@@ -20,6 +20,7 @@
 package org.dcache.xrootd.stream;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -29,7 +30,6 @@ import java.util.List;
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.protocol.messages.ReadVRequest;
 
-import static io.netty.buffer.Unpooled.wrappedBuffer;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_FileNotOpen;
 
 public class ChunkedFileChannelReadvResponse extends AbstractChunkedReadvResponse
@@ -57,25 +57,26 @@ public class ChunkedFileChannelReadvResponse extends AbstractChunkedReadvRespons
     }
 
     @Override
-    protected ByteBuf read(int fd, long position, int length)
+    protected ByteBuf read(ByteBufAllocator alloc, int fd, long position, int length)
         throws IOException, XrootdException
     {
         checkValidFileDescriptor(fd);
 
         FileChannel channel = channels.get(fd);
-        byte[] chunkArray = new byte[length];
-        ByteBuffer chunk = ByteBuffer.wrap(chunkArray);
 
+        ByteBuf chunk = alloc.ioBuffer(length);
+        chunk.writerIndex(length);
+        ByteBuffer buffer = chunk.nioBuffer();
         while (length > 0) {
             /* use position independent thread safe call */
-            int bytes = channel.read(chunk, position);
+            int bytes = channel.read(buffer, position);
             if (bytes < 0) {
                 break;
             }
             position += bytes;
             length -= bytes;
         }
-
-        return wrappedBuffer(chunkArray, 0, chunkArray.length - length);
+        chunk.writerIndex(chunk.writerIndex() - length);
+        return chunk;
     }
 }

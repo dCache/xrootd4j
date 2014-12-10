@@ -173,7 +173,7 @@ public class ChunkedResponseWriteHandler
             boolean endOfInput;
             Object message = null;
             try {
-                message = pendingMessage.nextChunk();
+                message = pendingMessage.nextChunk(ctx.alloc());
                 endOfInput = pendingMessage.isEndOfInput();
             } catch (final Throwable t) {
                 this.currentWrite = null;

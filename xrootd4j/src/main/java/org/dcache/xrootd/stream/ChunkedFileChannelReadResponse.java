@@ -20,14 +20,13 @@
 package org.dcache.xrootd.stream;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
 import org.dcache.xrootd.protocol.messages.ReadRequest;
-
-import static io.netty.buffer.Unpooled.wrappedBuffer;
 
 public class ChunkedFileChannelReadResponse extends AbstractChunkedReadResponse
 {
@@ -40,20 +39,22 @@ public class ChunkedFileChannelReadResponse extends AbstractChunkedReadResponse
     }
 
     @Override
-    protected ByteBuf read(long position, int length)
+    protected ByteBuf read(ByteBufAllocator alloc, long position, int length)
         throws IOException
     {
-        ByteBuffer chunk = ByteBuffer.allocate(length);
+        ByteBuf chunk = alloc.ioBuffer(length);
+        chunk.writerIndex(length);
+        ByteBuffer buffer = chunk.nioBuffer();
         while (length > 0) {
             /* use position independent thread safe call */
-            int bytes = channel.read(chunk, position);
+            int bytes = channel.read(buffer, position);
             if (bytes < 0) {
                 break;
             }
             position += bytes;
             length -= bytes;
         }
-        chunk.flip();
-        return wrappedBuffer(chunk);
+        chunk.writerIndex(chunk.writerIndex() - length);
+        return chunk;
     }
 }

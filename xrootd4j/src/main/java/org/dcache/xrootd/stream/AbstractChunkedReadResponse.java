@@ -20,6 +20,7 @@
 package org.dcache.xrootd.stream;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 
 import java.io.IOException;
 
@@ -50,21 +51,21 @@ public abstract class AbstractChunkedReadResponse implements ChunkedResponse
     }
 
     @Override
-    public ReadResponse nextChunk() throws Exception
+    public ReadResponse nextChunk(ByteBufAllocator alloc) throws Exception
     {
         if (isEndOfInput) {
             return null;
         }
         ReadResponse response = new ReadResponse(request, 0);
-        response.append(readNext());
+        response.append(readNext(alloc));
         response.setIncomplete(!isEndOfInput);
         return response;
     }
 
-    private ByteBuf readNext() throws IOException
+    private ByteBuf readNext(ByteBufAllocator alloc) throws IOException
     {
         int chunkLength = Math.min(length, maxFrameSize);
-        ByteBuf buffer = read(position, chunkLength);
+        ByteBuf buffer = read(alloc, position, chunkLength);
         int readableBytes = buffer.readableBytes();
         position += readableBytes;
         length = (readableBytes < chunkLength) ? 0 : length - readableBytes;
@@ -74,7 +75,7 @@ public abstract class AbstractChunkedReadResponse implements ChunkedResponse
         return buffer;
     }
 
-    protected abstract ByteBuf read(long srcIndex, int length)
+    protected abstract ByteBuf read(ByteBufAllocator alloc, long srcIndex, int length)
         throws IOException;
 
     @Override
