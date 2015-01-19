@@ -18,12 +18,14 @@
  * <http://www.gnu.org/licenses/>.
  */
 package org.dcache.xrootd.protocol.messages;
-import org.dcache.xrootd.protocol.XrootdProtocol;
 
-import com.google.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.dcache.xrootd.protocol.XrootdProtocol;
+
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class ErrorResponse extends AbstractXrootdResponse
 {
@@ -62,7 +64,7 @@ public class ErrorResponse extends AbstractXrootdResponse
         super.getBytes(buffer);
 
         buffer.writeInt(errnum);
-        buffer.writeBytes(errmsg.getBytes(Charsets.US_ASCII));
+        buffer.writeBytes(errmsg.getBytes(US_ASCII));
         buffer.writeByte('\0');
     }
 

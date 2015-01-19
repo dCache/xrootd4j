@@ -24,13 +24,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.EnumMap;
 import java.util.Map;
 
 import org.dcache.xrootd.security.XrootdBucket;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
 
 public class AuthenticationRequest extends AbstractXrootdRequest
@@ -111,9 +111,7 @@ public class AuthenticationRequest extends AbstractXrootdRequest
     }
 
     public static String deserializeProtocol(ByteBuf buffer) {
-       String protocol = buffer.toString(buffer.readerIndex(),
-                                         4,
-                                         Charset.forName("ASCII")).trim();
+       String protocol = buffer.toString(buffer.readerIndex(), 4, US_ASCII).trim();
 
        /* toString does not advance the index */
        buffer.readerIndex(buffer.readerIndex() + 4);

@@ -22,6 +22,7 @@ package org.dcache.xrootd.protocol.messages;
 import com.google.common.base.CharMatcher;
 import io.netty.buffer.ByteBuf;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_query;
 
 public class QueryRequest extends AbstractXrootdRequest
@@ -41,7 +42,7 @@ public class QueryRequest extends AbstractXrootdRequest
         /* The protocol spec doesn't state anything about trailing zeros in args,
          * however the xrdfs client sends zero terminated paths.
          */
-        args = NULL_CHARACTER.trimTrailingFrom(buffer.toString(24, alen, XROOTD_CHARSET));
+        args = NULL_CHARACTER.trimTrailingFrom(buffer.toString(24, alen, US_ASCII));
     }
 
     public int getReqcode()

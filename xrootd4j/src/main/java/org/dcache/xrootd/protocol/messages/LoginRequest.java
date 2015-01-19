@@ -21,7 +21,9 @@ package org.dcache.xrootd.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_useradmin;
 
 public class LoginRequest extends AbstractXrootdRequest
 {
@@ -38,9 +40,9 @@ public class LoginRequest extends AbstractXrootdRequest
         int pos =
             buffer.indexOf(8, 16, (byte) 0); // User name is padded with '\0'
         if (pos > -1) {
-            username = buffer.toString(8, pos - 8, XROOTD_CHARSET);
+            username = buffer.toString(8, pos - 8, US_ASCII);
         } else {
-            username = buffer.toString(8, 8, XROOTD_CHARSET);
+            username = buffer.toString(8, 8, US_ASCII);
         }
 
         pid = buffer.getInt(4);
@@ -48,7 +50,7 @@ public class LoginRequest extends AbstractXrootdRequest
         role = buffer.getUnsignedByte(19);
 
         int tlen = buffer.getInt(20);
-        token = buffer.toString(24, tlen, XROOTD_CHARSET);
+        token = buffer.toString(24, tlen, US_ASCII);
     }
 
     public String getUserName()

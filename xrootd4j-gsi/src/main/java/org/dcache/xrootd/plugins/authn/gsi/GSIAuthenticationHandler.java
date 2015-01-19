@@ -19,46 +19,48 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
+import io.netty.buffer.ByteBuf;
+import org.globus.gsi.CertificateRevocationLists;
+import org.globus.gsi.TrustedCertificates;
+import org.globus.gsi.proxy.ProxyPathValidator;
+import org.globus.gsi.proxy.ProxyPathValidatorException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.crypto.Cipher;
+import javax.security.auth.Subject;
+
 import java.io.IOException;
 import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
-import java.security.cert.CertificateEncodingException;
-import java.security.cert.X509Certificate;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import javax.crypto.Cipher;
-import javax.security.auth.Subject;
-
-import static io.netty.buffer.Unpooled.wrappedBuffer;
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
 
 import org.dcache.xrootd.core.XrootdException;
+import org.dcache.xrootd.plugins.AuthenticationHandler;
 import org.dcache.xrootd.protocol.XrootdProtocol;
-import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.AuthenticationResponse;
 import org.dcache.xrootd.protocol.messages.OkResponse;
-import org.dcache.xrootd.plugins.AuthenticationHandler;
-import org.dcache.xrootd.security.RawBucket;
-import org.dcache.xrootd.security.XrootdBucket;
+import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.security.NestedBucketBuffer;
+import org.dcache.xrootd.security.RawBucket;
 import org.dcache.xrootd.security.StringBucket;
-import org.globus.gsi.CertificateRevocationLists;
-import org.globus.gsi.TrustedCertificates;
-import org.globus.gsi.proxy.ProxyPathValidator;
-import org.globus.gsi.proxy.ProxyPathValidatorException;
-import io.netty.buffer.ByteBuf;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.dcache.xrootd.security.XrootdBucket;
+
+import static io.netty.buffer.Unpooled.wrappedBuffer;
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
 
 /**
  * Handler for xrootd-security message exchange based on the GSI protocol.
@@ -366,7 +368,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
             byte[] signedRTag = ((RawBucket) signedRTagBucket).getContent();
 
             byte[] rTag = _challengeCipher.doFinal(signedRTag);
-            String rTagString = new String(rTag, "ASCII");
+            String rTagString = new String(rTag, US_ASCII);
 
             // check that the challenge sent in the previous step matches
             if (!_challenge.equals(rTagString)) {
@@ -491,7 +493,6 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
      * @return challenge string
      */
     private String generateChallengeString() {
-        String result;
         byte[] challengeBytes = new byte[CHALLENGE_BYTES];
 
         /*
@@ -504,13 +505,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
             challengeBytes[i] = (byte) _random.nextInt(Byte.MAX_VALUE);
         }
 
-        try {
-            result = new String(challengeBytes, "ASCII");
-        } catch (UnsupportedEncodingException uee) {
-            result = new String(challengeBytes);
-        }
-
-        return result;
+        return new String(challengeBytes, US_ASCII);
     }
 
     /**

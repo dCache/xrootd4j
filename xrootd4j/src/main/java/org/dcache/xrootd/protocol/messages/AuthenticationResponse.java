@@ -19,7 +19,6 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import com.google.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
 
 import java.util.List;
@@ -28,6 +27,7 @@ import org.dcache.xrootd.security.XrootdBucket;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class AuthenticationResponse extends AbstractXrootdResponse
 {
@@ -84,7 +84,7 @@ public class AuthenticationResponse extends AbstractXrootdResponse
     {
         super.getBytes(buffer);
 
-        byte[] bytes = protocol.getBytes(Charsets.US_ASCII);
+        byte[] bytes = protocol.getBytes(US_ASCII);
         buffer.writeBytes(bytes);
         /* protocol must be 0-padded to 4 bytes */
         buffer.writeZero(4 - bytes.length);

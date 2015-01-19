@@ -18,11 +18,13 @@
  * <http://www.gnu.org/licenses/>.
  */
 package org.dcache.xrootd.protocol.messages;
-import com.google.common.base.Charsets;
+
 import io.netty.buffer.ByteBuf;
 
 import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.util.FileStatus;
+
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class StatResponse extends AbstractXrootdResponse
 {
@@ -71,7 +73,7 @@ public class StatResponse extends AbstractXrootdResponse
     protected void getBytes(ByteBuf buffer)
     {
         super.getBytes(buffer);
-        buffer.writeBytes(info.getBytes(Charsets.US_ASCII));
+        buffer.writeBytes(info.getBytes(US_ASCII));
         buffer.writeByte('\0');
     }
 

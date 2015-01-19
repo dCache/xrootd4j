@@ -21,6 +21,7 @@ package org.dcache.xrootd.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_set;
 
 public class SetRequest extends AbstractXrootdRequest
@@ -31,7 +32,7 @@ public class SetRequest extends AbstractXrootdRequest
     {
         super(buffer, kXR_set);
         int dlen = buffer.getInt(20);
-        data = buffer.toString(24, dlen, XROOTD_CHARSET);
+        data = buffer.toString(24, dlen, US_ASCII);
     }
 
     public String getData()

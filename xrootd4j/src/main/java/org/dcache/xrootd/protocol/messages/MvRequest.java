@@ -19,9 +19,10 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mv;
-
 import io.netty.buffer.ByteBuf;
+
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mv;
 
 public class MvRequest extends AbstractXrootdRequest
 {
@@ -45,20 +46,20 @@ public class MvRequest extends AbstractXrootdRequest
         if (osep > -1) {
             sourcePath = buffer.toString(24,
                                           psep - 24,
-                                          XROOTD_CHARSET);
+                                          US_ASCII);
             targetPath = buffer.toString(psep+1,
                                           osep - (psep + 1),
-                                          XROOTD_CHARSET);
+                                          US_ASCII);
             opaque = buffer.toString(osep + 1,
                                       end - (osep + 1),
-                                      XROOTD_CHARSET);
+                                      US_ASCII);
         } else {
             sourcePath = buffer.toString(24,
                                           psep - 24,
-                                          XROOTD_CHARSET);
+                                          US_ASCII);
             targetPath = buffer.toString(psep+1,
                                           end - (psep + 1),
-                                          XROOTD_CHARSET);
+                                          US_ASCII);
             opaque = null;
         }
     }

@@ -19,11 +19,13 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import com.google.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
 
 import java.util.Iterator;
+
 import org.dcache.xrootd.protocol.XrootdProtocol;
+
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class DirListResponse extends AbstractXrootdResponse
 {
@@ -62,10 +64,10 @@ public class DirListResponse extends AbstractXrootdResponse
 
         Iterator<String> i = names.iterator();
         if (i.hasNext()) {
-            buffer.writeBytes(i.next().getBytes(Charsets.US_ASCII));
+            buffer.writeBytes(i.next().getBytes(US_ASCII));
             while (i.hasNext()) {
                 buffer.writeByte('\n');
-                buffer.writeBytes(i.next().getBytes(Charsets.US_ASCII));
+                buffer.writeBytes(i.next().getBytes(US_ASCII));
             }
             /* Last entry in the list is terminated by a 0 rather than by
              * a \n, if not more entries follow because the message is an

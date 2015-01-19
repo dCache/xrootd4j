@@ -19,9 +19,11 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import io.netty.buffer.ByteBuf;
+
 import org.dcache.xrootd.protocol.XrootdProtocol;
 
-import io.netty.buffer.ByteBuf;
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
 /**
  * Base class for requests that contain a path.
@@ -46,10 +48,10 @@ public class PathRequest extends AbstractXrootdRequest
         int end = begin + length;
         int pos = buffer.indexOf(begin, end, XrootdProtocol.OPAQUE_DELIMITER);
         if (pos > -1) {
-            setPath(buffer.toString(begin, pos - begin, XROOTD_CHARSET));
-            setOpaque(buffer.toString(pos + 1, end - (pos + 1), XROOTD_CHARSET));
+            setPath(buffer.toString(begin, pos - begin, US_ASCII));
+            setOpaque(buffer.toString(pos + 1, end - (pos + 1), US_ASCII));
         } else {
-            setPath(buffer.toString(begin, end - begin, XROOTD_CHARSET));
+            setPath(buffer.toString(begin, end - begin, US_ASCII));
             setOpaque("");
         }
     }

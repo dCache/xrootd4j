@@ -19,7 +19,6 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.net.InetAddresses;
 import io.netty.buffer.ByteBuf;
@@ -27,6 +26,8 @@ import io.netty.buffer.ByteBuf;
 import java.net.InetSocketAddress;
 
 import org.dcache.xrootd.protocol.XrootdProtocol;
+
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class LocateResponse extends AbstractXrootdResponse
 {
@@ -58,7 +59,7 @@ public class LocateResponse extends AbstractXrootdResponse
     protected void getBytes(ByteBuf buffer)
     {
         super.getBytes(buffer);
-        buffer.writeBytes(encoded.getBytes(Charsets.US_ASCII));
+        buffer.writeBytes(encoded.getBytes(US_ASCII));
         buffer.writeByte('\0');
     }
 

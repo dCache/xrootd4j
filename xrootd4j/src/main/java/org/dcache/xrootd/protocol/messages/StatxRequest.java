@@ -19,8 +19,10 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 import io.netty.buffer.ByteBuf;
+
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_statx;
 
 public class StatxRequest extends AbstractXrootdRequest
 {
@@ -32,7 +34,7 @@ public class StatxRequest extends AbstractXrootdRequest
         super(buffer, kXR_statx);
 
         int dlen = buffer.getInt(20);
-        paths = buffer.toString(24, dlen, XROOTD_CHARSET).split("\n");
+        paths = buffer.toString(24, dlen, US_ASCII).split("\n");
         opaques = new String[paths.length];
 
         for (int i = 0; i < paths.length; i++) {

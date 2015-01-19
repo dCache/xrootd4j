@@ -20,8 +20,9 @@
 package org.dcache.xrootd.protocol.messages;
 
 import com.google.common.base.CaseFormat;
-import com.google.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
+
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class StringResponse extends AbstractXrootdResponse
 {
@@ -48,7 +49,7 @@ public class StringResponse extends AbstractXrootdResponse
     protected void getBytes(ByteBuf buffer)
     {
         super.getBytes(buffer);
-        buffer.writeBytes(response.getBytes(Charsets.US_ASCII));
+        buffer.writeBytes(response.getBytes(US_ASCII));
     }
 
     @Override

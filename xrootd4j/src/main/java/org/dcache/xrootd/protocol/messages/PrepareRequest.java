@@ -19,10 +19,12 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import io.netty.buffer.ByteBuf;
+
 import java.util.Arrays;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import io.netty.buffer.ByteBuf;
 
 public class PrepareRequest extends AbstractXrootdRequest
 {
@@ -40,7 +42,7 @@ public class PrepareRequest extends AbstractXrootdRequest
         int plen = buffer.getInt(20);
         int end = 24 + plen;
 
-        plist = buffer.toString(24, end - 24, XROOTD_CHARSET).split("\n");
+        plist = buffer.toString(24, end - 24, US_ASCII).split("\n");
     }
 
     public int getOptions()

@@ -19,12 +19,13 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import com.google.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
 
 import org.dcache.xrootd.core.XrootdSessionIdentifier;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.dcache.xrootd.protocol.XrootdProtocol.SESSION_ID_SIZE;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
 
 public class LoginResponse extends AbstractXrootdResponse
 {
@@ -61,7 +62,7 @@ public class LoginResponse extends AbstractXrootdResponse
         super.getBytes(buffer);
         buffer.writeBytes(sessionId.getBytes());
         if (!sec.isEmpty()) {
-            buffer.writeBytes(sec.getBytes(Charsets.US_ASCII));
+            buffer.writeBytes(sec.getBytes(US_ASCII));
             buffer.writeByte('\0');
         }
     }

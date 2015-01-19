@@ -21,9 +21,9 @@ package org.dcache.xrootd.security;
 
 import io.netty.buffer.ByteBuf;
 
-import java.nio.charset.Charset;
-
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
+
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
 /**
  * A bucket containing a header plus a String.
@@ -48,7 +48,7 @@ public class StringBucket extends XrootdBucket {
 
     public static StringBucket deserialize(BucketType type, ByteBuf buffer) {
 
-        String s = buffer.toString(Charset.forName("ASCII"));
+        String s = buffer.toString(US_ASCII);
         return new StringBucket(type, s);
     }
 

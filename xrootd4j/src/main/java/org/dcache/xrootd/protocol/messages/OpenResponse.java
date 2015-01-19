@@ -19,11 +19,12 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import com.google.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
 
 import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.util.FileStatus;
+
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class OpenResponse extends AbstractXrootdResponse
 {
@@ -70,14 +71,14 @@ public class OpenResponse extends AbstractXrootdResponse
         if (cpsize != null && cptype != null) {
             buffer.writeInt(cpsize);
             int len = Math.min(cptype.length(), 4);
-            buffer.writeBytes(cptype.getBytes(Charsets.US_ASCII), 0, len);
+            buffer.writeBytes(cptype.getBytes(US_ASCII), 0, len);
             buffer.writeZero(4 - len);
         } else if (fs != null) {
             buffer.writeZero(8);
         }
 
         if (fs != null) {
-            buffer.writeBytes(fs.toString().getBytes(Charsets.US_ASCII));
+            buffer.writeBytes(fs.toString().getBytes(US_ASCII));
             buffer.writeByte('\0');
         }
     }

@@ -19,20 +19,16 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import java.nio.charset.Charset;
+import io.netty.buffer.ByteBuf;
+
 import javax.security.auth.Subject;
 
 import org.dcache.xrootd.core.XrootdSession;
-
-import com.google.common.base.Charsets;
-import io.netty.buffer.ByteBuf;
 
 import static com.google.common.base.Preconditions.checkState;
 
 public class AbstractXrootdRequest implements XrootdRequest
 {
-    protected static final Charset XROOTD_CHARSET = Charsets.US_ASCII;
-
     protected final int streamId;
     protected final int requestId;
     protected XrootdSession session;
