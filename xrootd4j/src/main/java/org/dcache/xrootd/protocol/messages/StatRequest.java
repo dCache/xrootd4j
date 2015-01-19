@@ -24,22 +24,22 @@ import io.netty.buffer.ByteBuf;
 
 public class StatRequest extends PathRequest
 {
-    private final short _opts;
+    private final short options;
 
     public StatRequest(ByteBuf buffer)
     {
         super(buffer, kXR_stat);
-        _opts = buffer.getUnsignedByte(4);
+        options = buffer.getUnsignedByte(4);
     }
 
     public boolean isVfsSet()
     {
-        return (_opts & kXR_vfs) == kXR_vfs;
+        return (options & kXR_vfs) == kXR_vfs;
     }
 
     @Override
     public String toString()
     {
-        return "stat[" + getPath() + "," + getOpaque() + "," + _opts + "]";
+        return "stat[" + getPath() + "," + getOpaque() + "," + options + "]";
     }
 }

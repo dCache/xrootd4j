@@ -23,18 +23,18 @@ import io.netty.buffer.ByteBuf;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
-public class CloseRequest extends XrootdRequest
+public class CloseRequest extends AbstractXrootdRequest
 {
-    private final int _fileHandle;
+    private final int fileHandle;
 
     public CloseRequest(ByteBuf buffer)
     {
         super(buffer, kXR_close);
-        _fileHandle = buffer.getInt(4);
+        fileHandle = buffer.getInt(4);
     }
 
     public int getFileHandle()
     {
-        return _fileHandle;
+        return fileHandle;
     }
 }

@@ -24,7 +24,7 @@ import io.netty.buffer.ByteBuf;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_query;
 
-public class QueryRequest extends XrootdRequest
+public class QueryRequest extends AbstractXrootdRequest
 {
     public static final CharMatcher NULL_CHARACTER = CharMatcher.is('\0');
     private final int reqcode;

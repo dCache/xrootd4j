@@ -27,46 +27,46 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_write;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.ReferenceCounted;
 
-public class WriteRequest extends XrootdRequest implements ReferenceCounted
+public class WriteRequest extends AbstractXrootdRequest implements ReferenceCounted
 {
-    private final int _fhandle;
-    private final long _offset;
-    private final int _dlen;
-    private final ByteBuf _buffer;
+    private final int fhandle;
+    private final long offset;
+    private final int dlen;
+    private final ByteBuf data;
 
     public WriteRequest(ByteBuf buffer)
     {
         super(buffer, kXR_write);
 
-        _fhandle = buffer.getInt(4);
-        _offset = buffer.getLong(8);
-        _dlen = buffer.getInt(20);
-        _buffer = buffer.alloc().ioBuffer(_dlen); // Most likely this will be written to disk
-        buffer.getBytes(24, _buffer);
+        fhandle = buffer.getInt(4);
+        offset = buffer.getLong(8);
+        dlen = buffer.getInt(20);
+        data = buffer.alloc().ioBuffer(dlen); // Most likely this will be written to disk
+        buffer.getBytes(24, data);
     }
 
     public int getFileHandle()
     {
-        return _fhandle;
+        return fhandle;
     }
 
     public long getWriteOffset()
     {
-        return _offset;
+        return offset;
     }
 
     public int getDataLength()
     {
-        return _dlen;
+        return dlen;
     }
 
     public void getData(GatheringByteChannel out)
         throws IOException
     {
         int index = 0;
-        int len = _dlen;
+        int len = dlen;
         while (len > 0) {
-            int written = _buffer.getBytes(index, out, len);
+            int written = data.getBytes(index, out, len);
             index += written;
             len -= written;
         }
@@ -79,45 +79,45 @@ public class WriteRequest extends XrootdRequest implements ReferenceCounted
      */
     public ByteBuffer[] toByteBuffers()
     {
-        return (_buffer.nioBufferCount() == -1 ? _buffer.copy() : _buffer).nioBuffers();
+        return (data.nioBufferCount() == -1 ? data.copy() : data).nioBuffers();
     }
 
     @Override
     public String toString()
     {
         return String.format("write[handle=%d,offset=%d,length=%d]",
-                             _fhandle, _offset, _dlen);
+                             fhandle, offset, dlen);
     }
 
     @Override
     public int refCnt()
     {
-        return _buffer.refCnt();
+        return data.refCnt();
     }
 
     @Override
     public boolean release()
     {
-        return _buffer.release();
+        return data.release();
     }
 
     @Override
     public boolean release(int decrement)
     {
-        return _buffer.release(decrement);
+        return data.release(decrement);
     }
 
     @Override
     public WriteRequest retain(int increment)
     {
-        _buffer.retain(increment);
+        data.retain(increment);
         return this;
     }
 
     @Override
     public WriteRequest retain()
     {
-        _buffer.retain();
+        data.retain();
         return this;
     }
 }

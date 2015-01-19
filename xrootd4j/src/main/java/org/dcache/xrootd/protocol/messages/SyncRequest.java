@@ -22,18 +22,18 @@ package org.dcache.xrootd.protocol.messages;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_sync;
 import io.netty.buffer.ByteBuf;
 
-public class SyncRequest extends XrootdRequest
+public class SyncRequest extends AbstractXrootdRequest
 {
-    private final int _fhandle;
+    private final int fhandle;
 
     public SyncRequest(ByteBuf buffer)
     {
         super(buffer, kXR_sync);
-        _fhandle = buffer.getInt(4);
+        fhandle = buffer.getInt(4);
     }
 
     public int getFileHandle()
     {
-        return _fhandle;
+        return fhandle;
     }
 }

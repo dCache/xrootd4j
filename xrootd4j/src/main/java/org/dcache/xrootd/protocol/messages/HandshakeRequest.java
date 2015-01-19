@@ -22,19 +22,19 @@ package org.dcache.xrootd.protocol.messages;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_handshake;
 import io.netty.buffer.ByteBuf;
 
-public class HandshakeRequest extends XrootdRequest
+public class HandshakeRequest extends AbstractXrootdRequest
 {
-    private final byte[] _handshake;
+    private final byte[] handshake;
 
     public HandshakeRequest(ByteBuf buffer)
     {
         super(buffer, kXR_handshake);
-        _handshake = new byte[20];
-        buffer.getBytes(0, _handshake);
+        handshake = new byte[20];
+        buffer.getBytes(0, handshake);
     }
 
     public byte[] getHandshake()
     {
-        return _handshake;
+        return handshake;
     }
 }

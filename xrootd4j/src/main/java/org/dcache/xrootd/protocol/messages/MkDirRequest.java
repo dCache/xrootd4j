@@ -30,18 +30,18 @@ import io.netty.buffer.ByteBuf;
  */
 public class MkDirRequest extends PathRequest
 {
-    private final short _options;
-    private final int _mode;
+    private final short options;
+    private final int mode;
 
     public MkDirRequest(ByteBuf buffer) {
         super(buffer, kXR_mkdir);
 
-        _options = buffer.getByte(4);
-        _mode = buffer.getUnsignedShort(18);
+        options = buffer.getByte(4);
+        mode = buffer.getUnsignedShort(18);
     }
 
     public short getOptions() {
-        return _options;
+        return options;
     }
 
     public boolean shouldMkPath() {
@@ -49,7 +49,7 @@ public class MkDirRequest extends PathRequest
     }
 
     public int getMode() {
-        return _mode;
+        return mode;
     }
 
     @Override

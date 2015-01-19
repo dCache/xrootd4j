@@ -23,11 +23,11 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mv;
 
 import io.netty.buffer.ByteBuf;
 
-public class MvRequest extends XrootdRequest
+public class MvRequest extends AbstractXrootdRequest
 {
-    private String _sourcePath;
-    private String _targetPath;
-    private String _opaque;
+    private String sourcePath;
+    private String targetPath;
+    private String opaque;
 
     public MvRequest(ByteBuf buffer) {
         super(buffer, kXR_mv);
@@ -43,54 +43,54 @@ public class MvRequest extends XrootdRequest
         }
 
         if (osep > -1) {
-            _sourcePath = buffer.toString(24,
+            sourcePath = buffer.toString(24,
                                           psep - 24,
                                           XROOTD_CHARSET);
-            _targetPath = buffer.toString(psep+1,
+            targetPath = buffer.toString(psep+1,
                                           osep - (psep + 1),
                                           XROOTD_CHARSET);
-            _opaque = buffer.toString(osep + 1,
+            opaque = buffer.toString(osep + 1,
                                       end - (osep + 1),
                                       XROOTD_CHARSET);
         } else {
-            _sourcePath = buffer.toString(24,
+            sourcePath = buffer.toString(24,
                                           psep - 24,
                                           XROOTD_CHARSET);
-            _targetPath = buffer.toString(psep+1,
+            targetPath = buffer.toString(psep+1,
                                           end - (psep + 1),
                                           XROOTD_CHARSET);
-            _opaque = null;
+            opaque = null;
         }
     }
 
     public void setOpaque(String opaque)
     {
-        _opaque = opaque;
+        this.opaque = opaque;
     }
 
     public String getOpaque()
     {
-        return _opaque;
+        return opaque;
     }
 
     public void setSourcePath(String sourcePath)
     {
-        _sourcePath = sourcePath;
+        this.sourcePath = sourcePath;
     }
 
     public String getSourcePath()
     {
-        return _sourcePath;
+        return sourcePath;
     }
 
     public void setTargetPath(String targetPath)
     {
-        _targetPath = targetPath;
+        this.targetPath = targetPath;
     }
 
     public String getTargetPath()
     {
-        return _targetPath;
+        return targetPath;
     }
 
     @Override

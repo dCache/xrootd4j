@@ -30,15 +30,10 @@ import io.netty.buffer.ByteBuf;
  * the length at offset 20. The path and opaque data are delimited by
  * a question mark.
  */
-public class PathRequest extends XrootdRequest
+public class PathRequest extends AbstractXrootdRequest
 {
-    private String _path;
-    private String _opaque;
-
-    public PathRequest()
-    {
-        super();
-    }
+    private String path;
+    private String opaque;
 
     public PathRequest(ByteBuf buffer, int requestId)
     {
@@ -61,21 +56,21 @@ public class PathRequest extends XrootdRequest
 
     public String getOpaque()
     {
-        return _opaque;
+        return opaque;
     }
 
     public void setOpaque(String opaque)
     {
-        _opaque = opaque;
+        this.opaque = opaque;
     }
 
     public String getPath()
     {
-        return _path;
+        return path;
     }
 
     public void setPath(String path)
     {
-        _path = path;
+        this.path = path;
     }
 }

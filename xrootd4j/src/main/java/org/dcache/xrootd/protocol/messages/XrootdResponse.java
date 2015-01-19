@@ -4,7 +4,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 
 /**
- * A xrootd response message.
+ * An xrootd response message.
  *
  * Response objects may be reference counted.
  */

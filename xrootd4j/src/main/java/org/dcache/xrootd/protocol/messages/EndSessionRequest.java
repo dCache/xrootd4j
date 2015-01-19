@@ -26,19 +26,19 @@ import org.dcache.xrootd.core.XrootdSessionIdentifier;
 import static org.dcache.xrootd.protocol.XrootdProtocol.SESSION_ID_SIZE;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_endsess;
 
-public class EndSessionRequest extends XrootdRequest
+public class EndSessionRequest extends AbstractXrootdRequest
 {
-    private final byte[] _session = new byte[SESSION_ID_SIZE];
+    private final byte[] session = new byte[SESSION_ID_SIZE];
 
     public EndSessionRequest(ByteBuf buffer)
     {
         super(buffer, kXR_endsess);
-        buffer.getBytes(4, _session);
+        buffer.getBytes(4, session);
     }
 
     public XrootdSessionIdentifier getSessionId()
     {
-        return new XrootdSessionIdentifier(_session);
+        return new XrootdSessionIdentifier(session);
     }
 
     @Override

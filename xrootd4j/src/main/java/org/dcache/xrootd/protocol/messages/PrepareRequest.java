@@ -24,38 +24,38 @@ import java.util.Arrays;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 import io.netty.buffer.ByteBuf;
 
-public class PrepareRequest extends XrootdRequest
+public class PrepareRequest extends AbstractXrootdRequest
 {
-    private final int _options;
-    private final int _priority;
-    private final String[] _plist;
+    private final int options;
+    private final int priority;
+    private final String[] plist;
 
     public PrepareRequest(ByteBuf buffer)
     {
         super(buffer, kXR_prepare);
 
-        _options = buffer.getUnsignedShort(4);
-        _priority = buffer.getUnsignedShort(5);
+        options = buffer.getUnsignedShort(4);
+        priority = buffer.getUnsignedShort(5);
 
         int plen = buffer.getInt(20);
         int end = 24 + plen;
 
-        _plist = buffer.toString(24, end - 24, XROOTD_CHARSET).split("\n");
+        plist = buffer.toString(24, end - 24, XROOTD_CHARSET).split("\n");
     }
 
     public int getOptions()
     {
-        return _options;
+        return options;
     }
 
     public int getPriority()
     {
-        return _priority;
+        return priority;
     }
 
     public String[] getPathList()
     {
-        return _plist;
+        return plist;
     }
 
     public boolean isCancel() {
@@ -89,7 +89,7 @@ public class PrepareRequest extends XrootdRequest
     @Override
     public String toString()
     {
-        return String.format("prepare[%d,%d,%s]", _options, _priority,
-                             Arrays.toString(_plist));
+        return String.format("prepare[%d,%d,%s]", options, priority,
+                             Arrays.toString(plist));
     }
 }

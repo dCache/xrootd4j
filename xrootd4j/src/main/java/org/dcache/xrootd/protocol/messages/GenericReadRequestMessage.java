@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import io.netty.buffer.ByteBuf;
 
-public abstract class GenericReadRequestMessage extends XrootdRequest
+public abstract class GenericReadRequestMessage extends AbstractXrootdRequest
 {
     public static class EmbeddedReadRequest
     {
@@ -60,7 +60,7 @@ public abstract class GenericReadRequestMessage extends XrootdRequest
         }
     }
 
-    private static final Logger _log =
+    private static final Logger LOGGER =
         LoggerFactory.getLogger(GenericReadRequestMessage.class);
 
     private final int pathid;
@@ -81,7 +81,7 @@ public abstract class GenericReadRequestMessage extends XrootdRequest
                 pathid = -1;
             } else if (alen % 16 != 8) {
                 pathid = -1;
-                _log.warn("invalid readv request: data doesn't start with 8 byte prefix (pathid)");
+                LOGGER.warn("invalid readv request: data doesn't start with 8 byte prefix (pathid)");
             } else {
                 pathid = buffer.getUnsignedByte(24);
                 prefix = 8;

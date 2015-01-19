@@ -22,7 +22,7 @@ package org.dcache.xrootd.protocol.messages;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
 import io.netty.buffer.ByteBuf;
 
-public class ProtocolRequest extends XrootdRequest
+public class ProtocolRequest extends AbstractXrootdRequest
 {
     public ProtocolRequest(ByteBuf buffer)
     {

@@ -24,25 +24,25 @@ import io.netty.buffer.ByteBuf;
 
 public class OpenRequest extends PathRequest
 {
-    private final int _mode;
-    private final int _options;
+    private final int mode;
+    private final int options;
 
     public OpenRequest(ByteBuf buffer)
     {
         super(buffer, kXR_open);
 
-        _mode = buffer.getUnsignedShort(4);
-        _options = buffer.getUnsignedShort(6);
+        mode = buffer.getUnsignedShort(4);
+        options = buffer.getUnsignedShort(6);
     }
 
     public int getUMask()
     {
-        return _mode;
+        return mode;
     }
 
     public int getOptions()
     {
-        return _options;
+        return options;
     }
 
     public boolean isAsync() {

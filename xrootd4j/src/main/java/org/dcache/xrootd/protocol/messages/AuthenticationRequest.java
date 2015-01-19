@@ -33,19 +33,19 @@ import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
 
-public class AuthenticationRequest extends XrootdRequest
+public class AuthenticationRequest extends AbstractXrootdRequest
 {
-    private static final Logger _logger =
+    private static final Logger LOGGER =
         LoggerFactory.getLogger(AuthenticationRequest.class);
 
     /** the protocol as it is send by the client, zero-padded char[4] */
-    private final String _protocol;
+    private final String protocol;
     /** the step as it is send by the client, int32 */
-    private final int _step;
+    private final int step;
     /** store the buckets (kind of a serialized datatype with an
      * int32 block of metadata) received from the client
      */
-    private final Map<BucketType, XrootdBucket> _bucketMap =
+    private final Map<BucketType, XrootdBucket> bucketMap =
         new EnumMap<>(BucketType.class);
 
     /**
@@ -60,11 +60,11 @@ public class AuthenticationRequest extends XrootdRequest
         /* skip reserved bytes and credlen */
         buffer.readerIndex(24);
 
-        _protocol = deserializeProtocol(buffer);
-        _step = deserializeStep(buffer);
+        protocol = deserializeProtocol(buffer);
+        step = deserializeStep(buffer);
 
         try {
-            _bucketMap.putAll(deserializeBuckets(buffer));
+            bucketMap.putAll(deserializeBuckets(buffer));
         } catch (IOException ioex) {
             throw new IllegalArgumentException("Illegal credential format: {}",
                                                ioex);
@@ -88,7 +88,7 @@ public class AuthenticationRequest extends XrootdRequest
         int bucketCode = buffer.readInt();
         BucketType bucketType = BucketType.get(bucketCode);
 
-        _logger.debug("Deserializing a bucket with code {}", bucketCode);
+        LOGGER.debug("Deserializing a bucket with code {}", bucketCode);
 
         Map<BucketType, XrootdBucket> buckets =
             new EnumMap<>(BucketType.class);
@@ -125,14 +125,14 @@ public class AuthenticationRequest extends XrootdRequest
     }
 
     public Map<BucketType, XrootdBucket> getBuckets() {
-        return _bucketMap;
+        return bucketMap;
     }
 
     public int getStep() {
-        return _step;
+        return step;
     }
 
     public String getProtocol() {
-        return _protocol;
+        return protocol;
     }
 }

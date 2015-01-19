@@ -23,13 +23,13 @@ import io.netty.buffer.ByteBuf;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
-public class LoginRequest extends XrootdRequest
+public class LoginRequest extends AbstractXrootdRequest
 {
-    private final String _username;
-    private final short _role;
-    private final short _capver;
-    private final int _pid;
-    private final String _token;
+    private final String username;
+    private final short role;
+    private final short capver;
+    private final int pid;
+    private final String token;
 
     public LoginRequest(ByteBuf buffer)
     {
@@ -38,52 +38,52 @@ public class LoginRequest extends XrootdRequest
         int pos =
             buffer.indexOf(8, 16, (byte) 0); // User name is padded with '\0'
         if (pos > -1) {
-            _username = buffer.toString(8, pos - 8, XROOTD_CHARSET);
+            username = buffer.toString(8, pos - 8, XROOTD_CHARSET);
         } else {
-            _username = buffer.toString(8, 8, XROOTD_CHARSET);
+            username = buffer.toString(8, 8, XROOTD_CHARSET);
         }
 
-        _pid = buffer.getInt(4);
-        _capver = buffer.getUnsignedByte(18);
-        _role = buffer.getUnsignedByte(19);
+        pid = buffer.getInt(4);
+        capver = buffer.getUnsignedByte(18);
+        role = buffer.getUnsignedByte(19);
 
         int tlen = buffer.getInt(20);
-        _token = buffer.toString(24, tlen, XROOTD_CHARSET);
+        token = buffer.toString(24, tlen, XROOTD_CHARSET);
     }
 
     public String getUserName()
     {
-        return _username;
+        return username;
     }
 
     public boolean supportsAsyn()
     {
-        return (_capver & 0x80) == 0x80 ? true : false;
+        return (capver & 0x80) == 0x80 ? true : false;
     }
 
     public int getClientProtocolVersion()
     {
-        return _capver & 0x3f;
+        return capver & 0x3f;
     }
 
     public boolean isAdmin()
     {
-        return _role == kXR_useradmin ? true : false;
+        return role == kXR_useradmin ? true : false;
     }
 
     public int getPID()
     {
-        return _pid;
+        return pid;
     }
 
     public String getToken()
     {
-        return _token;
+        return token;
     }
 
     @Override
     public String toString()
     {
-        return "login[" + _username + "," + _pid + "," + _capver + "," + _role + "," + _token + "]";
+        return "login[" + username + "," + pid + "," + capver + "," + role + "," + token + "]";
     }
 }

@@ -23,7 +23,7 @@ import io.netty.buffer.ByteBuf;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_set;
 
-public class SetRequest extends XrootdRequest
+public class SetRequest extends AbstractXrootdRequest
 {
     private final String data;
 

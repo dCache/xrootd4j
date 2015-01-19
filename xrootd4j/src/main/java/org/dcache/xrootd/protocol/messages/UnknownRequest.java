@@ -21,7 +21,7 @@ package org.dcache.xrootd.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
 
-public class UnknownRequest extends XrootdRequest
+public class UnknownRequest extends AbstractXrootdRequest
 {
     public UnknownRequest(ByteBuf buffer)
     {

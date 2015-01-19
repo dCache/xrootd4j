@@ -22,46 +22,46 @@ package org.dcache.xrootd.protocol.messages;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 import io.netty.buffer.ByteBuf;
 
-public class StatxRequest extends XrootdRequest
+public class StatxRequest extends AbstractXrootdRequest
 {
-    private String[] _paths;
-    private String[] _opaques;
+    private String[] paths;
+    private String[] opaques;
 
     public StatxRequest(ByteBuf buffer)
     {
         super(buffer, kXR_statx);
 
         int dlen = buffer.getInt(20);
-        _paths = buffer.toString(24, dlen, XROOTD_CHARSET).split("\n");
-        _opaques = new String[_paths.length];
+        paths = buffer.toString(24, dlen, XROOTD_CHARSET).split("\n");
+        opaques = new String[paths.length];
 
-        for (int i = 0; i < _paths.length; i++) {
-            String path = _paths[i];
+        for (int i = 0; i < paths.length; i++) {
+            String path = paths[i];
             int pos = path.indexOf('?');
             if (pos > -1) {
-                _paths[i] = path.substring(0, pos);
-                _opaques[i] = path.substring(pos + 1);
+                paths[i] = path.substring(0, pos);
+                opaques[i] = path.substring(pos + 1);
             }
         }
     }
 
     public void setPaths(String[] paths)
     {
-        _paths = paths;
+        this.paths = paths;
     }
 
     public String[] getPaths()
     {
-        return _paths;
+        return paths;
     }
 
     public void setOpaques(String[] opaques)
     {
-        _opaques = opaques;
+        this.opaques = opaques;
     }
 
     public String[] getOpaques()
     {
-        return _opaques;
+        return opaques;
     }
 }
