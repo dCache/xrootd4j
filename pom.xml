@@ -1,9 +1,31 @@
+<!--
+
+    Copyright (C) 2011-2015 dCache.org <support@dcache.org>
+
+    This file is part of xrootd4j.
+
+    xrootd4j is free software: you can redistribute it and/or modify it
+    under the terms of the GNU Lesser General Public License as published
+    by the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    xrootd4j is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with xrootd4j.  If not, see
+    <http://www.gnu.org/licenses/>.
+
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.dcache</groupId>
   <version>2.0-SNAPSHOT</version>
   <artifactId>xrootd4j-parent</artifactId>
   <packaging>pom</packaging>
+  <inceptionYear>2011</inceptionYear>
 
   <name>xrootd4j parent</name>
   <url>http://github.com/dCache/xrootd4j/</url>
@@ -210,9 +232,9 @@
           </plugin>
 
           <plugin>
-              <groupId>com.mycila.maven-license-plugin</groupId>
-              <artifactId>maven-license-plugin</artifactId>
-              <version>1.9.0</version>
+              <groupId>com.mycila</groupId>
+              <artifactId>license-maven-plugin</artifactId>
+              <version>2.3</version>
               <configuration>
                   <header>src/etc/header.txt</header>
                   <strictCheck>true</strictCheck>
@@ -221,7 +243,7 @@
                       <exclude>LICENSE.txt</exclude>
                       <exclude>README.md</exclude>
                       <exclude>.idea/**</exclude>
-	              <exclude>*.releaseBackup</exclude>
+                      <exclude>*.releaseBackup</exclude>
                       <exclude>release-pom.xml</exclude>
                   </excludes>
               </configuration>

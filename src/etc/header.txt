@@ -1,4 +1,4 @@
-Copyright (C) 2011-2014 dCache.org <support@dcache.org>
+Copyright (C) ${project.inceptionYear}-2015 dCache.org <support@dcache.org>
 
 This file is part of xrootd4j.
 
