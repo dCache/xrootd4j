@@ -20,11 +20,11 @@
 package org.dcache.xrootd.protocol.messages;
 import org.dcache.xrootd.protocol.XrootdProtocol;
 
-public class OkResponse extends AbstractResponseMessage
+public class OkResponse extends AbstractXrootdResponse
 {
     public OkResponse(XrootdRequest request)
     {
-        super(request, XrootdProtocol.kXR_ok, 0);
+        super(request, XrootdProtocol.kXR_ok);
     }
 
     @Override

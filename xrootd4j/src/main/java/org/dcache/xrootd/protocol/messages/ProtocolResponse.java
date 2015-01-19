@@ -19,28 +19,42 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import io.netty.buffer.ByteBuf;
+
 import org.dcache.xrootd.protocol.XrootdProtocol;
 
-public class ProtocolResponse extends AbstractResponseMessage
+public class ProtocolResponse extends AbstractXrootdResponse
 {
-    private final int _flags;
+    private final int flags;
 
     public ProtocolResponse(XrootdRequest request, int flags)
     {
-        super(request, XrootdProtocol.kXR_ok, 8);
-        _flags = flags;
-        putSignedInt(XrootdProtocol.PROTOCOL_VERSION);
-        putSignedInt(flags);
+        super(request, XrootdProtocol.kXR_ok);
+        this.flags = flags;
     }
 
     public int getFlags()
     {
-        return _flags;
+        return flags;
+    }
+
+    @Override
+    protected int getLength()
+    {
+        return super.getLength() + 8;
+    }
+
+    @Override
+    protected void getBytes(ByteBuf buffer)
+    {
+        super.getBytes(buffer);
+        buffer.writeInt(XrootdProtocol.PROTOCOL_VERSION);
+        buffer.writeInt(flags);
     }
 
     @Override
     public String toString()
     {
-        return String.format("protocol-response[%d]", _flags);
+        return String.format("protocol-response[%d]", flags);
     }
 }

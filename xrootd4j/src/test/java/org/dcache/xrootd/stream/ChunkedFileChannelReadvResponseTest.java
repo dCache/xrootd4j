@@ -33,11 +33,10 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.dcache.xrootd.protocol.messages.GenericReadRequestMessage;
-import org.dcache.xrootd.protocol.messages.ReadResponse;
 import org.dcache.xrootd.protocol.messages.ReadVRequest;
+import org.dcache.xrootd.protocol.messages.ReadVResponse;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
@@ -73,10 +72,10 @@ public class ChunkedFileChannelReadvResponseTest
         givenReadRequest().forFileHandle(SOME_FH).atOffset(300).forLength(100);
 
         AbstractChunkedReadvResponse response = aResponseWithMaxFrameSizeOf(1024);
-        ReadResponse response1 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
-        ReadResponse response2 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
+        ReadVResponse response1 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
+        ReadVResponse response2 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
 
-        assertThat(response1.getDataLength(), is(HEADER + 200 + HEADER + 100));
+        assertThat(response1.getSegmentLengths(), hasItems(200, 100));
         assertThat(response2, is(nullValue()));
     }
 
@@ -98,12 +97,12 @@ public class ChunkedFileChannelReadvResponseTest
         givenReadRequest().forFileHandle(SOME_FH).atOffset(300).forLength(1000);
 
         AbstractChunkedReadvResponse response = aResponseWithMaxFrameSizeOf(1024);
-        ReadResponse response1 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
-        ReadResponse response2 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
-        ReadResponse response3 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
+        ReadVResponse response1 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
+        ReadVResponse response2 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
+        ReadVResponse response3 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
 
-        assertThat(response1.getDataLength(), is(HEADER + 100));
-        assertThat(response2.getDataLength(), is(HEADER + 1000));
+        assertThat(response1.getSegmentLengths(), hasItems(100, 100));
+        assertThat(response2.getSegmentLengths(), hasItems(1000));
         assertThat(response3, is(nullValue()));
     }
 
@@ -114,10 +113,10 @@ public class ChunkedFileChannelReadvResponseTest
         givenReadRequest().forFileHandle(SOME_FH).atOffset(9700).forLength(500);
 
         AbstractChunkedReadvResponse response = aResponseWithMaxFrameSizeOf(1024);
-        ReadResponse response1 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
-        ReadResponse response2 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
+        ReadVResponse response1 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
+        ReadVResponse response2 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
 
-        assertThat(response1.getDataLength(), is(HEADER + 300));
+        assertThat(response1.getSegmentLengths(), hasItems(300));
         assertThat(response2, is(nullValue()));
     }
 
@@ -131,9 +130,9 @@ public class ChunkedFileChannelReadvResponseTest
         givenReadRequest().forFileHandle(SOME_FH).atOffset(9700).forLength(1000);
 
         AbstractChunkedReadvResponse response = aResponseWithMaxFrameSizeOf(1024);
-        ReadResponse response1 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
-        ReadResponse response2 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
-        ReadResponse response3 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
+        ReadVResponse response1 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
+        ReadVResponse response2 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
+        ReadVResponse response3 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
 
         verify(channel(SOME_FH)).read(any(ByteBuffer.class), eq(100L));
         verify(channel(SOME_FH)).read(any(ByteBuffer.class), eq(200L));
@@ -150,10 +149,10 @@ public class ChunkedFileChannelReadvResponseTest
 
         AbstractChunkedReadvResponse response = aResponseWithMaxFrameSizeOf(1024);
 
-        ReadResponse response1 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
-        ReadResponse response2 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
+        ReadVResponse response1 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
+        ReadVResponse response2 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
 
-        assertThat(response1.getDataLength(), is(HEADER + 200 + HEADER + 100));
+        assertThat(response1.getSegmentLengths(), hasItems(200, 100));
         assertThat(response2, is(nullValue()));
     }
 
@@ -165,7 +164,7 @@ public class ChunkedFileChannelReadvResponseTest
 
         AbstractChunkedReadvResponse response = aResponseWithMaxFrameSizeOf(1024);
 
-        ReadResponse response1 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
+        ReadVResponse response1 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
     }
 
     private FileDescriptorMaker givenFileDescriptor()

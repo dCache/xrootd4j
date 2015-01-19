@@ -19,14 +19,16 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.net.InetAddresses;
+import io.netty.buffer.ByteBuf;
 
 import java.net.InetSocketAddress;
 
 import org.dcache.xrootd.protocol.XrootdProtocol;
 
-public class LocateResponse extends AbstractResponseMessage
+public class LocateResponse extends AbstractXrootdResponse
 {
     private final String encoded;
 
@@ -37,15 +39,27 @@ public class LocateResponse extends AbstractResponseMessage
 
     private LocateResponse(XrootdRequest request, String encoded)
     {
-        super(request, XrootdProtocol.kXR_ok, encoded.length() + 1);
+        super(request, XrootdProtocol.kXR_ok);
         this.encoded = encoded;
-        putCharSequence(encoded);
-        putUnsignedChar('\0');
     }
 
     public static String encode(InfoElement[] info)
     {
         return Joiner.on(" ").join(info);
+    }
+
+    @Override
+    protected int getLength()
+    {
+        return super.getLength() + encoded.length() + 1;
+    }
+
+    @Override
+    protected void getBytes(ByteBuf buffer)
+    {
+        super.getBytes(buffer);
+        buffer.writeBytes(encoded.getBytes(Charsets.US_ASCII));
+        buffer.writeByte('\0');
     }
 
     public enum Node

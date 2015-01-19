@@ -29,7 +29,7 @@ import java.security.GeneralSecurityException;
 import org.dcache.xrootd.plugins.AuthorizationFactory;
 import org.dcache.xrootd.plugins.AuthorizationHandler;
 import org.dcache.xrootd.protocol.XrootdProtocol.*;
-import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
+import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
 import org.dcache.xrootd.protocol.messages.DirListRequest;
 import org.dcache.xrootd.protocol.messages.LocateRequest;
@@ -66,7 +66,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected AbstractResponseMessage doOnStat(ChannelHandlerContext ctx,
+    protected XrootdResponse doOnStat(ChannelHandlerContext ctx,
                                                StatRequest req)
         throws XrootdException
     {
@@ -76,7 +76,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected AbstractResponseMessage doOnStatx(ChannelHandlerContext ctx,
+    protected XrootdResponse doOnStatx(ChannelHandlerContext ctx,
                                                 StatxRequest req)
         throws XrootdException
     {
@@ -101,7 +101,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected AbstractResponseMessage doOnRm(ChannelHandlerContext ctx,
+    protected XrootdResponse doOnRm(ChannelHandlerContext ctx,
                                              RmRequest req)
         throws XrootdException
     {
@@ -114,7 +114,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected AbstractResponseMessage doOnRmDir(ChannelHandlerContext ctx,
+    protected XrootdResponse doOnRmDir(ChannelHandlerContext ctx,
                                                 RmDirRequest req)
         throws XrootdException
     {
@@ -128,7 +128,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected AbstractResponseMessage doOnMkDir(ChannelHandlerContext ctx,
+    protected XrootdResponse doOnMkDir(ChannelHandlerContext ctx,
                                                 MkDirRequest req)
         throws XrootdException
     {
@@ -142,7 +142,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected AbstractResponseMessage doOnMv(ChannelHandlerContext ctx,
+    protected XrootdResponse doOnMv(ChannelHandlerContext ctx,
                                              MvRequest req)
         throws XrootdException
     {
@@ -171,7 +171,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected AbstractResponseMessage doOnDirList(ChannelHandlerContext ctx,
+    protected XrootdResponse doOnDirList(ChannelHandlerContext ctx,
                                                   DirListRequest request)
         throws XrootdException
     {
@@ -188,7 +188,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected AbstractResponseMessage doOnPrepare(ChannelHandlerContext ctx,
+    protected XrootdResponse doOnPrepare(ChannelHandlerContext ctx,
                                                   PrepareRequest msg)
     {
         ctx.fireChannelRead(msg);
@@ -211,7 +211,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected AbstractResponseMessage doOnOpen(ChannelHandlerContext ctx,
+    protected XrootdResponse doOnOpen(ChannelHandlerContext ctx,
                                                OpenRequest msg)
         throws XrootdException
     {
@@ -227,7 +227,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected AbstractResponseMessage doOnRead(ChannelHandlerContext ctx,
+    protected XrootdResponse doOnRead(ChannelHandlerContext ctx,
                                                ReadRequest msg)
         throws XrootdException
     {
@@ -236,7 +236,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected AbstractResponseMessage doOnReadV(ChannelHandlerContext ctx,
+    protected XrootdResponse doOnReadV(ChannelHandlerContext ctx,
                                                 ReadVRequest msg)
         throws XrootdException
     {
@@ -245,7 +245,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected AbstractResponseMessage doOnWrite(ChannelHandlerContext ctx,
+    protected XrootdResponse doOnWrite(ChannelHandlerContext ctx,
                                                 WriteRequest msg)
         throws XrootdException
     {
@@ -254,7 +254,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected AbstractResponseMessage doOnSync(ChannelHandlerContext ctx,
+    protected XrootdResponse doOnSync(ChannelHandlerContext ctx,
                                                SyncRequest msg)
         throws XrootdException
     {
@@ -263,7 +263,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected AbstractResponseMessage doOnClose(ChannelHandlerContext ctx,
+    protected XrootdResponse doOnClose(ChannelHandlerContext ctx,
                                                 CloseRequest msg)
         throws XrootdException
     {
@@ -272,7 +272,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected AbstractResponseMessage doOnProtocolRequest(ChannelHandlerContext ctx,
+    protected XrootdResponse doOnProtocolRequest(ChannelHandlerContext ctx,
                                                           ProtocolRequest msg)
         throws XrootdException
     {

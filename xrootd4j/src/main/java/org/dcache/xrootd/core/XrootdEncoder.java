@@ -19,16 +19,15 @@
  */
 package org.dcache.xrootd.core;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
 
-import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
+import org.dcache.xrootd.protocol.messages.XrootdResponse;
 
 /**
- * Downstream ChannelHandler encoding AbstractResponseMessage objects
+ * Downstream ChannelHandler encoding XrootdResponse objects
  * into ByteBuf objects.
  */
 @Sharable
@@ -37,12 +36,10 @@ public class XrootdEncoder extends ChannelOutboundHandlerAdapter
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception
     {
-        if (msg instanceof AbstractResponseMessage) {
-            AbstractResponseMessage response = (AbstractResponseMessage) msg;
-            ByteBuf buffer = response.getBuffer();
-            buffer.setInt(4, buffer.readableBytes() - 8);
-            msg = buffer;
+        if (msg instanceof XrootdResponse) {
+            ((XrootdResponse) msg).writeTo(ctx, promise);
+        } else {
+            super.write(ctx, msg, promise);
         }
-        super.write(ctx, msg, promise);
     }
 }

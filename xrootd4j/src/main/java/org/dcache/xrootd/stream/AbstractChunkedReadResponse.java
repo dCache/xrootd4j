@@ -56,10 +56,8 @@ public abstract class AbstractChunkedReadResponse implements ChunkedResponse
         if (isEndOfInput) {
             return null;
         }
-        ReadResponse response = new ReadResponse(request, 0);
-        response.append(readNext(alloc));
-        response.setIncomplete(!isEndOfInput);
-        return response;
+        ByteBuf data = readNext(alloc);
+        return new ReadResponse(request, data, !isEndOfInput);
     }
 
     private ByteBuf readNext(ByteBufAllocator alloc) throws IOException

@@ -20,21 +20,35 @@
 package org.dcache.xrootd.protocol.messages;
 
 import com.google.common.base.CaseFormat;
+import com.google.common.base.Charsets;
+import io.netty.buffer.ByteBuf;
 
-public class StringResponse extends AbstractResponseMessage
+public class StringResponse extends AbstractXrootdResponse
 {
     protected final String response;
 
     public StringResponse(XrootdRequest request, int stat, String response)
     {
-        super(request, stat, response.length());
+        super(request, stat);
         this.response = response;
-        putCharSequence(response);
     }
 
     public String getResponse()
     {
         return response;
+    }
+
+    @Override
+    protected int getLength()
+    {
+        return super.getLength() + response.length();
+    }
+
+    @Override
+    protected void getBytes(ByteBuf buffer)
+    {
+        super.getBytes(buffer);
+        buffer.writeBytes(response.getBytes(Charsets.US_ASCII));
     }
 
     @Override

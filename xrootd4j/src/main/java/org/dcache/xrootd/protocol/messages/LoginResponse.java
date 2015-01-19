@@ -19,28 +19,24 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import com.google.common.base.Charsets;
+import io.netty.buffer.ByteBuf;
+
 import org.dcache.xrootd.core.XrootdSessionIdentifier;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
-public class LoginResponse extends AbstractResponseMessage
+public class LoginResponse extends AbstractXrootdResponse
 {
     private final XrootdSessionIdentifier sessionId;
     private final String sec;
 
     public LoginResponse(XrootdRequest request, XrootdSessionIdentifier sessionId, String sec)
     {
-        super(request, kXR_ok, (sec.isEmpty() ? 0 : sec.length() + 1) + SESSION_ID_SIZE);
+        super(request, kXR_ok);
 
         this.sessionId = sessionId;
         this.sec = sec;
-
-        //		.. put sessionId and security info
-        put(sessionId.getBytes());
-        if (!sec.isEmpty()) {
-            putCharSequence(sec);
-            putUnsignedChar('\0');
-        }
     }
 
     public XrootdSessionIdentifier getSessionId()
@@ -51,6 +47,23 @@ public class LoginResponse extends AbstractResponseMessage
     public String getSec()
     {
         return sec;
+    }
+
+    @Override
+    protected int getLength()
+    {
+        return super.getLength() + SESSION_ID_SIZE + (sec.isEmpty() ? 0 : sec.length() + 1);
+    }
+
+    @Override
+    protected void getBytes(ByteBuf buffer)
+    {
+        super.getBytes(buffer);
+        buffer.writeBytes(sessionId.getBytes());
+        if (!sec.isEmpty()) {
+            buffer.writeBytes(sec.getBytes(Charsets.US_ASCII));
+            buffer.writeByte('\0');
+        }
     }
 
     @Override

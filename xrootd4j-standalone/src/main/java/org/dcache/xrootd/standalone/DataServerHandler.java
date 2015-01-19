@@ -43,7 +43,7 @@ import java.util.List;
 
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.core.XrootdRequestHandler;
-import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
+import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
 import org.dcache.xrootd.protocol.messages.DirListRequest;
 import org.dcache.xrootd.protocol.messages.DirListResponse;
@@ -115,7 +115,7 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected AbstractResponseMessage doOnProtocolRequest(
+    protected XrootdResponse doOnProtocolRequest(
             ChannelHandlerContext ctx, ProtocolRequest msg)
     {
         return new ProtocolResponse(msg, DATA_SERVER);

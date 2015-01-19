@@ -19,94 +19,95 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-
-import java.nio.channels.ScatteringByteChannel;
-import java.io.IOException;
-
-import org.dcache.xrootd.protocol.messages.GenericReadRequestMessage.EmbeddedReadRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
+import io.netty.util.ReferenceCounted;
 
-public class ReadResponse extends AbstractResponseMessage
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_oksofar;
+
+public class ReadResponse implements XrootdResponse, ReferenceCounted
 {
-    public static final int READ_LIST_HEADER_SIZE = 16;
+    private final XrootdRequest request;
+    private final int stat;
+    private final ByteBuf data;
 
-    // TODO: Use a composite buffer
-
-    public ReadResponse(XrootdRequest request, int length)
+    public ReadResponse(XrootdRequest request, ByteBuf data, boolean isIncomplete)
     {
-        super(request, kXR_ok, length);
+        this.request = checkNotNull(request);
+        this.stat = isIncomplete ? kXR_oksofar : kXR_ok;
+        this.data = checkNotNull(data);
     }
 
-    /**
-     * Set the status field to indicate whether the response is
-     * complete or not.
-     */
-    public void setIncomplete(boolean incomplete)
+    @Override
+    public XrootdRequest getRequest()
     {
-        setStatus(incomplete ? kXR_oksofar : kXR_ok);
+        return request;
     }
 
-    /**
-     * Reads bytes from a channel into the response buffer.
-     */
-    public int writeBytes(ScatteringByteChannel in, int length)
-        throws IOException
+    @Override
+    public int getStatus()
     {
-        return _buffer.writeBytes(in, length);
+        return stat;
     }
 
-    /**
-     * Reads bytes from a channel into the response buffer.
-     */
-    public int writeBytes(EmbeddedReadRequest req)
+    @Override
+    public void writeTo(ChannelHandlerContext ctx, ChannelPromise promise)
     {
-        putSignedInt(req.getFileHandle());
-        putSignedInt(req.BytesToRead());
-        putSignedLong(req.getOffset());
-        return 16;
+        checkState(refCnt() > 0);
+
+        ByteBuf header = ctx.alloc().buffer(8);
+        header.writeShort(request.getStreamId());
+        header.writeShort(stat);
+        header.writeInt(data.readableBytes());
+
+        ctx.write(ctx.alloc().compositeBuffer(2).addComponents(header, data).writerIndex(8 + data.readableBytes()), promise);
     }
 
-    private ByteBuf createReadListHeader(EmbeddedReadRequest request, int actualLength)
+    public ByteBuf getData()
     {
-        ByteBuf buffer = Unpooled.buffer(16);
-        buffer.writeInt(request.getFileHandle());
-        buffer.writeInt(actualLength);
-        buffer.writeLong(request.getOffset());
-        return buffer;
-    }
-
-    public void write(EmbeddedReadRequest[] requests,
-                      ByteBuf[] buffers,
-                      int offset, int length)
-    {
-        ByteBuf[] reply = new ByteBuf[2 * length + 1];
-        reply[0] = _buffer;
-        for (int i = 0; i < length; i++) {
-            reply[2 * i + 1] = createReadListHeader(requests[offset + i], buffers[offset + i].readableBytes());
-            reply[2 * i + 2] = buffers[offset + i];
-        }
-        _buffer = Unpooled.wrappedBuffer(reply);
-    }
-
-    public void append(ByteBuf buffer)
-    {
-        _buffer = Unpooled.wrappedBuffer(_buffer, buffer);
-    }
-
-    /**
-     * Returns the size of the payload. Only accurate as the long as
-     * we have not begun to send the buffer.
-     */
-    public int getDataLength()
-    {
-        return _buffer.readableBytes() - SERVER_RESPONSE_LEN;
+        return Unpooled.unmodifiableBuffer(data);
     }
 
     @Override
     public String toString()
     {
-        return String.format("read-response[length=%d]", getDataLength());
+        return String.format("read-response[stat=%d,bytes=%d]", stat, data.readableBytes());
+    }
+
+    @Override
+    public int refCnt()
+    {
+        return data.refCnt();
+    }
+
+    @Override
+    public ReadResponse retain()
+    {
+        data.retain();
+        return this;
+    }
+
+    @Override
+    public ReadResponse retain(int increment)
+    {
+        data.retain(increment);
+        return this;
+    }
+
+    @Override
+    public boolean release()
+    {
+        return data.release();
+    }
+
+    @Override
+    public boolean release(int decrement)
+    {
+        return data.release(decrement);
     }
 }

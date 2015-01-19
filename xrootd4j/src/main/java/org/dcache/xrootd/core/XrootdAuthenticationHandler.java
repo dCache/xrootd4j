@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
 import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
-import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
+import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.EndSessionRequest;
 import org.dcache.xrootd.protocol.messages.ErrorResponse;
@@ -229,7 +229,7 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
                                     AuthenticationRequest request)
         throws XrootdException
     {
-        AbstractResponseMessage response =
+        XrootdResponse response =
             _authenticationHandler.authenticate(request);
         if (_authenticationHandler.isCompleted()) {
             /* If a subclass rejects the authenticated subject then

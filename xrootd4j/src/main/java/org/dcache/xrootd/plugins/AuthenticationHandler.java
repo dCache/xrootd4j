@@ -22,7 +22,7 @@ package org.dcache.xrootd.plugins;
 import javax.security.auth.Subject;
 
 import org.dcache.xrootd.core.XrootdException;
-import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
+import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 
 public interface AuthenticationHandler
@@ -35,7 +35,7 @@ public interface AuthenticationHandler
      * @param request Request received from client
      * @return Response to be sent to the client
      */
-    public AbstractResponseMessage authenticate(AuthenticationRequest request)
+    public XrootdResponse authenticate(AuthenticationRequest request)
         throws XrootdException;
 
     /**

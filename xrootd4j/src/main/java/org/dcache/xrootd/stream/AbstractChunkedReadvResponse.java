@@ -28,6 +28,7 @@ import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.protocol.messages.GenericReadRequestMessage;
 import org.dcache.xrootd.protocol.messages.ReadResponse;
 import org.dcache.xrootd.protocol.messages.ReadVRequest;
+import org.dcache.xrootd.protocol.messages.ReadVResponse;
 import org.dcache.xrootd.protocol.messages.XrootdRequest;
 
 public abstract class AbstractChunkedReadvResponse implements ChunkedResponse
@@ -51,7 +52,7 @@ public abstract class AbstractChunkedReadvResponse implements ChunkedResponse
     }
 
     @Override
-    public ReadResponse nextChunk(ByteBufAllocator alloc) throws Exception
+    public ReadVResponse nextChunk(ByteBufAllocator alloc) throws Exception
     {
         if (isEndOfInput()) {
             return null;
@@ -63,11 +64,9 @@ public abstract class AbstractChunkedReadvResponse implements ChunkedResponse
             chunks[i] = read(alloc, requests[i]);
         }
 
-        ReadResponse response = new ReadResponse(request, 0);
-        response.write(requests, chunks, index, count);
-        response.setIncomplete(index + count < requests.length);
+        ReadVResponse response =
+                new ReadVResponse(request, requests, chunks, index, count, index + count < requests.length);
         index += count;
-
         return response;
     }
 
@@ -94,7 +93,7 @@ public abstract class AbstractChunkedReadvResponse implements ChunkedResponse
         long length = 0;
         int count = 0;
         for (int i = index; i < requests.length && length < maxFrameSize; i++) {
-            length += ReadResponse.READ_LIST_HEADER_SIZE;
+            length += ReadVResponse.READ_LIST_HEADER_SIZE;
             length += getLengthOfRequest(requests[i]);
             count++;
         }

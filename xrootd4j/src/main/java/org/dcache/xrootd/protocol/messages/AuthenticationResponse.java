@@ -19,29 +19,25 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import com.google.common.base.Charsets;
+import io.netty.buffer.ByteBuf;
+
 import java.util.List;
 
 import org.dcache.xrootd.security.XrootdBucket;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
-public class AuthenticationResponse extends AbstractResponseMessage
+import static com.google.common.base.Preconditions.checkArgument;
+
+public class AuthenticationResponse extends AbstractXrootdResponse
 {
-    /**
-     * Default authentication response, usually sent finally, if all previous
-     * steps are okay
-     * @param sId
-     * @param status
-     * @param length
-     */
-    public AuthenticationResponse(XrootdRequest request, int status, int length)
-    {
-        super(request, status, length);
-    }
+    private final String protocol;
+    private final int step;
+    private final List<XrootdBucket> buckets;
+    private final int length;
 
     /**
-     * Intermediate AuthenticationResponse.
-     *
-     * @param sId the streamID, matching the request
+     * @param request the request this is a response to
      * @param status the status (usually kXR_authmore)
      * @param length
      * @param protocol the currently used authentication protocol
@@ -54,31 +50,50 @@ public class AuthenticationResponse extends AbstractResponseMessage
                                   int length,
                                   String protocol,
                                   int step,
-                                  List<XrootdBucket> buckets) {
-        super(request, status, length);
+                                  List<XrootdBucket> buckets)
+    {
+        super(request, status);
 
-        if (protocol.length() > 4) {
-            throw new IllegalArgumentException("Protocol length must not " +
-                                               "exceed 4. The passed protocol is "
-                                               + protocol);
-        }
+        checkArgument(protocol.length() <= 4);
 
-        putCharSequence(protocol);
-
-        /* the protocol must be 0-padded to 4 bytes */
-        int padding = 4 - protocol.getBytes().length;
-
-        for (int i=0; i < padding; i++) {
-            _buffer.writeByte(0);
-        }
-
-        putSignedInt(step);
-
-        for (XrootdBucket bucket : buckets) {
-            bucket.serialize(_buffer);
-        }
-
-        putSignedInt(BucketType.kXRS_none.getCode());
+        this.protocol = protocol;
+        this.step = step;
+        this.buckets = buckets;
+        this.length = length;
     }
 
+    public String getProtocol()
+    {
+        return protocol;
+    }
+
+    public int getStep()
+    {
+        return step;
+    }
+
+    @Override
+    protected int getLength()
+    {
+        // HEADER + PROTOCOL + STEP + BODY + TERMINAL
+        return super.getLength() + 4 + 4 + length + 4;
+    }
+
+    @Override
+    protected void getBytes(ByteBuf buffer)
+    {
+        super.getBytes(buffer);
+
+        byte[] bytes = protocol.getBytes(Charsets.US_ASCII);
+        buffer.writeBytes(bytes);
+        /* protocol must be 0-padded to 4 bytes */
+        buffer.writeZero(4 - bytes.length);
+
+        buffer.writeInt(step);
+        for (XrootdBucket bucket : buckets) {
+            bucket.serialize(buffer);
+        }
+
+        buffer.writeInt(BucketType.kXRS_none.getCode());
+    }
 }

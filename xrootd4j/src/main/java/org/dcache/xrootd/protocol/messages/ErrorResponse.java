@@ -20,43 +20,55 @@
 package org.dcache.xrootd.protocol.messages;
 import org.dcache.xrootd.protocol.XrootdProtocol;
 
+import com.google.common.base.Charsets;
+import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ErrorResponse extends AbstractResponseMessage
+public class ErrorResponse extends AbstractXrootdResponse
 {
     private static final Logger _log = LoggerFactory.getLogger(ErrorResponse.class);
 
-    private final int _errnum;
-    private final String _errmsg;
+    private final int errnum;
+    private final String errmsg;
 
     public ErrorResponse(XrootdRequest request, int errnum, String errmsg)
     {
-        super(request, XrootdProtocol.kXR_error, errmsg.length() + 5);
-
-        _errnum = errnum;
-        _errmsg = errmsg;
-
-        putSignedInt(errnum);
-        putCharSequence(errmsg);
-        putUnsignedChar('\0');
-
+        super(request, XrootdProtocol.kXR_error);
+        this.errnum = errnum;
+        this.errmsg = errmsg;
         _log.info("Xrootd-Error-Response: ErrorNr={} ErrorMsg={}", errnum, errmsg);
     }
 
     public int getErrorNumber()
     {
-        return _errnum;
+        return errnum;
     }
 
     public String getErrorMessage()
     {
-        return _errmsg;
+        return errmsg;
+    }
+
+    @Override
+    protected int getLength()
+    {
+        return super.getLength() + 4 + errmsg.length() + 1;
+    }
+
+    @Override
+    protected void getBytes(ByteBuf buffer)
+    {
+        super.getBytes(buffer);
+
+        buffer.writeInt(errnum);
+        buffer.writeBytes(errmsg.getBytes(Charsets.US_ASCII));
+        buffer.writeByte('\0');
     }
 
     @Override
     public String toString()
     {
-        return String.format("error[%d,%s]", _errnum, _errmsg);
+        return String.format("error[%d,%s]", errnum, errmsg);
     }
 }

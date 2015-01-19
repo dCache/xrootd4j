@@ -19,16 +19,32 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import io.netty.buffer.ByteBuf;
+
 import org.dcache.xrootd.protocol.XrootdProtocol;
 
-public class StatxResponse extends AbstractResponseMessage
+public class StatxResponse extends AbstractXrootdResponse
 {
+    private final int[] fileStates;
+
     public StatxResponse(XrootdRequest request, int[] fileStates)
     {
-        super(request, XrootdProtocol.kXR_ok, fileStates.length);
+        super(request, XrootdProtocol.kXR_ok);
+        this.fileStates = fileStates;
+    }
 
+    @Override
+    protected int getLength()
+    {
+        return super.getLength() + fileStates.length;
+    }
+
+    @Override
+    protected void getBytes(ByteBuf buffer)
+    {
+        super.getBytes(buffer);
         for (int state: fileStates) {
-            putUnsignedChar(state);
+            buffer.writeByte(state);
         }
     }
 }

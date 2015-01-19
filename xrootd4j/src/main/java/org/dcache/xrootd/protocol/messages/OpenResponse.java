@@ -19,68 +19,73 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import com.google.common.base.Charsets;
+import io.netty.buffer.ByteBuf;
+
 import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.util.FileStatus;
 
-import java.io.UnsupportedEncodingException;
-
-public class OpenResponse extends AbstractResponseMessage
+public class OpenResponse extends AbstractXrootdResponse
 {
-    private final long _fileHandle;
-    private final Integer _cpsize;
-    private final String _cptype;
-    private final FileStatus _fs;
+    private final int fileHandle;
+    private final Integer cpsize;
+    private final String cptype;
+    private final FileStatus fs;
 
-    public OpenResponse(XrootdRequest request, long fileHandle,
+    public OpenResponse(XrootdRequest request, int fileHandle,
                         Integer cpsize, String cptype, FileStatus fs)
     {
-        /* The length is an upper bound.
-         */
-        super(request, XrootdProtocol.kXR_ok, 256);
-
-        _fileHandle = fileHandle;
-        _cpsize = cpsize;
-        _cptype = cptype;
-        _fs = fs;
-
-        try {
-            putSignedInt((int) fileHandle);
-
-            if (cpsize != null && cptype != null) {
-                putSignedInt(cpsize);
-                int len = Math.min(cptype.length(), 4);
-                _buffer.writeBytes(cptype.getBytes("ASCII"), 0, len);
-                _buffer.writeZero(4 - len);
-            } else if (fs != null) {
-                _buffer.writeZero(8);
-            }
-
-            if (fs != null) {
-                putCharSequence(fs.toString());
-                putUnsignedChar('\0');
-            }
-        } catch (UnsupportedEncodingException e) {
-            /* We cannot possibly recover from this option, so
-             * escalate it.
-             */
-            throw new RuntimeException("Failed to construct xrootd message", e);
-        }
+        super(request, XrootdProtocol.kXR_ok);
+        this.fileHandle = fileHandle;
+        this.cpsize = cpsize;
+        this.cptype = cptype;
+        this.fs = fs;
     }
 
     public int getFileHandle()
     {
-        return _buffer.getInt(8);
+        return fileHandle;
     }
 
     public FileStatus getFileStatus()
     {
-        return _fs;
+        return fs;
+    }
+
+    @Override
+    protected int getLength()
+    {
+        return super.getLength() + 4 +
+               ((cpsize != null && cptype != null || fs != null) ? 8 : 0) +
+               ((fs != null) ? fs.toString().length() + 1 : 0);
+    }
+
+    @Override
+    protected void getBytes(ByteBuf buffer)
+    {
+        super.getBytes(buffer);
+
+        buffer.writeInt(fileHandle);
+
+        if (cpsize != null && cptype != null) {
+            buffer.writeInt(cpsize);
+            int len = Math.min(cptype.length(), 4);
+            buffer.writeBytes(cptype.getBytes(Charsets.US_ASCII), 0, len);
+            buffer.writeZero(4 - len);
+        } else if (fs != null) {
+            buffer.writeZero(8);
+        }
+
+        if (fs != null) {
+            buffer.writeBytes(fs.toString().getBytes(Charsets.US_ASCII));
+            buffer.writeByte('\0');
+        }
     }
 
     @Override
     public String toString()
     {
         return String.format("open-response[%d,%d,%s,%s]",
-            _fileHandle, _cpsize, _cptype, _fs);
+                             fileHandle, cpsize, cptype, fs);
     }
 }

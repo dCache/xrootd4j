@@ -19,31 +19,20 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import com.google.common.base.Charsets;
+import io.netty.buffer.ByteBuf;
+
 import java.util.Iterator;
 import org.dcache.xrootd.protocol.XrootdProtocol;
 
-public class DirListResponse extends AbstractResponseMessage
+public class DirListResponse extends AbstractXrootdResponse
 {
+    private final Iterable<String> names;
+
     public DirListResponse(XrootdRequest request, int statusCode, Iterable<String> names)
     {
-        super(request, statusCode, computeResponseSize(names));
-
-        Iterator<String> i = names.iterator();
-        if (i.hasNext()) {
-            putCharSequence(i.next());
-            while (i.hasNext()) {
-                putUnsignedChar('\n');
-                putCharSequence(i.next());
-            }
-            /* Last entry in the list is terminated by a 0 rather than by
-             * a \n, if not more entries follow because the message is an
-             * intermediate message */
-            if (statusCode == XrootdProtocol.kXR_oksofar) {
-                putUnsignedChar('\n');
-            } else {
-                putUnsignedChar(0);
-            }
-        }
+        super(request, statusCode);
+        this.names = names;
     }
 
     public DirListResponse(XrootdRequest request, Iterable<String> names)
@@ -51,19 +40,41 @@ public class DirListResponse extends AbstractResponseMessage
         this(request, XrootdProtocol.kXR_ok, names);
     }
 
-    /**
-     * Get the size of the response based on the length of the
-     * directoryListing collection.
-     *
-     * @param names The collection from which the size is computed
-     * @return The size of the response
-     */
-    private static int computeResponseSize(Iterable<String> names)
+    public Iterable<String> getNames()
     {
-        int length = 0;
+        return names;
+    }
+
+    @Override
+    protected int getLength()
+    {
+        int length = super.getLength();
         for (String name: names) {
             length += name.length() + 1;
         }
         return length;
+    }
+
+    @Override
+    protected void getBytes(ByteBuf buffer)
+    {
+        super.getBytes(buffer);
+
+        Iterator<String> i = names.iterator();
+        if (i.hasNext()) {
+            buffer.writeBytes(i.next().getBytes(Charsets.US_ASCII));
+            while (i.hasNext()) {
+                buffer.writeByte('\n');
+                buffer.writeBytes(i.next().getBytes(Charsets.US_ASCII));
+            }
+            /* Last entry in the list is terminated by a 0 rather than by
+             * a \n, if not more entries follow because the message is an
+             * intermediate message */
+            if (stat == XrootdProtocol.kXR_oksofar) {
+                buffer.writeByte('\n');
+            } else {
+                buffer.writeByte(0);
+            }
+        }
     }
 }

@@ -18,12 +18,16 @@
  * <http://www.gnu.org/licenses/>.
  */
 package org.dcache.xrootd.protocol.messages;
+import com.google.common.base.Charsets;
+import io.netty.buffer.ByteBuf;
+
 import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.util.FileStatus;
 
-public class StatResponse extends AbstractResponseMessage
+public class StatResponse extends AbstractXrootdResponse
 {
-    private final FileStatus _fs;
+    private final FileStatus fs;
+    private final String info;
 
     public StatResponse(XrootdRequest request, FileStatus fs)
     {
@@ -32,35 +36,48 @@ public class StatResponse extends AbstractResponseMessage
 
     private StatResponse(XrootdRequest request, FileStatus fs, String info)
     {
-        super(request, XrootdProtocol.kXR_ok, info.length() + 1);
-        _fs = fs;
-        putCharSequence(info);
-        putUnsignedChar('\0');
+        super(request, XrootdProtocol.kXR_ok);
+        this.fs = fs;
+        this.info = info;
     }
 
     public long getSize()
     {
-        return _fs.getSize();
+        return fs.getSize();
     }
 
     public int getFlags()
     {
-        return _fs.getFlags();
+        return fs.getFlags();
     }
 
     public long getId()
     {
-        return _fs.getId();
+        return fs.getId();
     }
 
     public long getModificationTime()
     {
-        return _fs.getModificationTime();
+        return fs.getModificationTime();
+    }
+
+    @Override
+    protected int getLength()
+    {
+        return super.getLength() + info.length() + 1;
+    }
+
+    @Override
+    protected void getBytes(ByteBuf buffer)
+    {
+        super.getBytes(buffer);
+        buffer.writeBytes(info.getBytes(Charsets.US_ASCII));
+        buffer.writeByte('\0');
     }
 
     @Override
     public String toString()
     {
-        return String.format("stat-response[%s]", _fs);
+        return String.format("stat-response[%s]", fs);
     }
 }

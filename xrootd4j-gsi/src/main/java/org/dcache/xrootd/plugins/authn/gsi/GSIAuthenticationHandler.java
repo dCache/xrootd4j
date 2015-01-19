@@ -43,7 +43,7 @@ import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
 
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.protocol.XrootdProtocol;
-import org.dcache.xrootd.protocol.messages.AbstractResponseMessage;
+import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.AuthenticationResponse;
 import org.dcache.xrootd.protocol.messages.OkResponse;
@@ -167,7 +167,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
      * @see #handleCertStep
      */
     @Override
-    public AbstractResponseMessage authenticate(AuthenticationRequest request)
+    public XrootdResponse authenticate(AuthenticationRequest request)
         throws XrootdException
     {
         try {
@@ -219,7 +219,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
      * @param request The received authentication request
      * @return AuthenticationResponse with kXR_authmore
      */
-    private AbstractResponseMessage
+    private XrootdResponse
         handleCertReqStep(AuthenticationRequest request)
         throws XrootdException
     {
@@ -302,7 +302,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
      * @param request AuthenticationRequest received by the client
      * @return OkResponse (verification is okay)
      */
-    private AbstractResponseMessage
+    private XrootdResponse
         handleCertStep(AuthenticationRequest request)
         throws XrootdException
     {

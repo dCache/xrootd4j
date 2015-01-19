@@ -19,18 +19,21 @@
  */
 package org.dcache.xrootd.protocol.messages;
 import org.dcache.xrootd.protocol.XrootdProtocol;
+
+import com.google.common.base.Charsets;
+import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RedirectResponse extends AbstractResponseMessage
+public class RedirectResponse extends AbstractXrootdResponse
 {
     private static final Logger _logger =
         LoggerFactory.getLogger(RedirectResponse.class);
 
-    private final String _host;
-    private final int _port;
-    private final String _opaque;
-    private final String _token;
+    private final String host;
+    private final int port;
+    private final String opaque;
+    private final String token;
 
     public RedirectResponse(XrootdRequest request, String host, int port)
     {
@@ -39,56 +42,67 @@ public class RedirectResponse extends AbstractResponseMessage
 
     public RedirectResponse(XrootdRequest request, String host, int port, String opaque, String token)
     {
-        super(request, XrootdProtocol.kXR_redirect,
-              4 + host.length() + opaque.length() + token.length() + 2);
+        super(request, XrootdProtocol.kXR_redirect);
 
-        _host = host;
-        _port = port;
-        _opaque = opaque;
-        _token = token;
+        this.host = host;
+        this.port = port;
+        this.opaque = opaque;
+        this.token = token;
 
-        putSignedInt(port);
         _logger.info("Sending the following host information to the client: {}", host);
-        putCharSequence(host);
-
-        if (!opaque.equals("")) {
-            putCharSequence("?");
-            putCharSequence(opaque);
-        }
-
-        if (!token.equals("")) {
-            if (opaque.equals("")) {
-                putCharSequence("?");
-            }
-
-            putCharSequence("?");
-            putCharSequence(token);
-        }
     }
 
     public String getHost()
     {
-        return _host;
+        return host;
     }
 
     public int getPort()
     {
-        return _port;
+        return port;
     }
 
     public String getOpaque()
     {
-        return _opaque;
+        return opaque;
     }
 
     public String getToken()
     {
-        return _token;
+        return token;
+    }
+
+    @Override
+    protected int getLength()
+    {
+        return super.getLength() + 4 + host.length() + opaque.length() + token.length() + 2;
+    }
+
+    @Override
+    protected void getBytes(ByteBuf buffer)
+    {
+        super.getBytes(buffer);
+        buffer.writeInt(port);
+        buffer.writeBytes(host.getBytes(Charsets.US_ASCII));
+
+        if (!opaque.isEmpty()) {
+            buffer.writeByte('?');
+            buffer.writeBytes(opaque.getBytes(Charsets.US_ASCII));
+        }
+
+        if (!token.isEmpty()) {
+            if (opaque.isEmpty()) {
+                buffer.writeByte('?');
+            }
+
+            buffer.writeByte('?');
+            buffer.writeBytes(token.getBytes(Charsets.US_ASCII));
+        }
     }
 
     @Override
     public String toString()
     {
-        return String.format("redirect[%s:%d,%s,%s]", _host, _port, _opaque, _token);
+        return String.format("redirect[%s:%d,%s,%s]", host, port, opaque, token);
     }
 }
