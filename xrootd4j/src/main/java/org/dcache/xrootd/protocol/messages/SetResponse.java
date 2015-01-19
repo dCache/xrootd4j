@@ -21,9 +21,9 @@ package org.dcache.xrootd.protocol.messages;
 
 import org.dcache.xrootd.protocol.XrootdProtocol;
 
-public class SetResponse extends StringResponse
+public class SetResponse extends StringResponse<SetRequest>
 {
-    public SetResponse(XrootdRequest request, String resp)
+    public SetResponse(SetRequest request, String resp)
     {
         super(request, XrootdProtocol.kXR_ok, resp);
     }

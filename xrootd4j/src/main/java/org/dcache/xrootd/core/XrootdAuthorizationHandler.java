@@ -29,7 +29,6 @@ import java.security.GeneralSecurityException;
 import org.dcache.xrootd.plugins.AuthorizationFactory;
 import org.dcache.xrootd.plugins.AuthorizationHandler;
 import org.dcache.xrootd.protocol.XrootdProtocol.*;
-import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
 import org.dcache.xrootd.protocol.messages.DirListRequest;
 import org.dcache.xrootd.protocol.messages.LocateRequest;
@@ -66,8 +65,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected XrootdResponse doOnStat(ChannelHandlerContext ctx,
-                                               StatRequest req)
+    protected Void doOnStat(ChannelHandlerContext ctx, StatRequest req)
         throws XrootdException
     {
         authorize(ctx, req, FilePerm.READ);
@@ -76,8 +74,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected XrootdResponse doOnStatx(ChannelHandlerContext ctx,
-                                                StatxRequest req)
+    protected Void doOnStatx(ChannelHandlerContext ctx, StatxRequest req)
         throws XrootdException
     {
         if (req.getPaths().length == 0) {
@@ -101,8 +98,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected XrootdResponse doOnRm(ChannelHandlerContext ctx,
-                                             RmRequest req)
+    protected Void doOnRm(ChannelHandlerContext ctx, RmRequest req)
         throws XrootdException
     {
         if (req.getPath().isEmpty()) {
@@ -114,8 +110,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected XrootdResponse doOnRmDir(ChannelHandlerContext ctx,
-                                                RmDirRequest req)
+    protected Void doOnRmDir(ChannelHandlerContext ctx, RmDirRequest req)
         throws XrootdException
     {
         if (req.getPath().isEmpty()) {
@@ -128,8 +123,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected XrootdResponse doOnMkDir(ChannelHandlerContext ctx,
-                                                MkDirRequest req)
+    protected Void doOnMkDir(ChannelHandlerContext ctx, MkDirRequest req)
         throws XrootdException
     {
         if (req.getPath().isEmpty()) {
@@ -142,8 +136,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected XrootdResponse doOnMv(ChannelHandlerContext ctx,
-                                             MvRequest req)
+    protected Void doOnMv(ChannelHandlerContext ctx, MvRequest req)
         throws XrootdException
     {
         String sourcePath = req.getSourcePath();
@@ -171,8 +164,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected XrootdResponse doOnDirList(ChannelHandlerContext ctx,
-                                                  DirListRequest request)
+    protected Void doOnDirList(ChannelHandlerContext ctx, DirListRequest request)
         throws XrootdException
     {
         InetSocketAddress localAddress =
@@ -188,8 +180,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected XrootdResponse doOnPrepare(ChannelHandlerContext ctx,
-                                                  PrepareRequest msg)
+    protected Void doOnPrepare(ChannelHandlerContext ctx, PrepareRequest msg)
     {
         ctx.fireChannelRead(msg);
         return null;
@@ -211,8 +202,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected XrootdResponse doOnOpen(ChannelHandlerContext ctx,
-                                               OpenRequest msg)
+    protected Void doOnOpen(ChannelHandlerContext ctx, OpenRequest msg)
         throws XrootdException
     {
         FilePerm neededPerm;
@@ -227,8 +217,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected XrootdResponse doOnRead(ChannelHandlerContext ctx,
-                                               ReadRequest msg)
+    protected Void doOnRead(ChannelHandlerContext ctx, ReadRequest msg)
         throws XrootdException
     {
         ctx.fireChannelRead(msg);
@@ -236,8 +225,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected XrootdResponse doOnReadV(ChannelHandlerContext ctx,
-                                                ReadVRequest msg)
+    protected Void doOnReadV(ChannelHandlerContext ctx, ReadVRequest msg)
         throws XrootdException
     {
         ctx.fireChannelRead(msg);
@@ -245,8 +233,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected XrootdResponse doOnWrite(ChannelHandlerContext ctx,
-                                                WriteRequest msg)
+    protected Void doOnWrite(ChannelHandlerContext ctx, WriteRequest msg)
         throws XrootdException
     {
         ctx.fireChannelRead(msg);
@@ -254,8 +241,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected XrootdResponse doOnSync(ChannelHandlerContext ctx,
-                                               SyncRequest msg)
+    protected Void doOnSync(ChannelHandlerContext ctx, SyncRequest msg)
         throws XrootdException
     {
         ctx.fireChannelRead(msg);
@@ -263,8 +249,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected XrootdResponse doOnClose(ChannelHandlerContext ctx,
-                                                CloseRequest msg)
+    protected Void doOnClose(ChannelHandlerContext ctx, CloseRequest msg)
         throws XrootdException
     {
         ctx.fireChannelRead(msg);
@@ -272,8 +257,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected XrootdResponse doOnProtocolRequest(ChannelHandlerContext ctx,
-                                                          ProtocolRequest msg)
+    protected Void doOnProtocolRequest(ChannelHandlerContext ctx, ProtocolRequest msg)
         throws XrootdException
     {
         ctx.fireChannelRead(msg);
@@ -281,7 +265,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected Object doOnQuery(ChannelHandlerContext ctx, QueryRequest req)
+    protected Void doOnQuery(ChannelHandlerContext ctx, QueryRequest req)
             throws XrootdException
     {
         switch (req.getReqcode()) {
@@ -306,7 +290,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected Object doOnSet(ChannelHandlerContext ctx, SetRequest request) throws XrootdException
+    protected Void doOnSet(ChannelHandlerContext ctx, SetRequest request) throws XrootdException
     {
         ctx.fireChannelRead(request);
         return null;

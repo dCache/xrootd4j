@@ -26,19 +26,19 @@ import io.netty.util.ReferenceCountUtil;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public abstract class AbstractXrootdResponse implements XrootdResponse
+public abstract class AbstractXrootdResponse<T extends XrootdRequest> implements XrootdResponse<T>
 {
-    protected final XrootdRequest request;
+    protected final T request;
     protected final int stat;
 
-    public AbstractXrootdResponse(XrootdRequest request, int stat)
+    public AbstractXrootdResponse(T request, int stat)
     {
         this.request = checkNotNull(request);
         this.stat = stat;
     }
 
     @Override
-    public XrootdRequest getRequest()
+    public T getRequest()
     {
         return request;
     }

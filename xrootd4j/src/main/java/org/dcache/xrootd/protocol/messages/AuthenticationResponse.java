@@ -29,7 +29,7 @@ import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
-public class AuthenticationResponse extends AbstractXrootdResponse
+public class AuthenticationResponse extends AbstractXrootdResponse<AuthenticationRequest>
 {
     private final String protocol;
     private final int step;
@@ -45,7 +45,7 @@ public class AuthenticationResponse extends AbstractXrootdResponse
      * @param buckets list of buckets containing server-side authentication
      *                information (challenge, host certificate, etc.)
      */
-    public AuthenticationResponse(XrootdRequest request,
+    public AuthenticationResponse(AuthenticationRequest request,
                                   int status,
                                   int length,
                                   String protocol,

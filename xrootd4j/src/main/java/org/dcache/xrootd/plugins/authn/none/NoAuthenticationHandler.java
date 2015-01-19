@@ -35,8 +35,8 @@ import org.dcache.xrootd.plugins.AuthenticationHandler;
 public class NoAuthenticationHandler implements AuthenticationHandler
 {
     @Override
-    public XrootdResponse authenticate(AuthenticationRequest request) {
-        return new OkResponse(request);
+    public XrootdResponse<AuthenticationRequest> authenticate(AuthenticationRequest request) {
+        return new OkResponse<>(request);
     }
 
     @Override

@@ -26,14 +26,14 @@ import org.dcache.xrootd.util.FileStatus;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
-public class OpenResponse extends AbstractXrootdResponse
+public class OpenResponse extends AbstractXrootdResponse<OpenRequest>
 {
     private final int fileHandle;
     private final Integer cpsize;
     private final String cptype;
     private final FileStatus fs;
 
-    public OpenResponse(XrootdRequest request, int fileHandle,
+    public OpenResponse(OpenRequest request, int fileHandle,
                         Integer cpsize, String cptype, FileStatus fs)
     {
         super(request, XrootdProtocol.kXR_ok);

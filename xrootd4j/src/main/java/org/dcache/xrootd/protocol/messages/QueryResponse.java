@@ -21,9 +21,9 @@ package org.dcache.xrootd.protocol.messages;
 
 import org.dcache.xrootd.protocol.XrootdProtocol;
 
-public class QueryResponse extends StringResponse
+public class QueryResponse extends StringResponse<QueryRequest>
 {
-    public QueryResponse(XrootdRequest request, String info)
+    public QueryResponse(QueryRequest request, String info)
     {
         super(request, XrootdProtocol.kXR_ok, info);
     }

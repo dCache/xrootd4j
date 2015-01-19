@@ -27,17 +27,17 @@ import org.dcache.xrootd.protocol.XrootdProtocol;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
-public class DirListResponse extends AbstractXrootdResponse
+public class DirListResponse extends AbstractXrootdResponse<DirListRequest>
 {
     private final Iterable<String> names;
 
-    public DirListResponse(XrootdRequest request, int statusCode, Iterable<String> names)
+    public DirListResponse(DirListRequest request, int statusCode, Iterable<String> names)
     {
         super(request, statusCode);
         this.names = names;
     }
 
-    public DirListResponse(XrootdRequest request, Iterable<String> names)
+    public DirListResponse(DirListRequest request, Iterable<String> names)
     {
         this(request, XrootdProtocol.kXR_ok, names);
     }

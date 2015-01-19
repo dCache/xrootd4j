@@ -36,8 +36,8 @@ public class XrootdEncoder extends ChannelOutboundHandlerAdapter
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception
     {
-        if (msg instanceof XrootdResponse) {
-            ((XrootdResponse) msg).writeTo(ctx, promise);
+        if (msg instanceof XrootdResponse<?>) {
+            ((XrootdResponse<?>) msg).writeTo(ctx, promise);
         } else {
             super.write(ctx, msg, promise);
         }

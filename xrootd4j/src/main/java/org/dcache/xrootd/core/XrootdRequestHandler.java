@@ -50,6 +50,7 @@ import org.dcache.xrootd.protocol.messages.StatxRequest;
 import org.dcache.xrootd.protocol.messages.SyncRequest;
 import org.dcache.xrootd.protocol.messages.WriteRequest;
 import org.dcache.xrootd.protocol.messages.XrootdRequest;
+import org.dcache.xrootd.protocol.messages.XrootdResponse;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
@@ -188,14 +189,14 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
         }
     }
 
-    protected OkResponse withOk(XrootdRequest req)
+    protected <T extends XrootdRequest> OkResponse<T> withOk(T req)
     {
-        return new OkResponse(req);
+        return new OkResponse<>(req);
     }
 
-    protected ErrorResponse withError(XrootdRequest req, int errorCode, String errMsg)
+    protected <T extends XrootdRequest> ErrorResponse<T> withError(T req, int errorCode, String errMsg)
     {
-        return new ErrorResponse(req, errorCode, Strings.nullToEmpty(errMsg));
+        return new ErrorResponse<>(req, errorCode, Strings.nullToEmpty(errMsg));
     }
 
     protected ChannelFuture respond(ChannelHandlerContext ctx, Object response)
@@ -203,13 +204,11 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
         return ctx.writeAndFlush(response);
     }
 
-    protected Object unsupported(ChannelHandlerContext ctx,
-                                 XrootdRequest msg)
+    protected <T extends XrootdRequest> XrootdResponse<T> unsupported(ChannelHandlerContext ctx, T msg)
         throws XrootdException
     {
         _log.warn("Unsupported request: " + msg);
-        throw new XrootdException(kXR_Unsupported,
-            "Request " + msg.getRequestId() + " not supported");
+        throw new XrootdException(kXR_Unsupported, "Request " + msg.getRequestId() + " not supported");
     }
 
     protected Object doOnLogin(ChannelHandlerContext ctx,

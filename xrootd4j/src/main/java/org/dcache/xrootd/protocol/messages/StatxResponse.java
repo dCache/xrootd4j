@@ -23,11 +23,11 @@ import io.netty.buffer.ByteBuf;
 
 import org.dcache.xrootd.protocol.XrootdProtocol;
 
-public class StatxResponse extends AbstractXrootdResponse
+public class StatxResponse extends AbstractXrootdResponse<StatxRequest>
 {
     private final int[] fileStates;
 
-    public StatxResponse(XrootdRequest request, int[] fileStates)
+    public StatxResponse(StatxRequest request, int[] fileStates)
     {
         super(request, XrootdProtocol.kXR_ok);
         this.fileStates = fileStates;

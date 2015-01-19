@@ -30,13 +30,13 @@ import static com.google.common.base.Preconditions.checkState;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_oksofar;
 
-public class ReadResponse implements XrootdResponse, ReferenceCounted
+public class ReadResponse implements XrootdResponse<ReadRequest>, ReferenceCounted
 {
-    private final XrootdRequest request;
+    private final ReadRequest request;
     private final int stat;
     private final ByteBuf data;
 
-    public ReadResponse(XrootdRequest request, ByteBuf data, boolean isIncomplete)
+    public ReadResponse(ReadRequest request, ByteBuf data, boolean isIncomplete)
     {
         this.request = checkNotNull(request);
         this.stat = isIncomplete ? kXR_oksofar : kXR_ok;
@@ -44,7 +44,7 @@ public class ReadResponse implements XrootdResponse, ReferenceCounted
     }
 
     @Override
-    public XrootdRequest getRequest()
+    public ReadRequest getRequest()
     {
         return request;
     }

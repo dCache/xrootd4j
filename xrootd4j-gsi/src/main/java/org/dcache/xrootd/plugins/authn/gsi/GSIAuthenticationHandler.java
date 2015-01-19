@@ -169,7 +169,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
      * @see #handleCertStep
      */
     @Override
-    public XrootdResponse authenticate(AuthenticationRequest request)
+    public XrootdResponse<AuthenticationRequest> authenticate(AuthenticationRequest request)
         throws XrootdException
     {
         try {
@@ -192,7 +192,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
 
         switch(request.getStep()) {
         case kXGC_none:
-            return new OkResponse(request);
+            return new OkResponse<>(request);
         case kXGC_certreq:
             return handleCertReqStep(request);
         case kXGC_cert:
@@ -221,7 +221,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
      * @param request The received authentication request
      * @return AuthenticationResponse with kXR_authmore
      */
-    private XrootdResponse
+    private XrootdResponse<AuthenticationRequest>
         handleCertReqStep(AuthenticationRequest request)
         throws XrootdException
     {
@@ -304,7 +304,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
      * @param request AuthenticationRequest received by the client
      * @return OkResponse (verification is okay)
      */
-    private XrootdResponse
+    private XrootdResponse<AuthenticationRequest>
         handleCertStep(AuthenticationRequest request)
         throws XrootdException
     {
@@ -384,7 +384,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
 
             _finished = true;
 
-            return new OkResponse(request);
+            return new OkResponse<>(request);
         } catch (InvalidKeyException ikex) {
             _logger.error("The key negotiated by DH key exchange appears to " +
                           "be invalid: {}", ikex);

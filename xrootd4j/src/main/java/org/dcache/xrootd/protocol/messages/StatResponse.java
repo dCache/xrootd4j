@@ -26,17 +26,17 @@ import org.dcache.xrootd.util.FileStatus;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
-public class StatResponse extends AbstractXrootdResponse
+public class StatResponse extends AbstractXrootdResponse<StatRequest>
 {
     private final FileStatus fs;
     private final String info;
 
-    public StatResponse(XrootdRequest request, FileStatus fs)
+    public StatResponse(StatRequest request, FileStatus fs)
     {
         this(request, fs, fs.toString());
     }
 
-    private StatResponse(XrootdRequest request, FileStatus fs, String info)
+    private StatResponse(StatRequest request, FileStatus fs, String info)
     {
         super(request, XrootdProtocol.kXR_ok);
         this.fs = fs;

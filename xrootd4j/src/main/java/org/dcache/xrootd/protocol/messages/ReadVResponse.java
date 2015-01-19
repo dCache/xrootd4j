@@ -35,7 +35,7 @@ import static com.google.common.base.Preconditions.*;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_oksofar;
 
-public class ReadVResponse extends AbstractReferenceCounted implements XrootdResponse
+public class ReadVResponse extends AbstractReferenceCounted implements XrootdResponse<ReadVRequest>
 {
     public static final int READ_LIST_HEADER_SIZE = 16;
 

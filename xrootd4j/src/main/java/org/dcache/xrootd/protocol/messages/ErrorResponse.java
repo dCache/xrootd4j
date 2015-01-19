@@ -27,19 +27,19 @@ import org.dcache.xrootd.protocol.XrootdProtocol;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
-public class ErrorResponse extends AbstractXrootdResponse
+public class ErrorResponse<T extends XrootdRequest> extends AbstractXrootdResponse<T>
 {
-    private static final Logger _log = LoggerFactory.getLogger(ErrorResponse.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ErrorResponse.class);
 
     private final int errnum;
     private final String errmsg;
 
-    public ErrorResponse(XrootdRequest request, int errnum, String errmsg)
+    public ErrorResponse(T request, int errnum, String errmsg)
     {
         super(request, XrootdProtocol.kXR_error);
         this.errnum = errnum;
         this.errmsg = errmsg;
-        _log.info("Xrootd-Error-Response: ErrorNr={} ErrorMsg={}", errnum, errmsg);
+        LOGGER.info("Xrootd-Error-Response: ErrorNr={} ErrorMsg={}", errnum, errmsg);
     }
 
     public int getErrorNumber()

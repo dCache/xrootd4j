@@ -27,12 +27,12 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.SESSION_ID_SIZE;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
 
-public class LoginResponse extends AbstractXrootdResponse
+public class LoginResponse extends AbstractXrootdResponse<LoginRequest>
 {
     private final XrootdSessionIdentifier sessionId;
     private final String sec;
 
-    public LoginResponse(XrootdRequest request, XrootdSessionIdentifier sessionId, String sec)
+    public LoginResponse(LoginRequest request, XrootdSessionIdentifier sessionId, String sec)
     {
         super(request, kXR_ok);
 

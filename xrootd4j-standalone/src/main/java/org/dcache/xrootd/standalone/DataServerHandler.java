@@ -43,7 +43,6 @@ import java.util.List;
 
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.core.XrootdRequestHandler;
-import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
 import org.dcache.xrootd.protocol.messages.DirListRequest;
 import org.dcache.xrootd.protocol.messages.DirListResponse;
@@ -115,7 +114,7 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected XrootdResponse doOnProtocolRequest(
+    protected ProtocolResponse doOnProtocolRequest(
             ChannelHandlerContext ctx, ProtocolRequest msg)
     {
         return new ProtocolResponse(msg, DATA_SERVER);
@@ -160,8 +159,7 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected OkResponse doOnRm(ChannelHandlerContext ctx,
-                                RmRequest req)
+    protected OkResponse<RmRequest> doOnRm(ChannelHandlerContext ctx, RmRequest req)
         throws XrootdException
     {
         if (req.getPath().isEmpty()) {
@@ -183,8 +181,7 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected OkResponse doOnRmDir(ChannelHandlerContext ctx,
-                                   RmDirRequest req)
+    protected OkResponse<RmDirRequest> doOnRmDir(ChannelHandlerContext ctx, RmDirRequest req)
         throws XrootdException
     {
         if (req.getPath().isEmpty()) {
@@ -206,8 +203,7 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected OkResponse doOnMkDir(ChannelHandlerContext ctx,
-                                   MkDirRequest req)
+    protected OkResponse<MkDirRequest> doOnMkDir(ChannelHandlerContext ctx, MkDirRequest req)
         throws XrootdException
     {
         if (req.getPath().isEmpty()) {
@@ -233,8 +229,7 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected OkResponse doOnMv(ChannelHandlerContext ctx,
-                                MvRequest req)
+    protected OkResponse<MvRequest> doOnMv(ChannelHandlerContext ctx, MvRequest req)
         throws XrootdException
     {
         String sourcePath = req.getSourcePath();
@@ -277,8 +272,7 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected OkResponse doOnPrepare(ChannelHandlerContext ctx,
-                                     PrepareRequest msg)
+    protected OkResponse<PrepareRequest> doOnPrepare(ChannelHandlerContext ctx, PrepareRequest msg)
     {
         return withOk(msg);
     }
@@ -355,8 +349,7 @@ public class DataServerHandler extends XrootdRequestHandler
      * @param msg The actual request
      */
     @Override
-    protected Object doOnRead(ChannelHandlerContext ctx,
-                              ReadRequest msg)
+    protected Object doOnRead(ChannelHandlerContext ctx, ReadRequest msg)
         throws XrootdException
     {
         RandomAccessFile raf = getOpenFile(msg.getFileHandle());
@@ -412,8 +405,7 @@ public class DataServerHandler extends XrootdRequestHandler
      * @param msg the actual request
      */
     @Override
-    protected OkResponse doOnWrite(ChannelHandlerContext ctx,
-                                   WriteRequest msg)
+    protected OkResponse<WriteRequest> doOnWrite(ChannelHandlerContext ctx, WriteRequest msg)
         throws XrootdException
     {
         try {
@@ -435,8 +427,7 @@ public class DataServerHandler extends XrootdRequestHandler
      * @param msg The actual request
      */
     @Override
-    protected OkResponse doOnSync(ChannelHandlerContext ctx,
-                                  SyncRequest msg)
+    protected OkResponse<SyncRequest> doOnSync(ChannelHandlerContext ctx, SyncRequest msg)
         throws XrootdException
     {
         try {
@@ -455,8 +446,7 @@ public class DataServerHandler extends XrootdRequestHandler
      * @param msg The actual request
      */
     @Override
-    protected OkResponse doOnClose(ChannelHandlerContext ctx,
-                                   CloseRequest msg)
+    protected OkResponse<CloseRequest> doOnClose(ChannelHandlerContext ctx, CloseRequest msg)
         throws XrootdException
     {
         try {
@@ -484,7 +474,7 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected Object doOnQuery(ChannelHandlerContext ctx, QueryRequest msg) throws XrootdException
+    protected QueryResponse doOnQuery(ChannelHandlerContext ctx, QueryRequest msg) throws XrootdException
     {
         switch (msg.getReqcode()) {
         case kXR_Qconfig:
@@ -525,7 +515,7 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected Object doOnSet(ChannelHandlerContext ctx, SetRequest request) throws XrootdException
+    protected SetResponse doOnSet(ChannelHandlerContext ctx, SetRequest request) throws XrootdException
     {
         /* The xrootd spec states that we should include 80 characters in our log.
          */

@@ -229,7 +229,7 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
                                     AuthenticationRequest request)
         throws XrootdException
     {
-        XrootdResponse response =
+        XrootdResponse<AuthenticationRequest> response =
             _authenticationHandler.authenticate(request);
         if (_authenticationHandler.isCompleted()) {
             /* If a subclass rejects the authenticated subject then
@@ -252,7 +252,7 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
             throw new XrootdException(kXR_NotAuthorized, "not session owner");
         }
         session.getChannel().close();
-        ctx.writeAndFlush(new OkResponse(request));
+        ctx.writeAndFlush(new OkResponse<>(request));
     }
 
     private void authenticated(ChannelHandlerContext context, Subject subject)

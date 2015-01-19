@@ -24,11 +24,11 @@ import io.netty.buffer.ByteBuf;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
-public class StringResponse extends AbstractXrootdResponse
+public class StringResponse<T extends XrootdRequest> extends AbstractXrootdResponse<T>
 {
     protected final String response;
 
-    public StringResponse(XrootdRequest request, int stat, String response)
+    public StringResponse(T request, int stat, String response)
     {
         super(request, stat);
         this.response = response;

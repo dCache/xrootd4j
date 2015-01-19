@@ -23,11 +23,11 @@ import io.netty.buffer.ByteBuf;
 
 import org.dcache.xrootd.protocol.XrootdProtocol;
 
-public class ProtocolResponse extends AbstractXrootdResponse
+public class ProtocolResponse extends AbstractXrootdResponse<ProtocolRequest>
 {
     private final int flags;
 
-    public ProtocolResponse(XrootdRequest request, int flags)
+    public ProtocolResponse(ProtocolRequest request, int flags)
     {
         super(request, XrootdProtocol.kXR_ok);
         this.flags = flags;

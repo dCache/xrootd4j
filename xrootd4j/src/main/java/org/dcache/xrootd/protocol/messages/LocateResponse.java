@@ -29,16 +29,16 @@ import org.dcache.xrootd.protocol.XrootdProtocol;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
-public class LocateResponse extends AbstractXrootdResponse
+public class LocateResponse extends AbstractXrootdResponse<LocateRequest>
 {
     private final String encoded;
 
-    public LocateResponse(XrootdRequest request, InfoElement... info)
+    public LocateResponse(LocateRequest request, InfoElement... info)
     {
         this(request, encode(info));
     }
 
-    private LocateResponse(XrootdRequest request, String encoded)
+    private LocateResponse(LocateRequest request, String encoded)
     {
         super(request, XrootdProtocol.kXR_ok);
         this.encoded = encoded;

@@ -8,12 +8,12 @@ import io.netty.channel.ChannelPromise;
  *
  * Response objects may be reference counted.
  */
-public interface XrootdResponse
+public interface XrootdResponse<T extends XrootdRequest>
 {
     /**
      * Returns the request this is a response to.
      */
-    XrootdRequest getRequest();
+    T getRequest();
 
 
     /**

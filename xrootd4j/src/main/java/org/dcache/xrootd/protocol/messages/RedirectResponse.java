@@ -27,7 +27,7 @@ import org.dcache.xrootd.protocol.XrootdProtocol;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
-public class RedirectResponse extends AbstractXrootdResponse
+public class RedirectResponse extends AbstractXrootdResponse<XrootdRequest>
 {
     private static final Logger _logger =
         LoggerFactory.getLogger(RedirectResponse.class);

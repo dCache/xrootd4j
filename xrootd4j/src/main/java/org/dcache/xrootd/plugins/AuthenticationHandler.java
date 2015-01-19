@@ -35,7 +35,7 @@ public interface AuthenticationHandler
      * @param request Request received from client
      * @return Response to be sent to the client
      */
-    public XrootdResponse authenticate(AuthenticationRequest request)
+    public XrootdResponse<AuthenticationRequest> authenticate(AuthenticationRequest request)
         throws XrootdException;
 
     /**
