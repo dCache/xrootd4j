@@ -60,7 +60,7 @@ public class LoginRequest extends AbstractXrootdRequest
 
     public boolean supportsAsyn()
     {
-        return (capver & 0x80) == 0x80 ? true : false;
+        return (capver & 0x80) == 0x80;
     }
 
     public int getClientProtocolVersion()
@@ -70,7 +70,7 @@ public class LoginRequest extends AbstractXrootdRequest
 
     public boolean isAdmin()
     {
-        return role == kXR_useradmin ? true : false;
+        return role == kXR_useradmin;
     }
 
     public int getPID()

@@ -97,7 +97,7 @@ public class OpaqueStringParser {
                     continue;
                 }
 
-                String [] prefixSubBlocks = prefixBlock.split("\\&");
+                String [] prefixSubBlocks = prefixBlock.split("&");
 
                 for (String prefixSubBlock : prefixSubBlocks) {
 

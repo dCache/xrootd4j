@@ -237,13 +237,10 @@ public class CertUtil
 
         List<X509Certificate> list = new LinkedList<>();
         X509Certificate cert;
-        BufferedReader reader = new BufferedReader(in);
-        try {
+        try (BufferedReader reader = new BufferedReader(in)) {
             while ((cert = readCertificate(reader)) != null) {
                 list.add(cert);
             }
-        } finally {
-            reader.close();
         }
 
         if (list.isEmpty()) {

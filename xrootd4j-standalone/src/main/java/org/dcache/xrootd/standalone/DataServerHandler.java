@@ -288,8 +288,6 @@ public class DataServerHandler extends XrootdRequestHandler
                                     OpenRequest msg)
         throws XrootdException
     {
-        int options = msg.getOptions();
-
         try {
             File file = getFile(msg.getPath());
             if (file.isDirectory()) {
@@ -480,20 +478,25 @@ public class DataServerHandler extends XrootdRequestHandler
         case kXR_Qconfig:
             StringBuilder s = new StringBuilder();
             for (String name: msg.getArgs().split(" ")) {
-                if (name.equals("bind_max")) {
+                switch (name) {
+                case "bind_max":
                     s.append(0);
-                } else if (name.equals("readv_ior_max")) {
+                    break;
+                case "readv_ior_max":
                     s.append(MAX_FRAME_SIZE);
-                } else if (name.equals("readv_iov_max")) {
+                    break;
+                case "readv_iov_max":
                     s.append(Integer.MAX_VALUE);
-                } else if (name.equals("readv_iov_max")) {
-                    s.append(Integer.MAX_VALUE);
-                } else if (name.equals("csname")) {
+                    break;
+                case "csname":
                     s.append("1:ADLER32");
-                } else if (name.equals("version")) {
+                    break;
+                case "version":
                     s.append("xrootd4j");
-                } else {
+                    break;
+                default:
                     s.append(name);
+                    break;
                 }
                 s.append('\n');
             }

@@ -110,12 +110,7 @@ public class DHSession
             CertUtil.toPEM(toDER(DH_PARAMETERS), DH_HEADER, DH_FOOTER);
         DHPublicKey pubkey = (DHPublicKey) _localDHKeyPair.getPublic();
 
-        StringBuilder sb = new StringBuilder(dhparams);
-        sb.append('\n');
-        sb.append(DH_PUBKEY_HEADER);
-        sb.append(pubkey.getY().toString(16));
-        sb.append(DH_PUBKEY_FOOTER);
-        return sb.toString();
+        return dhparams + '\n' + DH_PUBKEY_HEADER + pubkey.getY().toString(16) + DH_PUBKEY_FOOTER;
     }
 
     public void finaliseKeyAgreement(String dhmessage) throws IOException,

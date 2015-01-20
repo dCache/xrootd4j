@@ -62,14 +62,6 @@ public class FileStatus
     @Override
     public String toString()
     {
-        StringBuilder info = new StringBuilder();
-        info.append(id);
-        info.append(" ");
-        info.append(size);
-        info.append(" ");
-        info.append(flags);
-        info.append(" ");
-        info.append(modtime);
-        return info.toString();
+        return String.valueOf(id) + " " + size + " " + flags + " " + modtime;
     }
 }

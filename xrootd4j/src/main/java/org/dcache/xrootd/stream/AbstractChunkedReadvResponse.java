@@ -26,7 +26,6 @@ import java.io.IOException;
 
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.protocol.messages.GenericReadRequestMessage;
-import org.dcache.xrootd.protocol.messages.ReadResponse;
 import org.dcache.xrootd.protocol.messages.ReadVRequest;
 import org.dcache.xrootd.protocol.messages.ReadVResponse;
 import org.dcache.xrootd.protocol.messages.XrootdRequest;

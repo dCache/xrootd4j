@@ -22,7 +22,6 @@ package org.dcache.xrootd.core;
 import io.netty.handler.codec.ByteToMessageDecoder;
 
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.Channel;
 import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

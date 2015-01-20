@@ -99,11 +99,8 @@ public class DataServerConfiguration
     {
         Properties defaults = new Properties();
         for (URL url: findPluginFiles(paths, PROPERTIES_FILTER)) {
-            InputStream in = url.openStream();
-            try {
+            try (InputStream in = url.openStream()) {
                 defaults.load(in);
-            } finally {
-                in.close();
             }
         }
         return defaults;
@@ -122,7 +119,7 @@ public class DataServerConfiguration
                     if (files != null) {
                         for (File file: files) {
                             if (file.isFile()) {
-                                urls.add(file.toURL());
+                                urls.add(file.toURI().toURL());
                             }
                         }
                     }

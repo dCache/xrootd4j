@@ -28,7 +28,6 @@ import java.security.GeneralSecurityException;
 
 import org.dcache.xrootd.plugins.AuthorizationFactory;
 import org.dcache.xrootd.plugins.AuthorizationHandler;
-import org.dcache.xrootd.protocol.XrootdProtocol.*;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
 import org.dcache.xrootd.protocol.messages.DirListRequest;
 import org.dcache.xrootd.protocol.messages.LocateRequest;
@@ -83,7 +82,6 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
 
         String[] paths = req.getPaths();
         String[] opaques = req.getOpaques();
-        int[] flags = new int[paths.length];
         for (int i = 0; i < paths.length; i++) {
             paths[i] = authorize(ctx,
                                  req,
@@ -167,9 +165,6 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     protected Void doOnDirList(ChannelHandlerContext ctx, DirListRequest request)
         throws XrootdException
     {
-        InetSocketAddress localAddress =
-            (InetSocketAddress) ctx.channel().localAddress();
-
         String path = request.getPath();
         if (path.isEmpty()) {
             throw new XrootdException(kXR_ArgMissing, "no source path specified");

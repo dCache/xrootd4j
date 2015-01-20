@@ -180,13 +180,10 @@ public class GSIAuthenticationFactory implements AuthenticationFactory
     private void loadHostCertificate()
         throws CertificateException, IOException, NoSuchProviderException
     {
-        InputStream fis = new FileInputStream(_hostCertificatePath);
-        try {
+        try (InputStream fis = new FileInputStream(_hostCertificatePath)) {
             CertificateFactory cf =
-                CertificateFactory.getInstance("X.509", "BC");
+                    CertificateFactory.getInstance("X.509", "BC");
             _hostCertificate = (X509Certificate) cf.generateCertificate(fis);
-        } finally {
-            fis.close();
         }
     }
 

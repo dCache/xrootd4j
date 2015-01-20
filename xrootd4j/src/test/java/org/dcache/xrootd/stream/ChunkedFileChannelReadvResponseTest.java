@@ -39,8 +39,6 @@ import org.dcache.xrootd.protocol.messages.ReadVResponse;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 public class ChunkedFileChannelReadvResponseTest
