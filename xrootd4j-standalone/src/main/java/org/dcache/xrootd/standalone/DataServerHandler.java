@@ -71,6 +71,7 @@ import org.dcache.xrootd.protocol.messages.StatxRequest;
 import org.dcache.xrootd.protocol.messages.StatxResponse;
 import org.dcache.xrootd.protocol.messages.SyncRequest;
 import org.dcache.xrootd.protocol.messages.WriteRequest;
+import org.dcache.xrootd.protocol.messages.ZeroCopyReadResponse;
 import org.dcache.xrootd.stream.ChunkedFileChannelReadResponse;
 import org.dcache.xrootd.stream.ChunkedFileReadvResponse;
 import org.dcache.xrootd.util.FileStatus;
@@ -354,16 +355,11 @@ public class DataServerHandler extends XrootdRequestHandler
         if (msg.bytesToRead() == 0) {
             return withOk(msg);
         } else if (_configuration.useZeroCopy) {
-            ByteBuf buffer = ctx.alloc().buffer(8);
-            buffer.writeShort(msg.getStreamId());
-            buffer.writeShort(kXR_ok);
-            buffer.writeInt(msg.bytesToRead());
-            // TODO: Mixing this with chunked responses may cause bad interleavings
-            ctx.write(buffer);
-            ctx.write(new DefaultFileRegion(raf.getChannel(), msg.getReadOffset(), msg.bytesToRead()));
-            ctx.flush();
-            ReferenceCountUtil.release(msg);
-            return null;
+            try {
+                return new ZeroCopyReadResponse(msg, raf.getChannel());
+            } catch (IOException e) {
+                throw new XrootdException(kXR_IOError, e.getMessage());
+            }
         } else {
             return new ChunkedFileChannelReadResponse(msg, MAX_FRAME_SIZE, raf.getChannel());
         }
