@@ -14,8 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see
- * <http://www.gnu.org/licenses/>.
+ * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
  */
 /* The file is based on ChunkedWriteHandler version 4.0.24 from the Netty Project.
  *
