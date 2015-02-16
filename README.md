@@ -52,7 +52,7 @@ Add the following Maven dependency to your project:
     <dependency>
         <groupId>org.dcache</groupId>
         <artifactId>xrootd4j</artifactId>
-        <version>1.3.0</version>
+        <version>2.0.0</version>
     </dependency>
 
 To automatically download the dependency, add our Maven repository to
@@ -74,7 +74,7 @@ Starting the standalone server
 
 The standalone server may be executed as follows:
 
-    java -Dlog=debug -jar xrootd-standalone/target/xrootd-standalone-1.3.0-jar-with-dependencies.jar
+    java -Dlog=debug -jar xrootd-standalone/target/xrootd4j-standalone-2.0.0-jar-with-dependencies.jar
 
 
 Please adjust the log level as needed. Add the -h option at the end of
