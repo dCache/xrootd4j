@@ -27,7 +27,7 @@ import org.dcache.xrootd.protocol.XrootdProtocol;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
-public class RedirectResponse extends AbstractXrootdResponse<XrootdRequest>
+public class RedirectResponse<R extends XrootdRequest> extends AbstractXrootdResponse<R>
 {
     private static final Logger _logger =
         LoggerFactory.getLogger(RedirectResponse.class);
@@ -37,12 +37,12 @@ public class RedirectResponse extends AbstractXrootdResponse<XrootdRequest>
     private final String opaque;
     private final String token;
 
-    public RedirectResponse(XrootdRequest request, String host, int port)
+    public RedirectResponse(R request, String host, int port)
     {
         this(request, host, port, "", "");
     }
 
-    public RedirectResponse(XrootdRequest request, String host, int port, String opaque, String token)
+    public RedirectResponse(R request, String host, int port, String opaque, String token)
     {
         super(request, XrootdProtocol.kXR_redirect);
 
