@@ -121,13 +121,6 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
 
     private boolean _finished = false;
 
-    /**
-     * @param hostCertificatePath
-     * @param hostKeyPath
-     * @param caCertDir
-     * @param verifyHostCertificate
-     * @param endpoint CellEndpoint for communication with the login strategies
-     */
     public GSIAuthenticationHandler(X509Certificate hostCertificate,
                                     PrivateKey privateKey,
                                     TrustedCertificates trustedCerts,

@@ -29,7 +29,7 @@ import java.util.Map;
  * opaque (Xrdv296 SPEC Section 3.13.1):
  *     "Opaque information is passed by suffixing the path with a
  *     question mark (?) and then coding the opaque information as a series of
- *     ampersand prefixed (&) variable names immediately followed by an
+ *     ampersand prefixed (&amp;) variable names immediately followed by an
  *     equal sign (=) prefix value."
 
  *
@@ -38,13 +38,13 @@ import java.util.Map;
  *      "The authorization envelope which is obtained from the catalogue
  *      service is appended to an URL as opaque information following the
  *      syntax:
- *      URL : root : // < host -ip >:< port > // < file - path >?authz =
- *      < acess - envelope > & vo = < vo -name >
+ *      URL : root : // &lt; host -ip &gt;:&lt; port &gt; // &lt; file - path &gt;?authz =
+ *      &lt; access - envelope &gt; &amp; vo = &lt; vo -name &gt;
  *
  * In summary, this yields the following format for opaque information and
  * token:
  *
- * ?&opaqueKey1=value1&opaqueKey2=value2&opaqueKey3=value3?authz=sectoken&vo=
+ * ?&amp;opaqueKey1=value1&amp;opaqueKey2=value2&amp;opaqueKey3=value3?authz=sectoken&amp;vo=
  *  voname
  *
  * Experience shows that the first value after the question mark is not
@@ -64,16 +64,16 @@ public class OpaqueStringParser {
 
     /**
      * The opaque information is included in the path in a format similar to
-     * URL-encoding (&key1=val1&key2=val2...). This method translates that
+     * URL-encoding (&amp;key1=val1&amp;key2=val2...). This method translates that
      * encoding to a map, mapping from the keys found in the opaque string to
      * the values found in the opaque string.
      *
      * Due to ambiguity regarding specification of the opaque token and its
      * use, the method will parse opaque strings in the forms
      *
-     *  ?firstKey=firstValue&secondKey=secondValue
-     *  ?&firstKey=firstValue&secondKey=secondValue
-     *  firstKey=firstValue?&secondKey=secondValue
+     *  ?firstKey=firstValue&amp;secondKey=secondValue
+     *  ?&amp;firstKey=firstValue&amp;secondKey=secondValue
+     *  firstKey=firstValue?&amp;secondKey=secondValue
      *  firstKey=firstValue?secondkey=secondValue
      *
      * @param opaque The opaque string, as usually attached to the path

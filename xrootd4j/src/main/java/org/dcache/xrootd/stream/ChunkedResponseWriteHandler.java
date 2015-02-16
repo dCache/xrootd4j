@@ -65,7 +65,7 @@ import java.util.Queue;
  * <pre>
  * {@link io.netty.channel.Channel} ch = ...;
  * {@link org.dcache.xrootd.protocol.messages.ReadRequest} request = ...;
- * long maxFrameSize = 2 << 20;
+ * long maxFrameSize = 2 &lt;&lt; 20;
  * {@link java.nio.channels.FileChannel} channel = ...;
  * ch.write(new {@link ChunkedFileChannelReadResponse}(request, maxFrameSize, channel));
  * </pre>

@@ -269,6 +269,9 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
      *
      * If the subclass throws XrootdException then the login is
      * aborted.
+     *
+     * @param context the Netty context
+     * @param subject the subject that logged in
      */
     protected Subject login(ChannelHandlerContext context, Subject subject)
         throws XrootdException
