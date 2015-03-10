@@ -163,8 +163,8 @@ public class ReadVResponse extends AbstractReferenceCounted implements XrootdRes
     @Override
     protected void deallocate()
     {
-        for (ByteBuf buf : data) {
-            buf.release();
+        for (int i = 0; i < length; i++) {
+            data[i + index].release();
         }
     }
 }
