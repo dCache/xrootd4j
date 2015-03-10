@@ -20,6 +20,7 @@ package org.dcache.xrootd.core;
 
 import com.google.common.base.Strings;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
@@ -200,7 +201,7 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
 
     protected ChannelFuture respond(ChannelHandlerContext ctx, Object response)
     {
-        return ctx.writeAndFlush(response);
+        return ctx.writeAndFlush(response).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
     }
 
     protected <T extends XrootdRequest> XrootdResponse<T> unsupported(ChannelHandlerContext ctx, T msg)
