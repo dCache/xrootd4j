@@ -76,7 +76,7 @@ public class RedirectResponse<R extends XrootdRequest> extends AbstractXrootdRes
     @Override
     public int getDataLength()
     {
-        return 4 + host.length() + opaque.length() + token.length() + 2;
+        return 4 + host.length() + (!opaque.isEmpty() || !token.isEmpty() ? 1 + opaque.length() : 0) + (!token.isEmpty() ? 1 + token.length() : 0);
     }
 
     @Override
@@ -85,16 +85,12 @@ public class RedirectResponse<R extends XrootdRequest> extends AbstractXrootdRes
         buffer.writeInt(port);
         buffer.writeBytes(host.getBytes(US_ASCII));
 
-        if (!opaque.isEmpty()) {
+        if (!opaque.isEmpty() || !token.isEmpty()) {
             buffer.writeByte('?');
             buffer.writeBytes(opaque.getBytes(US_ASCII));
         }
 
         if (!token.isEmpty()) {
-            if (opaque.isEmpty()) {
-                buffer.writeByte('?');
-            }
-
             buffer.writeByte('?');
             buffer.writeBytes(token.getBytes(US_ASCII));
         }

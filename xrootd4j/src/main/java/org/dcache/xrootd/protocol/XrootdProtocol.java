@@ -42,12 +42,13 @@ public interface XrootdProtocol {
     // server response codes
     public static final int   kXR_ok       = 0;
     public static final int   kXR_oksofar  = 4000;
+    public static final int   kXR_attn     = 4001;
     public static final int   kXR_authmore = 4002;
     public static final int   kXR_error    = 4003;
     public static final int   kXR_redirect = 4004;
     public static final int   kXR_wait     = 4005;
     public static final int   kXR_waitresp = 4006;
-    public static final int   kXR_noResponseYet = 10000;
+    public static final int   kXR_noResponsesYet = 10000;
 
     // server error codes
     public static final int   kXR_ArgInvalid     = 3000;
