@@ -51,10 +51,12 @@ public abstract class AbstractXrootdResponse<T extends XrootdRequest> implements
     @Override
     public void writeTo(ChannelHandlerContext ctx, ChannelPromise promise)
     {
-        ByteBuf buffer = ctx.alloc().buffer(getLength());
+        ByteBuf buffer = ctx.alloc().buffer(8 + getDataLength());
         try {
+            buffer.writeShort(request.getStreamId());
+            buffer.writeShort(stat);
+            buffer.writeInt(getDataLength());
             getBytes(buffer);
-            buffer.setInt(4, buffer.readableBytes() - 8);
         } catch (Error | RuntimeException t) {
             promise.setFailure(t);
             buffer.release();
@@ -64,15 +66,8 @@ public abstract class AbstractXrootdResponse<T extends XrootdRequest> implements
         ctx.write(buffer, promise);
     }
 
-    protected int getLength()
-    {
-        return 8;
-    }
+    @Override
+    public abstract int getDataLength();
 
-    protected void getBytes(ByteBuf buffer)
-    {
-        buffer.writeShort(request.getStreamId());
-        buffer.writeShort(stat);
-        buffer.writeInt(0);
-    }
+    protected abstract void getBytes(ByteBuf buffer);
 }

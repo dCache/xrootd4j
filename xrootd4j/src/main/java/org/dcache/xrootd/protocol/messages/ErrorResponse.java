@@ -52,16 +52,14 @@ public class ErrorResponse<T extends XrootdRequest> extends AbstractXrootdRespon
     }
 
     @Override
-    protected int getLength()
+    public int getDataLength()
     {
-        return super.getLength() + 4 + errmsg.length() + 1;
+        return 4 + errmsg.length() + 1;
     }
 
     @Override
     protected void getBytes(ByteBuf buffer)
     {
-        super.getBytes(buffer);
-
         buffer.writeInt(errnum);
         buffer.writeBytes(errmsg.getBytes(US_ASCII));
         buffer.writeByte('\0');

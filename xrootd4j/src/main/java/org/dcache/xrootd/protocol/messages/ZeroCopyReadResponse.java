@@ -57,6 +57,12 @@ public class ZeroCopyReadResponse implements XrootdResponse<ReadRequest>
     }
 
     @Override
+    public int getDataLength()
+    {
+        return count;
+    }
+
+    @Override
     public void writeTo(ChannelHandlerContext ctx, final ChannelPromise promise)
     {
         ByteBuf header = ctx.alloc().buffer(8);

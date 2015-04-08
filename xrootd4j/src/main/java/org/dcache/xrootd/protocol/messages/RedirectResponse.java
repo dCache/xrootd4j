@@ -74,15 +74,14 @@ public class RedirectResponse<R extends XrootdRequest> extends AbstractXrootdRes
     }
 
     @Override
-    protected int getLength()
+    public int getDataLength()
     {
-        return super.getLength() + 4 + host.length() + opaque.length() + token.length() + 2;
+        return 4 + host.length() + opaque.length() + token.length() + 2;
     }
 
     @Override
     protected void getBytes(ByteBuf buffer)
     {
-        super.getBytes(buffer);
         buffer.writeInt(port);
         buffer.writeBytes(host.getBytes(US_ASCII));
 

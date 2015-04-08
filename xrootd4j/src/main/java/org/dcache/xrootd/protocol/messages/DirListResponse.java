@@ -47,9 +47,9 @@ public class DirListResponse extends AbstractXrootdResponse<DirListRequest>
     }
 
     @Override
-    protected int getLength()
+    public int getDataLength()
     {
-        int length = super.getLength();
+        int length = 0;
         for (String name: names) {
             length += name.length() + 1;
         }
@@ -59,8 +59,6 @@ public class DirListResponse extends AbstractXrootdResponse<DirListRequest>
     @Override
     protected void getBytes(ByteBuf buffer)
     {
-        super.getBytes(buffer);
-
         Iterator<String> i = names.iterator();
         if (i.hasNext()) {
             buffer.writeBytes(i.next().getBytes(US_ASCII));

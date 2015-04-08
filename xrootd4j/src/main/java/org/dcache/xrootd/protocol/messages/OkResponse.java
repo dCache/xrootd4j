@@ -17,6 +17,8 @@
  * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.protocol.messages;
+import io.netty.buffer.ByteBuf;
+
 import org.dcache.xrootd.protocol.XrootdProtocol;
 
 public class OkResponse<T extends XrootdRequest> extends AbstractXrootdResponse<T>
@@ -30,5 +32,16 @@ public class OkResponse<T extends XrootdRequest> extends AbstractXrootdResponse<
     public String toString()
     {
         return "ok";
+    }
+
+    @Override
+    public int getDataLength()
+    {
+        return 0;
+    }
+
+    @Override
+    protected void getBytes(ByteBuf buffer)
+    {
     }
 }

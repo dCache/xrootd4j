@@ -49,15 +49,14 @@ public class LocateResponse extends AbstractXrootdResponse<LocateRequest>
     }
 
     @Override
-    protected int getLength()
+    public int getDataLength()
     {
-        return super.getLength() + encoded.length() + 1;
+        return encoded.length() + 1;
     }
 
     @Override
     protected void getBytes(ByteBuf buffer)
     {
-        super.getBytes(buffer);
         buffer.writeBytes(encoded.getBytes(US_ASCII));
         buffer.writeByte('\0');
     }

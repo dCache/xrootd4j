@@ -53,9 +53,9 @@ public class OpenResponse extends AbstractXrootdResponse<OpenRequest>
     }
 
     @Override
-    protected int getLength()
+    public int getDataLength()
     {
-        return super.getLength() + 4 +
+        return 4 +
                ((cpsize != null && cptype != null || fs != null) ? 8 : 0) +
                ((fs != null) ? fs.toString().length() + 1 : 0);
     }
@@ -63,8 +63,6 @@ public class OpenResponse extends AbstractXrootdResponse<OpenRequest>
     @Override
     protected void getBytes(ByteBuf buffer)
     {
-        super.getBytes(buffer);
-
         buffer.writeInt(fileHandle);
 
         if (cpsize != null && cptype != null) {

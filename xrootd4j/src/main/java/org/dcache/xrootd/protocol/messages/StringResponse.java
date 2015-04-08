@@ -39,15 +39,14 @@ public class StringResponse<T extends XrootdRequest> extends AbstractXrootdRespo
     }
 
     @Override
-    protected int getLength()
+    public int getDataLength()
     {
-        return super.getLength() + response.length();
+        return response.length();
     }
 
     @Override
     protected void getBytes(ByteBuf buffer)
     {
-        super.getBytes(buffer);
         buffer.writeBytes(response.getBytes(US_ASCII));
     }
 

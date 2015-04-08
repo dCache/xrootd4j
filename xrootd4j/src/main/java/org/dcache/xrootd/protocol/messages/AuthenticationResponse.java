@@ -72,17 +72,15 @@ public class AuthenticationResponse extends AbstractXrootdResponse<Authenticatio
     }
 
     @Override
-    protected int getLength()
+    public int getDataLength()
     {
-        // HEADER + PROTOCOL + STEP + BODY + TERMINAL
-        return super.getLength() + 4 + 4 + length + 4;
+        // PROTOCOL + STEP + BODY + TERMINAL
+        return 4 + 4 + length + 4;
     }
 
     @Override
     protected void getBytes(ByteBuf buffer)
     {
-        super.getBytes(buffer);
-
         byte[] bytes = protocol.getBytes(US_ASCII);
         buffer.writeBytes(bytes);
         /* protocol must be 0-padded to 4 bytes */

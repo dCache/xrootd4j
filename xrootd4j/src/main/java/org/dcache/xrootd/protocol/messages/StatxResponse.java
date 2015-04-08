@@ -33,15 +33,14 @@ public class StatxResponse extends AbstractXrootdResponse<StatxRequest>
     }
 
     @Override
-    protected int getLength()
+    public int getDataLength()
     {
-        return super.getLength() + fileStates.length;
+        return fileStates.length;
     }
 
     @Override
     protected void getBytes(ByteBuf buffer)
     {
-        super.getBytes(buffer);
         for (int state: fileStates) {
             buffer.writeByte(state);
         }

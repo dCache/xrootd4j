@@ -116,23 +116,29 @@ public class ReadVResponse extends AbstractReferenceCounted implements XrootdRes
         return length;
     }
 
-    @Override
-    public void writeTo(ChannelHandlerContext ctx, ChannelPromise promise)
-    {
-        checkState(refCnt() > 0);
 
+    @Override
+    public int getDataLength()
+    {
         int payload = 0;
         for (int i = 0; i < length; i++) {
             payload += READ_LIST_HEADER_SIZE;
             payload += data[index + i].readableBytes();
         }
+        return payload;
+    }
+
+    @Override
+    public void writeTo(ChannelHandlerContext ctx, ChannelPromise promise)
+    {
+        checkState(refCnt() > 0);
 
         CompositeByteBuf buffer = ctx.alloc().compositeBuffer(2 * length + 1);
 
         ByteBuf header = ctx.alloc().buffer(8);
         header.writeShort(request.getStreamId());
         header.writeShort(stat);
-        header.writeInt(payload);
+        header.writeInt(getDataLength());
         buffer.addComponent(header);
 
         for (int i = 0; i < length; i++) {

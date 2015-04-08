@@ -50,15 +50,14 @@ public class LoginResponse extends AbstractXrootdResponse<LoginRequest>
     }
 
     @Override
-    protected int getLength()
+    public int getDataLength()
     {
-        return super.getLength() + SESSION_ID_SIZE + (sec.isEmpty() ? 0 : sec.length() + 1);
+        return SESSION_ID_SIZE + (sec.isEmpty() ? 0 : sec.length() + 1);
     }
 
     @Override
     protected void getBytes(ByteBuf buffer)
     {
-        super.getBytes(buffer);
         buffer.writeBytes(sessionId.getBytes());
         if (!sec.isEmpty()) {
             buffer.writeBytes(sec.getBytes(US_ASCII));

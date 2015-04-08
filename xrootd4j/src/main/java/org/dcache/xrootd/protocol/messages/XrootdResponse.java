@@ -47,4 +47,12 @@ public interface XrootdResponse<T extends XrootdRequest>
      * deallocates this object if the reference count reaches {@code 0}.
      */
     void writeTo(ChannelHandlerContext ctx, ChannelPromise promise);
+
+    /**
+     * Returns the length of the response body.
+     *
+     * This is the value of the dlen field in the Xrootd Server Response Format. This
+     * does not include the length of the 8 byte header.
+     */
+    int getDataLength();
 }

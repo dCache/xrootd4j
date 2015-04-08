@@ -55,6 +55,12 @@ public class ReadResponse implements XrootdResponse<ReadRequest>, ReferenceCount
     }
 
     @Override
+    public int getDataLength()
+    {
+        return data.readableBytes();
+    }
+
+    @Override
     public void writeTo(ChannelHandlerContext ctx, ChannelPromise promise)
     {
         checkState(refCnt() > 0);

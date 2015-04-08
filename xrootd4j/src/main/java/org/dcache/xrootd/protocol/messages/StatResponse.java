@@ -63,15 +63,14 @@ public class StatResponse extends AbstractXrootdResponse<StatRequest>
     }
 
     @Override
-    protected int getLength()
+    public int getDataLength()
     {
-        return super.getLength() + info.length() + 1;
+        return info.length() + 1;
     }
 
     @Override
     protected void getBytes(ByteBuf buffer)
     {
-        super.getBytes(buffer);
         buffer.writeBytes(info.getBytes(US_ASCII));
         buffer.writeByte('\0');
     }

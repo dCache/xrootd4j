@@ -38,15 +38,14 @@ public class ProtocolResponse extends AbstractXrootdResponse<ProtocolRequest>
     }
 
     @Override
-    protected int getLength()
+    public int getDataLength()
     {
-        return super.getLength() + 8;
+        return 8;
     }
 
     @Override
     protected void getBytes(ByteBuf buffer)
     {
-        super.getBytes(buffer);
         buffer.writeInt(XrootdProtocol.PROTOCOL_VERSION);
         buffer.writeInt(flags);
     }
