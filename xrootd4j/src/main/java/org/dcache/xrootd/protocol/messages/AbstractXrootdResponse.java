@@ -61,6 +61,7 @@ public abstract class AbstractXrootdResponse<T extends XrootdRequest> implements
         } catch (Error | RuntimeException t) {
             promise.setFailure(t);
             buffer.release();
+            return;
         } finally {
             ReferenceCountUtil.release(this);
         }
