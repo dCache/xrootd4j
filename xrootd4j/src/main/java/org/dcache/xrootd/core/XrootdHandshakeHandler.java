@@ -44,12 +44,10 @@ public class XrootdHandshakeHandler extends ChannelInboundHandlerAdapter
         LoggerFactory.getLogger(XrootdHandshakeHandler.class);
 
     private final int _serverType;
-    private boolean _isHandshaked;
 
     public XrootdHandshakeHandler(int serverType)
     {
         _serverType = serverType;
-        _isHandshaked = false;
     }
 
     @Override
@@ -57,48 +55,40 @@ public class XrootdHandshakeHandler extends ChannelInboundHandlerAdapter
     {
         XrootdRequest msg = (XrootdRequest) obj;
 
-        if (!_isHandshaked) {
-            try {
-                if (!(msg instanceof HandshakeRequest)) {
-                    _log.error("Invalid handshake");
-                    ctx.close();
-                    return;
-                }
-
-                byte[] request = ((HandshakeRequest) msg).getHandshake();
-                if (!Arrays.equals(request, HANDSHAKE_REQUEST)) {
-                    _log.error("Received corrupt handshake message ("
-                               + request.length + " bytes).");
-                    ctx.close();
-                    return;
-                }
-
-                byte[] response;
-                switch (_serverType) {
-                case LOAD_BALANCER:
-                    response = HANDSHAKE_RESPONSE_LOADBALANCER;
-                    break;
-
-                case DATA_SERVER:
-                    response = HANDSHAKE_RESPONSE_DATASERVER;
-                    break;
-
-                default:
-                    _log.error("Unknown server type (" + _serverType + ")");
-                    ctx.close();
-                    return;
-                }
-
-                ctx.writeAndFlush(Unpooled.wrappedBuffer(response));
-
-                _isHandshaked = true;
-
+        try {
+            if (!(msg instanceof HandshakeRequest)) {
+                _log.error("Invalid handshake");
+                ctx.close();
                 return;
-            } finally {
-                ReferenceCountUtil.release(msg);
             }
-        }
 
-        super.channelRead(ctx, msg);
+            byte[] request = ((HandshakeRequest) msg).getHandshake();
+            if (!Arrays.equals(request, HANDSHAKE_REQUEST)) {
+                _log.error("Received corrupt handshake message ({} bytes).", request.length);
+                ctx.close();
+                return;
+            }
+
+            byte[] response;
+            switch (_serverType) {
+            case LOAD_BALANCER:
+                response = HANDSHAKE_RESPONSE_LOADBALANCER;
+                break;
+
+            case DATA_SERVER:
+                response = HANDSHAKE_RESPONSE_DATASERVER;
+                break;
+
+            default:
+                _log.error("Unknown server type ({})", _serverType);
+                ctx.close();
+                return;
+            }
+
+            ctx.writeAndFlush(Unpooled.wrappedBuffer(response));
+            ctx.channel().pipeline().remove(this);
+        } finally {
+            ReferenceCountUtil.release(msg);
+        }
     }
 }
