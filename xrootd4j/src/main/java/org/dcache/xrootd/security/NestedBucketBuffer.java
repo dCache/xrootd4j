@@ -167,13 +167,13 @@ public class NestedBucketBuffer extends XrootdBucket {
 
     @Override
     public int getSize() {
-        int size = super.getSize();
+        int size = super.getSize() + 4 + 4 + 4;
 
         for (XrootdBucket bucket : _nestedBuckets.values()) {
             size += bucket.getSize();
         }
 
-        return size;
+        return size + 4;
     }
 
     @Override
