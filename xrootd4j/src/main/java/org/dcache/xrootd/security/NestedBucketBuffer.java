@@ -27,6 +27,7 @@ import java.util.Map;
 
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
 /**
@@ -137,17 +138,13 @@ public class NestedBucketBuffer extends XrootdBucket {
         // serialize the nested bucket buffer and store it in the bytebuffer. Then we jump
         // back to the previously marked position and store the size of the nested bucket buffer.
         //
-        int currentpos = out.writerIndex();
+        int start = out.writerIndex();
         out.writeInt(0); // placeholder value
 
-        out.writeBytes(_protocol.getBytes());
-
-        /* the protocol must be 0-padded to 4 bytes */
-        int padding = 4 - _protocol.getBytes().length;
-
-        for (int i=0; i < padding; i++) {
-            out.writeByte(0);
-        }
+        /* the protocol is be 0-padded to 4 bytes */
+        byte[] protocol = _protocol.getBytes(US_ASCII);
+        out.writeBytes(protocol);
+        out.writeZero(4 - protocol.length);
 
         out.writeInt(_step);
 
@@ -157,12 +154,7 @@ public class NestedBucketBuffer extends XrootdBucket {
 
         out.writeInt(BucketType.kXRS_none.getCode());
 
-        int nestedBucketBufferLength = out.writerIndex() - currentpos - 4;
-        out.writerIndex(currentpos);
-        out.writeInt(nestedBucketBufferLength);
-
-        // place the position cursor at the end of the stored data to allow a clean flip()
-        out.writerIndex(out.writerIndex()+nestedBucketBufferLength);
+        out.setInt(start, out.writerIndex() - start - 4);
     }
 
     @Override

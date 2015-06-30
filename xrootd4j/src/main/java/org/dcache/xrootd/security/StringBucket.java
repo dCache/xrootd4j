@@ -54,13 +54,14 @@ public class StringBucket extends XrootdBucket {
     @Override
     public void serialize(ByteBuf out) {
         super.serialize(out);
-        out.writeInt(_data.length());
-        out.writeBytes(_data.getBytes());
+        byte[] bytes = _data.getBytes(US_ASCII);
+        out.writeInt(bytes.length);
+        out.writeBytes(bytes);
     }
 
     @Override
     public int getSize() {
-        return super.getSize() + 4 + _data.getBytes().length;
+        return super.getSize() + 4 + _data.length();
     }
 
     @Override

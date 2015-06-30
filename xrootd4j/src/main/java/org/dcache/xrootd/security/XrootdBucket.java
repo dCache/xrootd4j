@@ -21,7 +21,6 @@ package org.dcache.xrootd.security;
 import io.netty.buffer.ByteBuf;
 
 import java.io.IOException;
-import java.io.OutputStream;
 
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
@@ -122,13 +121,6 @@ public abstract class XrootdBucket
     @Override
     public String toString() {
         return "bucket type: "+ _type +"\n";
-    }
-
-    protected void writeInt(OutputStream out, int v) throws IOException {
-        out.write( (byte) (v >> 24));
-        out.write( (byte) (v >> 16));
-        out.write( (byte) (v >> 8));
-        out.write( (byte)  v);
     }
 }
 
