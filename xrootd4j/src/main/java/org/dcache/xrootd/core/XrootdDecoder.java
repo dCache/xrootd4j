@@ -42,24 +42,10 @@ public class XrootdDecoder extends ByteToMessageDecoder
     private static final Logger _logger =
         LoggerFactory.getLogger(XrootdDecoder.class);
 
-    private boolean gotHandshake = false;
-
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out)
     {
         int readable = in.readableBytes();
-
-        /* The first 20 bytes form a handshake.
-         */
-        if (!gotHandshake) {
-            if (readable < CLIENT_HANDSHAKE_LEN) {
-                return;
-            }
-            gotHandshake = true;
-
-            out.add(new HandshakeRequest(in.readSlice(CLIENT_HANDSHAKE_LEN)));
-            return;
-        }
 
         /* All other requests have a common framing format with a
          * fixed length header.

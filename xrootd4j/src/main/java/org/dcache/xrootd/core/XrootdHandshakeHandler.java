@@ -18,75 +18,60 @@
  */
 package org.dcache.xrootd.core;
 
-import java.util.Arrays;
-
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
-
-import org.dcache.xrootd.protocol.messages.XrootdRequest;
-import org.dcache.xrootd.protocol.messages.HandshakeRequest;
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-
-import io.netty.util.ReferenceCountUtil;
+import io.netty.handler.codec.ByteToMessageDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+import java.util.List;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+
 /**
- * A ChannelHandler which recognizes the xrootd handshake and
- * generates an appropriate response. Once handshaked, all messages
- * are passed on. Failure to handshake causes the channel to be
- * closed.
+ * A ChannelHandler which recognizes the xrootd handshake and generates an
+ * appropriate response. Once handshaked, the handler removes itself from
+ * the pipeline. Failure to handshake causes the channel to be closed.
  */
-public class XrootdHandshakeHandler extends ChannelInboundHandlerAdapter
+public class XrootdHandshakeHandler extends ByteToMessageDecoder
 {
-    private static final Logger _log =
+    private static final Logger LOGGER =
         LoggerFactory.getLogger(XrootdHandshakeHandler.class);
 
-    private final int _serverType;
+    private final byte[] response;
 
     public XrootdHandshakeHandler(int serverType)
     {
-        _serverType = serverType;
+        switch (serverType) {
+        case LOAD_BALANCER:
+            response = HANDSHAKE_RESPONSE_LOADBALANCER;
+            break;
+        case DATA_SERVER:
+            response = HANDSHAKE_RESPONSE_DATASERVER;
+            break;
+        default:
+            throw new IllegalArgumentException("Unknown server type: " + serverType);
+        }
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception
+    protected final void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception
     {
-        try {
-            if (!(msg instanceof HandshakeRequest)) {
-                _log.error("Invalid handshake");
-                ctx.close();
-                return;
-            }
+        if (in.readableBytes() >= CLIENT_HANDSHAKE_LEN) {
+            byte[] handshake = new byte[20];
+            in.readBytes(handshake);
 
-            byte[] request = ((HandshakeRequest) msg).getHandshake();
-            if (!Arrays.equals(request, HANDSHAKE_REQUEST)) {
-                _log.error("Received corrupt handshake message ({} bytes).", request.length);
-                ctx.close();
-                return;
-            }
-
-            byte[] response;
-            switch (_serverType) {
-            case LOAD_BALANCER:
-                response = HANDSHAKE_RESPONSE_LOADBALANCER;
-                break;
-
-            case DATA_SERVER:
-                response = HANDSHAKE_RESPONSE_DATASERVER;
-                break;
-
-            default:
-                _log.error("Unknown server type ({})", _serverType);
+            if (!Arrays.equals(handshake, HANDSHAKE_REQUEST)) {
+                in.clear();
+                LOGGER.warn("{} Received invalid handshake.", ctx.channel());
                 ctx.close();
                 return;
             }
 
             ctx.writeAndFlush(Unpooled.wrappedBuffer(response));
             ctx.channel().pipeline().remove(this);
-        } finally {
-            ReferenceCountUtil.release(msg);
         }
     }
 }

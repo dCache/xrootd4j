@@ -48,12 +48,12 @@ public class DataServerChannelInitializer extends ChannelInitializer<SocketChann
     protected void initChannel(SocketChannel ch) throws Exception
     {
         ChannelPipeline pipeline = ch.pipeline();
+        pipeline.addLast("handshaker", new XrootdHandshakeHandler(DATA_SERVER));
         pipeline.addLast("encoder", new XrootdEncoder());
         pipeline.addLast("decoder", new XrootdDecoder());
         if (logger.isDebugEnabled()) {
             pipeline.addLast("logger", new LoggingHandler(DataServerChannelInitializer.class));
         }
-        pipeline.addLast("handshaker", new XrootdHandshakeHandler(DATA_SERVER));
 
         for (ChannelHandlerFactory factory: _options.channelHandlerFactories) {
             pipeline.addLast("plugin:" + factory.getName(), factory.createHandler());
