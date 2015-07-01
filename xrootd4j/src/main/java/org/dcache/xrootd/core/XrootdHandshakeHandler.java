@@ -59,7 +59,7 @@ public class XrootdHandshakeHandler extends SimpleChannelUpstreamHandler
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e)
         throws Exception
     {
-        XrootdRequest msg = (XrootdRequest) e.getMessage();
+        Object msg = e.getMessage();
 
         if (!_isHandshaked) {
             if (!(msg instanceof HandshakeRequest)) {
