@@ -53,10 +53,8 @@ public class XrootdHandshakeHandler extends ChannelInboundHandlerAdapter
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object obj) throws Exception
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception
     {
-        XrootdRequest msg = (XrootdRequest) obj;
-
         if (!_isHandshaked) {
             try {
                 if (!(msg instanceof HandshakeRequest)) {
