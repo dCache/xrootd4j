@@ -18,30 +18,23 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.openssl.PEMReader;
-import org.globus.gsi.CertificateRevocationLists;
-import org.globus.gsi.TrustedCertificates;
-import org.globus.gsi.proxy.ProxyPathValidator;
-import org.globus.gsi.proxy.ProxyPathValidatorException;
+import eu.emi.security.authn.x509.CrlCheckingMode;
+import eu.emi.security.authn.x509.NamespaceCheckingMode;
+import eu.emi.security.authn.x509.OCSPCheckingMode;
+import eu.emi.security.authn.x509.OCSPParametes;
+import eu.emi.security.authn.x509.ProxySupport;
+import eu.emi.security.authn.x509.RevocationParameters;
+import eu.emi.security.authn.x509.X509CertChainValidator;
+import eu.emi.security.authn.x509.impl.OpensslCertChainValidator;
+import eu.emi.security.authn.x509.impl.PEMCredential;
+import eu.emi.security.authn.x509.impl.ValidatorParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.security.GeneralSecurityException;
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.PrivateKey;
-import java.security.Security;
+import java.security.KeyStoreException;
 import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
-import java.security.spec.InvalidKeySpecException;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -69,23 +62,15 @@ public class GSIAuthenticationFactory implements AuthenticationFactory
     private final String _hostCertificatePath;
     private final String _hostKeyPath;
     private final String _caCertificatePath;
-
-    private X509Certificate _hostCertificate;
-    private PrivateKey _hostKey;
-    private TrustedCertificates _trustedCerts;
+    private final X509CertChainValidator _validator;
 
     private final long _hostCertRefreshInterval;
     private final long _trustAnchorRefreshInterval;
     private long _hostCertRefreshTimestamp = 0;
-    private long _trustAnchorRefreshTimestamp = 0;
 
-    private final ProxyPathValidator _proxyValidator = new ProxyPathValidator();
     private final boolean _verifyHostCertificate;
 
-    static
-    {
-        Security.addProvider(new BouncyCastleProvider());
-    }
+    private PEMCredential _hostCredential;
 
     public GSIAuthenticationFactory(Properties properties)
     {
@@ -103,21 +88,25 @@ public class GSIAuthenticationFactory implements AuthenticationFactory
         _trustAnchorRefreshInterval =
                 TimeUnit.valueOf(properties.getProperty("xrootd.gsi.ca.refresh.unit"))
                         .toMillis(Integer.parseInt(properties.getProperty("xrootd.gsi.ca.refresh")));
+        NamespaceCheckingMode namespaceMode =
+                NamespaceCheckingMode.valueOf(properties.getProperty("xrootd.gsi.ca.namespace-mode"));
+        CrlCheckingMode crlCheckingMode =
+                CrlCheckingMode.valueOf(properties.getProperty("xrootd.gsi.ca.crl-mode"));
+        OCSPCheckingMode ocspCheckingMode =
+                OCSPCheckingMode.valueOf(properties.getProperty("xrootd.gsi.ca.ocsp-mode"));
+        ValidatorParams validatorParams = new ValidatorParams(
+                new RevocationParameters(crlCheckingMode, new OCSPParametes(ocspCheckingMode)), ProxySupport.ALLOW);
+        _validator =
+                new OpensslCertChainValidator(_caCertificatePath, false, namespaceMode,
+                                              _trustAnchorRefreshInterval, validatorParams, false);
     }
 
     @Override
     public AuthenticationHandler createHandler()
         throws InvalidHandlerConfigurationException
     {
-        CertificateRevocationLists crls =
-            CertificateRevocationLists.getDefaultCertificateRevocationLists();
-
         try {
-            loadTrustAnchors();
-            loadServerCredentials(crls);
-        } catch (ProxyPathValidatorException ppvex) {
-            String msg = "Could not verify server certificate chain";
-            throw new InvalidHandlerConfigurationException(msg, ppvex);
+            loadServerCredentials();
         } catch (GeneralSecurityException gssex) {
             String msg = "Could not load certificates/key due to security error";
             throw new InvalidHandlerConfigurationException(msg, gssex);
@@ -126,88 +115,23 @@ public class GSIAuthenticationFactory implements AuthenticationFactory
             throw new InvalidHandlerConfigurationException(msg, ioex);
         }
 
-        return new GSIAuthenticationHandler(_hostCertificate,
-                                            _hostKey,
-                                            _trustedCerts,
-                                            crls);
+        return new GSIAuthenticationHandler(_hostCredential, _validator);
     }
 
-    /**
-     * Reload the trusted certificates from the position specified in
-     * caCertDir
-     */
-    private synchronized void loadTrustAnchors()
+    private synchronized void loadServerCredentials() throws CertificateException, KeyStoreException, IOException
     {
-        long timeSinceLastTrustAnchorRefresh = (System.currentTimeMillis() -
-                _trustAnchorRefreshTimestamp);
-
-        if (_trustedCerts == null ||
-                (timeSinceLastTrustAnchorRefresh >= _trustAnchorRefreshInterval)) {
-            _logger.info("CA certificate directory: {}", _caCertificatePath);
-            _trustedCerts = TrustedCertificates.load(_caCertificatePath);
-
-            _trustAnchorRefreshTimestamp = System.currentTimeMillis();
-        }
-    }
-
-    private synchronized void loadServerCredentials(CertificateRevocationLists crls)
-        throws CertificateException, IOException, NoSuchAlgorithmException,
-            InvalidKeySpecException, ProxyPathValidatorException, NoSuchProviderException
-    {
-        long timeSinceLastServerRefresh =
-            (System.currentTimeMillis() - _hostCertRefreshTimestamp);
-
-        if (_hostCertificate == null || _hostKey == null ||
-                (timeSinceLastServerRefresh >= _hostCertRefreshInterval)) {
-            _logger.info("Time since last server cert refresh {}",
-                      timeSinceLastServerRefresh);
-            _logger.info("Loading server certificates. Current refresh " +
-                      "interval: {} ms",
+        long timeSinceLastServerRefresh = (System.currentTimeMillis() - _hostCertRefreshTimestamp);
+        if (_hostCredential == null || timeSinceLastServerRefresh >= _hostCertRefreshInterval) {
+            _logger.info("Time since last server cert refresh {}", timeSinceLastServerRefresh);
+            _logger.info("Loading server certificates. Current refresh interval: {} ms",
                       _hostCertRefreshInterval);
-             loadHostCertificate();
-             loadHostKey();
-
+            PEMCredential credential = new PEMCredential(_hostKeyPath, _hostCertificatePath, null);
              if (_verifyHostCertificate) {
                  _logger.info("Verifying host certificate");
-                 verifyHostCertificate(crls);
+                 _validator.validate(credential.getCertificateChain());
              }
-
+             _hostCredential = credential;
              _hostCertRefreshTimestamp = System.currentTimeMillis();
         }
-    }
-
-    private void loadHostCertificate()
-        throws CertificateException, IOException, NoSuchProviderException
-    {
-        try (InputStream fis = new FileInputStream(_hostCertificatePath)) {
-            CertificateFactory cf =
-                    CertificateFactory.getInstance("X.509", "BC");
-            _hostCertificate = (X509Certificate) cf.generateCertificate(fis);
-        }
-    }
-
-    private void loadHostKey()
-        throws NoSuchAlgorithmException, IOException, InvalidKeySpecException
-    {
-        /* java's RSA KeyFactory needs keys in PKCS8 encoding. Use
-         * BouncyCastle instead, as jGlobus does.
-         */
-        BufferedReader br = new BufferedReader(new FileReader(_hostKeyPath));
-        KeyPair kp = (KeyPair) new PEMReader(br).readObject();
-        _hostKey = kp.getPrivate();
-    }
-
-    /**
-     * Check whether host certificate's certificate chain is trusted according
-     * to jGlobus' proxy validation check
-     * @throws ProxyPathValidatorException
-     */
-    private void verifyHostCertificate(CertificateRevocationLists crls)
-        throws ProxyPathValidatorException
-    {
-        _proxyValidator.validate(new X509Certificate[] { _hostCertificate },
-                                 _trustedCerts.getCertificates(),
-                                 crls,
-                                 _trustedCerts.getSigningPolicies());
     }
 }

@@ -18,22 +18,20 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
+import eu.emi.security.authn.x509.X509CertChainValidator;
+import eu.emi.security.authn.x509.X509Credential;
+import eu.emi.security.authn.x509.impl.CertificateUtils;
 import io.netty.buffer.ByteBuf;
-import org.globus.gsi.CertificateRevocationLists;
-import org.globus.gsi.TrustedCertificates;
-import org.globus.gsi.proxy.ProxyPathValidator;
-import org.globus.gsi.proxy.ProxyPathValidatorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
 import javax.security.auth.Subject;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.StringReader;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
-import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
@@ -99,15 +97,10 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
 
     /** cryptographic helper classes */
     private static final SecureRandom _random = new SecureRandom();
-    private static final ProxyPathValidator _proxyValidator =
-        new ProxyPathValidator();
-
 
     /** certificates/keys/trust-anchors */
-    private final TrustedCertificates _trustedCerts;
-    private final X509Certificate _hostCertificate;
-    private final PrivateKey _hostKey;
-    private final CertificateRevocationLists _crls;
+    private final X509Credential _hostCredential;
+    private final X509CertChainValidator _validator;
 
     private String _challenge = "";
     private Cipher _challengeCipher;
@@ -121,16 +114,9 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
 
     private boolean _finished = false;
 
-    public GSIAuthenticationHandler(X509Certificate hostCertificate,
-                                    PrivateKey privateKey,
-                                    TrustedCertificates trustedCerts,
-                                    CertificateRevocationLists crls) {
-
-        _hostCertificate = hostCertificate;
-        _hostKey = privateKey;
-        _trustedCerts = trustedCerts;
-        _crls = crls;
-
+    public GSIAuthenticationHandler(X509Credential hostCredential, X509CertChainValidator validator) {
+        _hostCredential = hostCredential;
+        _validator = validator;
         _subject = new Subject();
     }
 
@@ -218,10 +204,8 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
         throws XrootdException
     {
         try {
-            _challengeCipher = Cipher.getInstance(SERVER_ASYNC_CIPHER_MODE,
-                                                  "BC");
-
-            _challengeCipher.init(Cipher.ENCRYPT_MODE, _hostKey);
+            _challengeCipher = Cipher.getInstance(SERVER_ASYNC_CIPHER_MODE, "BC");
+            _challengeCipher.init(Cipher.ENCRYPT_MODE, _hostCredential.getKey());
 
             Map<BucketType, XrootdBucket> buckets = request.getBuckets();
             NestedBucketBuffer buffer =
@@ -239,8 +223,10 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
             /* send DH params */
             byte[] puk = _dhSession.getEncodedDHMaterial().getBytes();
             /* send host certificate */
+            _hostCredential.getCertificate().getEncoded();
+
             String hostCertificateString =
-                CertUtil.certToPEM(_hostCertificate.getEncoded());
+                CertUtil.certToPEM(_hostCredential.getCertificate());
 
             XrootdBucketContainer responseBuckets =
                             buildCertReqResponse(signedRtag,
@@ -328,30 +314,18 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                 ((StringBucket) clientX509Bucket).getContent();
 
             /* now it's time to verify the client's X509 certificate */
-            List<X509Certificate> clientCerts =
-                CertUtil.parseCerts(new StringReader(clientX509));
-
-            X509Certificate proxyCert;
-
-            if (clientCerts.size() > 1) {
-                proxyCert = clientCerts.get(0);
-            } else {
+            X509Certificate[] proxyCertChain = CertificateUtils.loadCertificateChain(new ByteArrayInputStream(clientX509.getBytes(US_ASCII)), CertificateUtils.Encoding.PEM);
+            if (proxyCertChain.length == 0) {
                 throw new IllegalArgumentException("Could not parse user " +
                                                    "certificate from input stream!");
             }
-
+            X509Certificate proxyCert = proxyCertChain[0];
             _logger.info("The proxy-cert has the subject {} and the issuer {}",
                          proxyCert.getSubjectDN(),
                          proxyCert.getIssuerDN());
 
-            X509Certificate[] proxyCertChain =
-                    clientCerts.toArray(new X509Certificate[clientCerts.size()]);
+            _validator.validate(proxyCertChain);
             _subject.getPublicCredentials().add(proxyCertChain);
-
-            _proxyValidator.validate(proxyCertChain,
-                                     _trustedCerts.getCertificates(),
-                                     _crls,
-                                     _trustedCerts.getSigningPolicies());
 
             _challengeCipher.init(Cipher.DECRYPT_MODE, proxyCert.getPublicKey());
 
@@ -393,12 +367,6 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
             throw new XrootdException(kXR_IOError,
                                       "Could not decrypt encrypted " +
                                       "client message.");
-        } catch (ProxyPathValidatorException ppvex) {
-            _logger.error("Could not validate certificate path of client " +
-                          "certificate: {}", ppvex);
-            throw new XrootdException(kXR_NotAuthorized,
-                                      "Your certificate's issuer is " +
-                                      "not trusted.");
         } catch (GeneralSecurityException gssex) {
             _logger.error("Error during decrypting/server-side key exchange: {}",
                           gssex);
@@ -508,7 +476,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
     public String getProtocol() {
         /* hashed principals are cached in CertUtil */
         String subjectHash =
-            CertUtil.computeMD5Hash(_hostCertificate.getIssuerX500Principal());
+            CertUtil.computeMD5Hash(_hostCredential.getCertificate().getIssuerX500Principal());
 
         return "&P=" + PROTOCOL + "," +
                 "v:" + PROTOCOL_VERSION + "," +

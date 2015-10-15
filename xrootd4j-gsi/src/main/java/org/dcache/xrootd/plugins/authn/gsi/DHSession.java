@@ -18,9 +18,9 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
+import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.pkcs.DHParameter;
-import org.globus.gsi.bc.BouncyCastleUtil;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -34,6 +34,7 @@ import javax.crypto.spec.DHPublicKeySpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
@@ -221,8 +222,9 @@ public class DHSession
      */
     private DHParameterSpec fromDER(byte[] der) throws IOException
     {
-        DHParameter dhparam = new DHParameter((ASN1Sequence) BouncyCastleUtil
-                .toDERObject(der));
+        ByteArrayInputStream inStream = new ByteArrayInputStream(der);
+        ASN1InputStream derInputStream = new ASN1InputStream(inStream);
+        DHParameter dhparam = new DHParameter((ASN1Sequence) derInputStream.readObject());
         return new DHParameterSpec(dhparam.getP(), dhparam.getG());
     }
 

@@ -18,25 +18,21 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
+import com.google.common.base.Throwables;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.StringUtils;
+import org.bouncycastle.openssl.PEMWriter;
 
 import javax.security.auth.x500.X500Principal;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.Reader;
-import java.security.GeneralSecurityException;
+import java.io.StringWriter;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.X509Certificate;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static org.globus.gsi.CertUtil.readCertificate;
 
 /**
  *
@@ -86,14 +82,20 @@ public class CertUtil
     /**
      * Encodes to PEM format with default X.509 certificate
      * header/footer
-     * @param der the content to be encoded
+     * @param certificate the certificate to be encoded
      * @return the PEM-encoded String
      */
-    public static String certToPEM(byte [] der)
+    public static String certToPEM(X509Certificate certificate)
     {
-        return toPEM(der,
-                     "-----BEGIN CERTIFICATE-----",
-                     "-----END CERTIFICATE-----");
+        try {
+            StringWriter output = new StringWriter();
+            PEMWriter writer = new PEMWriter(output);
+            writer.writeObject(certificate);
+            writer.flush();
+            return output.toString();
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
     /**
@@ -217,35 +219,4 @@ public class CertUtil
         return sb;
     }
 
-    /**
-     * Parses a sequence of certificates from an input source and returns it
-     * as a list. The cert list usually represents a 'certificate path', used
-     * to validate the chain of trust.
-     *
-     * @param in the input source
-     * @return a list of x509 certificates
-     * @throws IOException if an parse error occurs
-     * @throws GeneralSecurityException if not certificates are found
-     */
-    public static List<X509Certificate> parseCerts(Reader in)
-        throws IOException, GeneralSecurityException
-    {
-        if (in == null) {
-            throw new IllegalArgumentException("no inputstream given");
-        }
-
-        List<X509Certificate> list = new LinkedList<>();
-        X509Certificate cert;
-        try (BufferedReader reader = new BufferedReader(in)) {
-            while ((cert = readCertificate(reader)) != null) {
-                list.add(cert);
-            }
-        }
-
-        if (list.isEmpty()) {
-            throw new GeneralSecurityException("no certificates found");
-        }
-
-        return list;
-    }
 }

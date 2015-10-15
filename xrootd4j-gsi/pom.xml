@@ -47,14 +47,8 @@
         <artifactId>commons-codec</artifactId>
     </dependency>
     <dependency>
-        <groupId>org.jglobus</groupId>
-        <artifactId>ssl-proxies</artifactId>
-        <exclusions>
-            <exclusion>
-                <groupId>commons-logging</groupId>
-                <artifactId>commons-logging-api</artifactId>
-            </exclusion>
-        </exclusions>
+        <groupId>eu.eu-emi.security</groupId>
+        <artifactId>canl</artifactId>
     </dependency>
     <dependency>
         <groupId>org.dcache</groupId>
