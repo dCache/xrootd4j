@@ -51,6 +51,10 @@
         <artifactId>canl</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk15on</artifactId>
+    </dependency>
+    <dependency>
         <groupId>org.dcache</groupId>
         <artifactId>xrootd4j</artifactId>
     </dependency>

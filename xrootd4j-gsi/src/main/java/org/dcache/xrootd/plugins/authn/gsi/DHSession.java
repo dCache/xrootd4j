@@ -104,7 +104,7 @@ public class DHSession
         _keyAgreement.init(_localDHKeyPair.getPrivate());
     }
 
-    public String getEncodedDHMaterial()
+    public String getEncodedDHMaterial() throws IOException
     {
         String dhparams =
             CertUtil.toPEM(toDER(DH_PARAMETERS), DH_HEADER, DH_FOOTER);
@@ -224,7 +224,7 @@ public class DHSession
     {
         ByteArrayInputStream inStream = new ByteArrayInputStream(der);
         ASN1InputStream derInputStream = new ASN1InputStream(inStream);
-        DHParameter dhparam = new DHParameter((ASN1Sequence) derInputStream.readObject());
+        DHParameter dhparam = DHParameter.getInstance(derInputStream.readObject());
         return new DHParameterSpec(dhparam.getP(), dhparam.getG());
     }
 
@@ -233,7 +233,7 @@ public class DHSession
      * @param paramspec the DH parameter object
      * @return the DER-encoded byte sequence of the DH Parameter object
      */
-    private byte[] toDER(DHParameterSpec paramspec)
+    private byte[] toDER(DHParameterSpec paramspec) throws IOException
     {
         DHParameter derParams = new DHParameter(paramspec.getP(), // Prime
                                                                   // (public
@@ -241,6 +241,6 @@ public class DHSession
                 paramspec.getG(), // generator
                 paramspec.getP().bitLength()); // keylength of Prime
 
-        return derParams.getDEREncoded();
+        return derParams.getEncoded("DER");
     }
 }

@@ -247,19 +247,19 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
             _logger.error("Configured host-key could not be used for" +
                           "signing rtag: {}", ikex);
             throw new XrootdException(kXR_ServerError,
-                                      "Internal error occured when trying " +
+                                      "Internal error occurred when trying " +
                                       "to sign client authentication tag.");
         } catch (CertificateEncodingException cee) {
             _logger.error("Could not extract contents of server certificate:" +
                           " {}", cee);
             throw new XrootdException(kXR_ServerError,
-                                      "Internal error occured when trying " +
+                                      "Internal error occurred when trying " +
                                       "to send server certificate.");
-        } catch (GeneralSecurityException gssex) {
+        } catch (IOException | GeneralSecurityException gssex) {
             _logger.error("Problems during signing of client authN tag " +
                           "(algorithm {}): {}", SERVER_ASYNC_CIPHER_MODE, gssex);
             throw new XrootdException(kXR_ServerError,
-                                      "Internal error occured when trying " +
+                                      "Internal error occurred when trying " +
                                       "to sign client authentication tag.");
         }
     }
