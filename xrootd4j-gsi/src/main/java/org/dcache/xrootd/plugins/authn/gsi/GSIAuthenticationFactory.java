@@ -198,6 +198,9 @@ public class GSIAuthenticationFactory implements AuthenticationFactory
          */
         BufferedReader br = new BufferedReader(new FileReader(_hostKeyPath));
         KeyPair kp = (KeyPair) new PEMReader(br).readObject();
+        if (kp == null) {
+            throw new IOException("Unknown private key format: " + _hostKeyPath);
+        }
         _hostKey = kp.getPrivate();
     }
 
