@@ -43,7 +43,12 @@ public class AsyncResponse<T extends XrootdRequest>
     @Override
     public int getStatus()
     {
-        return kXR_asynresp;
+        return response.getStatus();
+    }
+
+    public XrootdResponse<T> getResponse()
+    {
+        return response;
     }
 
     @Override
