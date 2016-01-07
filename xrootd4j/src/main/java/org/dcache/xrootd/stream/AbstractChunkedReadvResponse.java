@@ -20,6 +20,7 @@ package org.dcache.xrootd.stream;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.util.ReferenceCountUtil;
 
 import java.io.IOException;
 
@@ -58,14 +59,23 @@ public abstract class AbstractChunkedReadvResponse implements ChunkedResponse
 
         int count = getChunksInNextFrame(maxFrameSize);
         ByteBuf[] chunks = new ByteBuf[requests.length];
-        for (int i = index; i < index + count; i++) {
-            chunks[i] = read(alloc, requests[i]);
-        }
+        try {
+            for (int i = index; i < index + count; i++) {
+                chunks[i] = read(alloc, requests[i]);
+            }
 
-        ReadVResponse response =
-                new ReadVResponse(request, requests, chunks, index, count, index + count < requests.length);
-        index += count;
-        return response;
+            ReadVResponse response =
+                    new ReadVResponse(request, requests, chunks, index, count, index + count < requests.length);
+            index += count;
+            return response;
+        } catch (RuntimeException | IOException | XrootdException e) {
+            for (ByteBuf chunk : chunks) {
+                if (chunk != null) {
+                    ReferenceCountUtil.release(chunk);
+                }
+            }
+            throw e;
+        }
     }
 
     @Override
