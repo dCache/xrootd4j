@@ -93,13 +93,9 @@ public class ChunkedResponseWriteHandler
     @Override
     public void flush(ChannelHandlerContext ctx) throws Exception
     {
-        if (queue.isEmpty()) {
+        if (!doFlush(ctx)) {
+            // Make sure to flush at least once.
             ctx.flush();
-        } else {
-            Channel channel = ctx.channel();
-            if (channel.isWritable() || !channel.isActive()) {
-                doFlush(ctx);
-            }
         }
     }
 
@@ -107,7 +103,7 @@ public class ChunkedResponseWriteHandler
     public void channelInactive(ChannelHandlerContext ctx) throws Exception
     {
         doFlush(ctx);
-        super.channelInactive(ctx);
+        ctx.fireChannelInactive();
     }
 
     @Override
@@ -151,13 +147,14 @@ public class ChunkedResponseWriteHandler
         }
     }
 
-    private void doFlush(final ChannelHandlerContext ctx) throws Exception
+    private boolean doFlush(final ChannelHandlerContext ctx) throws Exception
     {
         final Channel channel = ctx.channel();
         if (!channel.isActive()) {
             discard(null);
-            return;
+            return false;
         }
+        boolean flushed = false;
         while (channel.isWritable()) {
             if (currentWrite == null) {
                 currentWrite = queue.poll();
@@ -227,12 +224,15 @@ public class ChunkedResponseWriteHandler
 
             // Always need to flush
             ctx.flush();
+            flushed = true;
 
             if (!channel.isActive()) {
                 discard(new ClosedChannelException());
-                return;
+                break;
             }
         }
+        return flushed;
+
     }
 
     private static final class PendingWrite {
