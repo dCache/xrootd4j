@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
 import org.dcache.xrootd.protocol.messages.DirListRequest;
+import org.dcache.xrootd.protocol.messages.EndSessionRequest;
 import org.dcache.xrootd.protocol.messages.ErrorResponse;
 import org.dcache.xrootd.protocol.messages.LocateRequest;
 import org.dcache.xrootd.protocol.messages.LoginRequest;
@@ -164,6 +165,10 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
             case kXR_set :
                 response =
                         doOnSet(ctx, (SetRequest) req);
+                break;
+            case kXR_endsess:
+                response =
+                        doOnEndSession(ctx, (EndSessionRequest) req);
                 break;
             default:
                 response =
@@ -345,6 +350,13 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
 
     protected Object doOnSet(ChannelHandlerContext ctx,
                              SetRequest request)
+            throws XrootdException
+    {
+        return unsupported(ctx, request);
+    }
+
+    protected Object doOnEndSession(ChannelHandlerContext ctx,
+                                    EndSessionRequest request)
             throws XrootdException
     {
         return unsupported(ctx, request);
