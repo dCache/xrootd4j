@@ -199,13 +199,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     protected Void doOnOpen(ChannelHandlerContext ctx, OpenRequest msg)
         throws XrootdException
     {
-        FilePerm neededPerm;
-        if (msg.isNew() || msg.isReadWrite()) {
-            neededPerm = FilePerm.WRITE;
-        } else {
-            neededPerm = FilePerm.READ;
-        }
-        authorize(ctx, msg, neededPerm);
+        authorize(ctx, msg, msg.getRequiredPermission());
         ctx.fireChannelRead(msg);
         return null;
     }
