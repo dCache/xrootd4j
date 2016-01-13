@@ -72,6 +72,10 @@ public class OpenRequest extends PathRequest
         return (getOptions() & kXR_open_updt) == kXR_open_updt;
     }
 
+    public boolean isAppend() {
+        return (getOptions() & kXR_open_apnd) == kXR_open_apnd;
+    }
+
     public boolean isRefresh() {
         return (getOptions() & kXR_refresh) == kXR_refresh;
     }
@@ -82,6 +86,11 @@ public class OpenRequest extends PathRequest
 
     public boolean isMkPath() {
         return (getOptions() & kXR_mkpath) == kXR_mkpath;
+    }
+
+    public FilePerm getRequiredPermission()
+    {
+        return isNew() || isDelete() || isReadWrite() || isAppend() ? FilePerm.WRITE : FilePerm.READ;
     }
 
     @Override
