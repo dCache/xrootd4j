@@ -232,13 +232,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
                                                OpenRequest msg)
         throws XrootdException
     {
-        FilePerm neededPerm;
-        if (msg.isNew() || msg.isReadWrite()) {
-            neededPerm = FilePerm.WRITE;
-        } else {
-            neededPerm = FilePerm.READ;
-        }
-        authorize(event, msg, neededPerm);
+        authorize(event, msg, msg.getRequiredPermission());
         ctx.sendUpstream(event);
         return null;
     }
