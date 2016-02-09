@@ -20,15 +20,18 @@ package org.dcache.xrootd.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import org.dcache.xrootd.protocol.XrootdProtocol;
+import org.dcache.xrootd.util.FileStatus;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class DirListResponse extends AbstractXrootdResponse<DirListRequest>
 {
-    private final Iterable<String> names;
+    protected final Iterable<String> names;
 
     public DirListResponse(DirListRequest request, int statusCode, Iterable<String> names)
     {
@@ -66,14 +69,123 @@ public class DirListResponse extends AbstractXrootdResponse<DirListRequest>
                 buffer.writeByte('\n');
                 buffer.writeBytes(i.next().getBytes(US_ASCII));
             }
-            /* Last entry in the list is terminated by a 0 rather than by
-             * a \n, if not more entries follow because the message is an
-             * intermediate message */
+            /* If no more entries follow, the last entry in the list is terminated
+             * by a 0 rather than by a \n.
+             */
             if (stat == XrootdProtocol.kXR_oksofar) {
                 buffer.writeByte('\n');
             } else {
                 buffer.writeByte(0);
             }
+        }
+    }
+
+    public static Builder builder(DirListRequest request)
+    {
+        return request.isDirectoryStat() ? new StatBuilder(request) : new SimpleBuilder(request);
+    }
+
+    public interface Builder
+    {
+        void add(String name);
+        void add(String name, FileStatus status);
+        DirListResponse buildPartial();
+        DirListResponse buildFinal();
+        int count();
+    }
+
+    private static class SimpleBuilder implements Builder
+    {
+        private final DirListRequest request;
+        private List<String> names = new ArrayList<>();
+
+        public SimpleBuilder(DirListRequest request)
+        {
+            this.request = request;
+        }
+
+        @Override
+        public void add(String name)
+        {
+            names.add(name);
+        }
+
+        @Override
+        public void add(String name, FileStatus status)
+        {
+            names.add(name);
+        }
+
+        @Override
+        public DirListResponse buildPartial()
+        {
+            DirListResponse response = new DirListResponse(request, XrootdProtocol.kXR_oksofar, names);
+            names = new ArrayList<>();
+            return response;
+        }
+
+        @Override
+        public DirListResponse buildFinal()
+        {
+            DirListResponse response = new DirListResponse(request, XrootdProtocol.kXR_ok, names);
+            names = null;
+            return response;
+        }
+
+        @Override
+        public int count()
+        {
+            return names.size();
+        }
+    }
+
+    private static class StatBuilder implements Builder
+    {
+        private final DirListRequest request;
+        private List<String> names = new ArrayList<>();
+        private List<FileStatus> fileStatus = new ArrayList<>();
+
+        public StatBuilder(DirListRequest request)
+        {
+            this.request = request;
+        }
+
+        @Override
+        public void add(String name)
+        {
+            names.add(name);
+            fileStatus.add(new FileStatus(0, 0, 0, 0));
+        }
+
+        @Override
+        public void add(String name, FileStatus status)
+        {
+            names.add(name);
+            fileStatus.add(status);
+        }
+
+        @Override
+        public DirListResponse buildPartial()
+        {
+            DirListResponse response = new DirListStatResponse(request, XrootdProtocol.kXR_oksofar, names, fileStatus);
+            names = new ArrayList<>();
+            fileStatus = new ArrayList<>();
+            return response;
+        }
+
+        @Override
+        public DirListResponse buildFinal()
+        {
+            DirListResponse response = new DirListStatResponse(request, XrootdProtocol.kXR_ok, names, fileStatus);
+            names = null;
+            fileStatus = null;
+            return response;
+        }
+
+        @Override
+        public int count()
+        {
+            return names.size();
         }
     }
 }
