@@ -20,11 +20,7 @@ package org.dcache.xrootd.standalone;
 
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
-import com.google.common.io.Files;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.DefaultFileRegion;
-import io.netty.util.ReferenceCountUtil;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,8 +32,11 @@ import java.io.RandomAccessFile;
 import java.net.InetSocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileChannel;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.NotDirectoryException;
+import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.dcache.xrootd.core.XrootdException;
@@ -263,12 +262,23 @@ public class DataServerHandler extends XrootdRequestHandler
             throw new XrootdException(kXR_ArgMissing, "no source path specified");
         }
 
-        File dir = getFile(listPath);
-        String[] list = dir.list();
-        if (list == null) {
+        Path dir = getFile(listPath).toPath();
+        try (DirectoryStream<Path> paths = Files.newDirectoryStream(dir)) {
+            DirListResponse.Builder builder = DirListResponse.builder(request);
+            for (Path path : paths) {
+                builder.add(path.getFileName().toString(), request.isDirectoryStat() ? getFileStatusOf(path.toFile()) : null);
+                if (builder.count() >= 1000) {
+                    respond(context, builder.buildPartial());
+                }
+            }
+            return builder.buildFinal();
+        } catch (FileNotFoundException e) {
             throw new XrootdException(kXR_NotFound, "No such directory: " + dir);
+        } catch (NotDirectoryException e) {
+            throw new XrootdException(kXR_IOError, "Not a directory: " + dir);
+        } catch (IOException e) {
+            throw new XrootdException(kXR_IOError, "IO Error: " + dir);
         }
-        return new DirListResponse(request, kXR_ok, Arrays.asList(list));
     }
 
     @Override
@@ -499,7 +509,7 @@ public class DataServerHandler extends XrootdRequestHandler
 
         case kXR_Qcksum:
             try {
-                HashCode hash = Files.asByteSource(getFile(msg.getArgs())).hash(Hashing.adler32());
+                HashCode hash = com.google.common.io.Files.asByteSource(getFile(msg.getArgs())).hash(Hashing.adler32());
                 return new QueryResponse(msg, "ADLER32 " + hash);
             } catch (FileNotFoundException e) {
                 throw new XrootdException(kXR_NotFound, e.getMessage());
