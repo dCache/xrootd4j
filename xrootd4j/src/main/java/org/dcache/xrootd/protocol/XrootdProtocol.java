@@ -187,6 +187,7 @@ public interface XrootdProtocol {
 
     // dirlist options
     public static final int kXR_online = 1;
+    public static final int kXR_dstat  = 2;
 
     // mkdir options
     public static final int kXR_mknone    = 0;

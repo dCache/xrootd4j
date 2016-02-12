@@ -24,14 +24,28 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 public class DirListRequest extends PathRequest
 {
+    private final short options;
+
     public DirListRequest(ByteBuf buffer)
     {
         super(buffer, kXR_dirlist);
+        options = buffer.getUnsignedByte(19);
+    }
+
+    public boolean isDirectoryStat()
+    {
+        return (options & kXR_dstat) == kXR_dstat;
+    }
+
+    private short getOptions()
+    {
+        return options;
     }
 
     @Override
     public String toString()
     {
-        return "dirlist[" + getPath() + "," + getOpaque() + "]";
+        return String.format("dirlist[%#x,%s,%s]",
+                             getOptions(), getPath(), getOpaque());
     }
 }
