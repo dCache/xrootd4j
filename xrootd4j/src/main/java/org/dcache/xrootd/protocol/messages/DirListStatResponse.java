@@ -54,7 +54,7 @@ public class DirListStatResponse extends DirListResponse
         if (!names.iterator().hasNext()) {
             return 0;
         }
-        int length = 10;
+        int length = 0;
         Iterator<String> names = this.names.iterator();
         Iterator<FileStatus> status = this.status.iterator();
         while (names.hasNext() && status.hasNext()) {
@@ -69,13 +69,15 @@ public class DirListStatResponse extends DirListResponse
         Iterator<String> names = this.names.iterator();
         Iterator<FileStatus> status = this.status.iterator();
         if (names.hasNext() && status.hasNext()) {
-            buffer.writeBytes(".\n0 0 0 0".getBytes(US_ASCII));
-            do {
+            buffer.writeBytes(names.next().getBytes(US_ASCII));
+            buffer.writeByte('\n');
+            buffer.writeBytes(status.next().toString().getBytes(US_ASCII));
+            while (names.hasNext() && status.hasNext()) {
                 buffer.writeByte('\n');
                 buffer.writeBytes(names.next().getBytes(US_ASCII));
                 buffer.writeByte('\n');
                 buffer.writeBytes(status.next().toString().getBytes(US_ASCII));
-            } while (names.hasNext());
+            }
 
             /* If no more entries follow, the last entry in the list is terminated
              * by a 0 rather than by a \n.

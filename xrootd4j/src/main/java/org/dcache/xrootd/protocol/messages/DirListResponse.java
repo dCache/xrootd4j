@@ -27,7 +27,10 @@ import java.util.List;
 import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.util.FileStatus;
 
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterables.concat;
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.util.Collections.singleton;
 
 public class DirListResponse extends AbstractXrootdResponse<DirListRequest>
 {
@@ -119,6 +122,7 @@ public class DirListResponse extends AbstractXrootdResponse<DirListRequest>
         @Override
         public DirListResponse buildPartial()
         {
+            checkState(!names.isEmpty());
             DirListResponse response = new DirListResponse(request, XrootdProtocol.kXR_oksofar, names);
             names = new ArrayList<>();
             return response;
@@ -144,6 +148,7 @@ public class DirListResponse extends AbstractXrootdResponse<DirListRequest>
         private final DirListRequest request;
         private List<String> names = new ArrayList<>();
         private List<FileStatus> fileStatus = new ArrayList<>();
+        private boolean isFirst = true;
 
         public StatBuilder(DirListRequest request)
         {
@@ -167,19 +172,31 @@ public class DirListResponse extends AbstractXrootdResponse<DirListRequest>
         @Override
         public DirListResponse buildPartial()
         {
-            DirListResponse response = new DirListStatResponse(request, XrootdProtocol.kXR_oksofar, names, fileStatus);
-            names = new ArrayList<>();
-            fileStatus = new ArrayList<>();
-            return response;
+            checkState(!names.isEmpty());
+            return createResponse(XrootdProtocol.kXR_oksofar, new ArrayList<String>(), new ArrayList<FileStatus>());
         }
 
         @Override
         public DirListResponse buildFinal()
         {
-            DirListResponse response = new DirListStatResponse(request, XrootdProtocol.kXR_ok, names, fileStatus);
-            names = null;
-            fileStatus = null;
-            return response;
+            if (names.isEmpty()) {
+                return new DirListStatResponse(request, XrootdProtocol.kXR_ok, names, fileStatus);
+            }
+            return createResponse(XrootdProtocol.kXR_ok, null, null);
+        }
+
+        private DirListResponse createResponse(int statusCode, List<String> newNames, List<FileStatus> newFileStatuses)
+        {
+            Iterable<String> names = this.names;
+            Iterable<FileStatus> fileStatus = this.fileStatus;
+            this.names = newNames;
+            this.fileStatus = newFileStatuses;
+            if (isFirst) {
+                names = concat(singleton("."), names);
+                fileStatus = concat(singleton(new FileStatus(0, 0, 0, 0)), fileStatus);
+                isFirst = false;
+            }
+            return new DirListStatResponse(request, statusCode, names, fileStatus);
         }
 
         @Override
