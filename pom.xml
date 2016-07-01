@@ -331,5 +331,6 @@
     <module>xrootd4j-standalone</module>
     <module>xrootd4j-gsi</module>
     <module>xrootd4j-authz-archetype</module>
+    <module>xrootd4j-channelhandler-archetype</module>
   </modules>
 </project>
