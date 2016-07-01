@@ -80,6 +80,16 @@ The standalone server may be executed as follows:
 Please adjust the log level as needed. Add the -h option at the end of
 the command to get a brief synopsis of available options.
 
+Creating plugins from Maven archetypes
+--------------------------------------
+
+We provide templates for authorization and channel handler plugins. To instantiate
+such a template, run:
+
+    mvn -DarchetypeCatalog=https://download.dcache.org/nexus/content/groups/public -Dfilter=org.dcache: archetype:generate
+
+Select the appropriate archetype from the list.
+
 Authors
 -------
 
