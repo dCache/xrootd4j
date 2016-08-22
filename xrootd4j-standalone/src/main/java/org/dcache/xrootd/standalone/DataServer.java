@@ -73,7 +73,6 @@ public class DataServer
                 .group(bossGroup, workerGroup)
                 .channel(channelClass)
                 .localAddress(_configuration.port)
-                .option(ChannelOption.MAX_MESSAGES_PER_READ, 1)
                 .childOption(ChannelOption.TCP_NODELAY, true)
                 .childOption(ChannelOption.SO_KEEPALIVE, true)
                 .childHandler(new DataServerChannelInitializer(_configuration));

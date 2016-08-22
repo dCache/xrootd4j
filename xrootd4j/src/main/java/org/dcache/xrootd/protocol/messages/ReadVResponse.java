@@ -20,10 +20,10 @@ package org.dcache.xrootd.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.util.AbstractReferenceCounted;
+import io.netty.util.ReferenceCounted;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -85,7 +85,7 @@ public class ReadVResponse extends AbstractReferenceCounted implements XrootdRes
     {
         List<ByteBuf> chunks = new ArrayList<>(length);
         for (int i = 0; i < length; i++) {
-            chunks.add(Unpooled.unmodifiableBuffer(data[index + i]));
+            chunks.add(data[index + i].asReadOnly());
         }
         return chunks;
     }
@@ -164,6 +164,15 @@ public class ReadVResponse extends AbstractReferenceCounted implements XrootdRes
             payload += data[index + i].readableBytes();
         }
         return String.format("readv-response[elements=%d,bytes=%d]", length, payload);
+    }
+
+    @Override
+    public ReferenceCounted touch(Object hint)
+    {
+        for (int i = 0; i < length; i++) {
+            data[i + index].touch(hint);
+        }
+        return this;
     }
 
     @Override

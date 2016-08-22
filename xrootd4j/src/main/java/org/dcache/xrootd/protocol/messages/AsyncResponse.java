@@ -25,6 +25,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.util.AbstractReferenceCounted;
 import io.netty.util.ReferenceCountUtil;
+import io.netty.util.ReferenceCounted;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asynresp;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_attn;
@@ -113,6 +114,13 @@ public class AsyncResponse<T extends XrootdRequest>
         } finally {
             release();
         }
+    }
+
+    @Override
+    public ReferenceCounted touch(Object hint)
+    {
+        ReferenceCountUtil.touch(response, hint);
+        return this;
     }
 
     @Override

@@ -119,4 +119,18 @@ public class WriteRequest extends AbstractXrootdRequest implements ReferenceCoun
         data.retain();
         return this;
     }
+
+    @Override
+    public ReferenceCounted touch()
+    {
+        data.touch();
+        return this;
+    }
+
+    @Override
+    public ReferenceCounted touch(Object hint)
+    {
+        data.touch(hint);
+        return this;
+    }
 }

@@ -19,7 +19,6 @@
 package org.dcache.xrootd.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.util.ReferenceCounted;
@@ -75,7 +74,7 @@ public class ReadResponse implements XrootdResponse<ReadRequest>, ReferenceCount
 
     public ByteBuf getData()
     {
-        return Unpooled.unmodifiableBuffer(data);
+        return data.asReadOnly();
     }
 
     @Override
@@ -114,5 +113,19 @@ public class ReadResponse implements XrootdResponse<ReadRequest>, ReferenceCount
     public boolean release(int decrement)
     {
         return data.release(decrement);
+    }
+
+    @Override
+    public ReferenceCounted touch()
+    {
+        data.touch();
+        return this;
+    }
+
+    @Override
+    public ReferenceCounted touch(Object hint)
+    {
+        data.touch(hint);
+        return this;
     }
 }
