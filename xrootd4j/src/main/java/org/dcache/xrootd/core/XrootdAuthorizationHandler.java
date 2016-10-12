@@ -315,17 +315,14 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
         throws XrootdException
     {
         try {
-            Channel channel = ctx.channel();
-            InetSocketAddress localAddress =
-                (InetSocketAddress) channel.localAddress();
-            InetSocketAddress remoteAddress =
-                (InetSocketAddress) channel.remoteAddress();
+            InetSocketAddress destinationAddress = getDestinationAddress();
+            InetSocketAddress sourceAddress = getSourceAddress();
 
             AuthorizationHandler handler =
                 _authorizationFactory.createHandler();
             return handler.authorize(request.getSubject(),
-                                     localAddress,
-                                     remoteAddress,
+                                     destinationAddress,
+                                     sourceAddress,
                                      path,
                                      OpaqueStringParser.getOpaqueMap(opaque),
                                      request.getRequestId(),
