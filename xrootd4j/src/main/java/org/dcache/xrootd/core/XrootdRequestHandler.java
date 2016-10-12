@@ -19,13 +19,19 @@
 package org.dcache.xrootd.core;
 
 import com.google.common.base.Strings;
+import com.google.common.net.InetAddresses;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.codec.haproxy.HAProxyMessage;
+import io.netty.handler.codec.haproxy.HAProxyProxiedProtocol;
 import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.InetSocketAddress;
+import java.util.Objects;
 
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
@@ -72,11 +78,49 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
     private static final Logger _log =
         LoggerFactory.getLogger(XrootdRequestHandler.class);
 
+    private boolean _isHealthCheck;
+
+    private InetSocketAddress _destinationAddress;
+
+    private InetSocketAddress _sourceAddress;
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception
+    {
+        _destinationAddress = (InetSocketAddress) ctx.channel().localAddress();
+        _sourceAddress = (InetSocketAddress) ctx.channel().remoteAddress();
+    }
+
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception
     {
         if (msg instanceof XrootdRequest) {
             requestReceived(ctx, (XrootdRequest) msg);
+        } else if (msg instanceof HAProxyMessage) {
+            HAProxyMessage proxyMessage = (HAProxyMessage) msg;
+            switch (proxyMessage.command()) {
+            case LOCAL:
+                _isHealthCheck = true;
+                break;
+            case PROXY:
+                String sourceAddress = proxyMessage.sourceAddress();
+                String destinationAddress = proxyMessage.destinationAddress();
+                InetSocketAddress localAddress = (InetSocketAddress) ctx.channel().localAddress();
+                if (proxyMessage.proxiedProtocol() == HAProxyProxiedProtocol.TCP4 ||
+                    proxyMessage.proxiedProtocol() == HAProxyProxiedProtocol.TCP6) {
+                    if (Objects.equals(destinationAddress, localAddress.getAddress().getHostAddress())) {
+                        /* Workaround for what looks like a bug in HAProxy - health checks should
+                         * generate a LOCAL command, but it appears they do actually use PROXY.
+                         */
+                        _isHealthCheck = true;
+                    } else {
+                        _destinationAddress = new InetSocketAddress(InetAddresses.forString(destinationAddress), proxyMessage.destinationPort());
+                        _sourceAddress = new InetSocketAddress(InetAddresses.forString(sourceAddress), proxyMessage.sourcePort());
+                    }
+                }
+                break;
+            }
+            ctx.fireChannelRead(msg);
         } else {
             ctx.fireChannelRead(msg);
         }
@@ -361,5 +405,33 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
             throws XrootdException
     {
         return unsupported(ctx, request);
+    }
+
+    /**
+     * The socket address the client connected to. May be the local address
+     * of the channel, but could also be an address on a proxy server
+     * between the client and the server.
+     */
+    protected InetSocketAddress getDestinationAddress()
+    {
+        return _destinationAddress;
+    }
+
+    /**
+     * The socket address the client connected from. May be the remote address
+     * of the channel, but in case a proxy is in between the client and the
+     * server, the source address will be a different from the remote address.
+     */
+    protected InetSocketAddress getSourceAddress()
+    {
+        return _sourceAddress;
+    }
+
+    /**
+     * True if this looks like a health check connection from a proxy server.
+     */
+    protected boolean isHealthCheck()
+    {
+        return _isHealthCheck;
     }
 }
