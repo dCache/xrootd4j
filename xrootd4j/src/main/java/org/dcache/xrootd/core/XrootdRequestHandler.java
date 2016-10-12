@@ -89,6 +89,7 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
     {
         _destinationAddress = (InetSocketAddress) ctx.channel().localAddress();
         _sourceAddress = (InetSocketAddress) ctx.channel().remoteAddress();
+        super.channelActive(ctx);
     }
 
     @Override
