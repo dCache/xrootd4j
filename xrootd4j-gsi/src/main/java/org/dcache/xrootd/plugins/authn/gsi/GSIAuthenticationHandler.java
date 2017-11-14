@@ -156,7 +156,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
             }
         } catch (GeneralSecurityException gssex) {
             _logger.error("Error setting up cryptographic classes: {}",
-                          gssex);
+                          gssex.getMessage());
             throw new XrootdException(kXR_ServerError,
                                       "Server probably misconfigured.");
         }
@@ -245,19 +245,19 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                                               responseBuckets.getBuckets());
         } catch (InvalidKeyException ikex) {
             _logger.error("Configured host-key could not be used for" +
-                          "signing rtag: {}", ikex);
+                          "signing rtag: {}", ikex.getMessage());
             throw new XrootdException(kXR_ServerError,
                                       "Internal error occurred when trying " +
                                       "to sign client authentication tag.");
         } catch (CertificateEncodingException cee) {
             _logger.error("Could not extract contents of server certificate:" +
-                          " {}", cee);
+                          " {}", cee.getMessage());
             throw new XrootdException(kXR_ServerError,
                                       "Internal error occurred when trying " +
                                       "to send server certificate.");
         } catch (IOException | GeneralSecurityException gssex) {
             _logger.error("Problems during signing of client authN tag " +
-                          "(algorithm {}): {}", SERVER_ASYNC_CIPHER_MODE, gssex);
+                          "(algorithm {}): {}", SERVER_ASYNC_CIPHER_MODE, gssex.getMessage());
             throw new XrootdException(kXR_ServerError,
                                       "Internal error occurred when trying " +
                                       "to sign client authentication tag.");
@@ -353,23 +353,23 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
             return new OkResponse<>(request);
         } catch (InvalidKeyException ikex) {
             _logger.error("The key negotiated by DH key exchange appears to " +
-                          "be invalid: {}", ikex);
+                          "be invalid: {}", ikex.getMessage());
             throw new XrootdException(kXR_InvalidRequest,
                                       "Could not decrypt client" +
                                       "information with negotiated key.");
         } catch (InvalidKeySpecException iksex) {
-            _logger.error("DH key negotiation caused problems{}", iksex);
+            _logger.error("DH key negotiation caused problems {}", iksex.getMessage());
             throw new XrootdException(kXR_InvalidRequest,
                                       "Could not find key negotiation " +
                                       "parameters.");
         } catch (IOException ioex) {
-            _logger.error("Could not deserialize main nested buffer {}", ioex);
+            _logger.error("Could not deserialize main nested buffer {}", ioex.getMessage());
             throw new XrootdException(kXR_IOError,
                                       "Could not decrypt encrypted " +
                                       "client message.");
         } catch (GeneralSecurityException gssex) {
             _logger.error("Error during decrypting/server-side key exchange: {}",
-                          gssex);
+                          gssex.getMessage());
             throw new XrootdException(kXR_ServerError,
                                       "Error in server-side cryptographic " +
                                       "operations.");
