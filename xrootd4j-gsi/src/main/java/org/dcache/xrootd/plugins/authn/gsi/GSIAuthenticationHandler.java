@@ -155,8 +155,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                 _dhSession = new DHSession();
             }
         } catch (GeneralSecurityException gssex) {
-            _logger.error("Error setting up cryptographic classes: {}",
-                          gssex.getMessage());
+            _logger.error("Error setting up cryptographic classes: {}", gssex.getMessage());
             throw new XrootdException(kXR_ServerError,
                                       "Server probably misconfigured.");
         }
@@ -257,7 +256,9 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                                       "to send server certificate.");
         } catch (IOException | GeneralSecurityException gssex) {
             _logger.error("Problems during signing of client authN tag " +
-                          "(algorithm {}): {}", SERVER_ASYNC_CIPHER_MODE, gssex.getMessage());
+                          "(algorithm {}): {}", SERVER_ASYNC_CIPHER_MODE,
+                          gssex.getMessage() == null ?
+                          gssex.getClass().getName() : gssex.getMessage());
             throw new XrootdException(kXR_ServerError,
                                       "Internal error occurred when trying " +
                                       "to sign client authentication tag.");
@@ -363,7 +364,9 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                                       "Could not find key negotiation " +
                                       "parameters.");
         } catch (IOException ioex) {
-            _logger.error("Could not deserialize main nested buffer {}", ioex.getMessage());
+            _logger.error("Could not deserialize main nested buffer {}",
+                          ioex.getMessage() == null ?
+                          ioex.getClass().getName() : ioex.getMessage());
             throw new XrootdException(kXR_IOError,
                                       "Could not decrypt encrypted " +
                                       "client message.");
