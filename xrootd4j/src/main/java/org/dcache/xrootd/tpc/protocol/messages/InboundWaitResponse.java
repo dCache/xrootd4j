@@ -16,41 +16,31 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
  */
-package org.dcache.xrootd.protocol.messages;
+package org.dcache.xrootd.tpc.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_stat;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_vfs;
+/**
+ * <p>Server's prerogative to tell the client to wait up to a
+ * certain number of seconds.</p>
+ */
+public class InboundWaitResponse extends AbstractXrootdInboundResponse {
+    protected int maxWaitInSeconds;
+    protected int nextRequest;
 
-public class StatRequest extends PathRequest
-{
-    private final short options;
-    private final int fhandle;
-
-    public StatRequest(ByteBuf buffer)
+    public InboundWaitResponse(ByteBuf buffer, int requestId)
     {
-        super(buffer, kXR_stat);
-        options = buffer.getUnsignedByte(4);
-        fhandle = buffer.getInt(16);
+        super(buffer);
+        nextRequest = requestId;
+        maxWaitInSeconds = buffer.getInt(8);
     }
 
-    public boolean isVfsSet()
-    {
-        return (options & kXR_vfs) == kXR_vfs;
-    }
-
-    public int getFhandle() { return fhandle; }
-
-    private short getOptions()
-    {
-        return options;
+    public int getMaxWaitInSeconds() {
+        return maxWaitInSeconds;
     }
 
     @Override
-    public String toString()
-    {
-        return String.format("stat[%#x,%s,%s]",
-                             getOptions(), getPath(), getOpaque());
+    public int getRequestId() {
+        return nextRequest;
     }
 }

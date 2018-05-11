@@ -16,41 +16,32 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
  */
-package org.dcache.xrootd.protocol.messages;
+package org.dcache.xrootd.tpc.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_stat;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_vfs;
-
-public class StatRequest extends PathRequest
+/**
+ *  <p>Used by third-party client to establish connection with source server.</p>
+ */
+public class HandshakeRequest implements XrootdOutboundRequest
 {
-    private final short options;
-    private final int fhandle;
-
-    public StatRequest(ByteBuf buffer)
-    {
-        super(buffer, kXR_stat);
-        options = buffer.getUnsignedByte(4);
-        fhandle = buffer.getInt(16);
-    }
-
-    public boolean isVfsSet()
-    {
-        return (options & kXR_vfs) == kXR_vfs;
-    }
-
-    public int getFhandle() { return fhandle; }
-
-    private short getOptions()
-    {
-        return options;
-    }
-
     @Override
-    public String toString()
+    public void writeTo(ChannelHandlerContext ctx, ChannelPromise promise)
     {
-        return String.format("stat[%#x,%s,%s]",
-                             getOptions(), getPath(), getOpaque());
+        ByteBuf buffer = ctx.alloc().buffer(20);
+        try {
+            buffer.writeInt(0);
+            buffer.writeInt(0);
+            buffer.writeInt(0);
+            buffer.writeInt(4);
+            buffer.writeInt(2012);
+        } catch (Error | RuntimeException t) {
+            promise.setFailure(t);
+            buffer.release();
+            return;
+        }
+        ctx.write(buffer, promise);
     }
 }

@@ -18,6 +18,8 @@
  */
 package org.dcache.xrootd.util;
 
+import com.google.common.base.Joiner;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -129,5 +131,18 @@ public class OpaqueStringParser {
     public static String buildOpaqueString(String key, String value)
     {
         return OPAQUE_PREFIX + key + OPAQUE_SEPARATOR + value;
+    }
+
+    /**
+     * Reconstitute the opaque string from the map.
+     * @param map of key - value pairs
+     * @return string with correct opaque prefix and correct separator
+     */
+    public static String buildOpaqueString(Map<String, String> map)
+    {
+        return OPAQUE_STRING_PREFIX
+                        + Joiner.on(OPAQUE_PREFIX)
+                                .withKeyValueSeparator("" + OPAQUE_SEPARATOR)
+                                .join(map);
     }
 }

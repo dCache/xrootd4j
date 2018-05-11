@@ -16,41 +16,40 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
  */
-package org.dcache.xrootd.protocol.messages;
+package org.dcache.xrootd.tpc.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_stat;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_vfs;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_close;
 
-public class StatRequest extends PathRequest
+/**
+ * <p>Request to close file on the source server.</p>
+ */
+public class OutboundCloseRequest extends AbstractXrootdOutboundRequest
 {
-    private final short options;
-    private final int fhandle;
+    protected final int fhandle;
 
-    public StatRequest(ByteBuf buffer)
+    public OutboundCloseRequest(int streamId, int fhandle)
     {
-        super(buffer, kXR_stat);
-        options = buffer.getUnsignedByte(4);
-        fhandle = buffer.getInt(16);
-    }
-
-    public boolean isVfsSet()
-    {
-        return (options & kXR_vfs) == kXR_vfs;
-    }
-
-    public int getFhandle() { return fhandle; }
-
-    private short getOptions()
-    {
-        return options;
+        super(streamId, kXR_close);
+        this.fhandle = fhandle;
     }
 
     @Override
-    public String toString()
+    protected void getParams(ByteBuf buffer)
     {
-        return String.format("stat[%#x,%s,%s]",
-                             getOptions(), getPath(), getOpaque());
+        buffer.writeInt(fhandle);
+        /*
+         * The original open was read-only,
+         * no need to enforce file size on the server end
+         */
+        buffer.writeLong(0);
+        buffer.writeInt(0);
+        buffer.writeInt(0);
+    }
+
+    @Override
+    protected int getParamsLen() {
+        return 20;
     }
 }

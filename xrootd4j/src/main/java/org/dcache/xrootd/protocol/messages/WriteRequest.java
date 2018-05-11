@@ -18,15 +18,18 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import java.io.IOException;
-import java.nio.channels.GatheringByteChannel;
-import java.nio.ByteBuffer;
-
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_write;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.ReferenceCounted;
 
-public class WriteRequest extends AbstractXrootdRequest implements ReferenceCounted
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.GatheringByteChannel;
+
+import org.dcache.xrootd.util.ByteBuffersProvider;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_write;
+
+public class WriteRequest extends AbstractXrootdRequest implements ByteBuffersProvider
 {
     private final int fhandle;
     private final long offset;
@@ -49,6 +52,7 @@ public class WriteRequest extends AbstractXrootdRequest implements ReferenceCoun
         return fhandle;
     }
 
+    @Override
     public long getWriteOffset()
     {
         return offset;
@@ -76,6 +80,7 @@ public class WriteRequest extends AbstractXrootdRequest implements ReferenceCoun
      * buffers. The returned buffers might or might not share the
      * content with this request.
      */
+    @Override
     public ByteBuffer[] toByteBuffers()
     {
         return (data.nioBufferCount() == -1 ? data.copy() : data).nioBuffers();
