@@ -22,6 +22,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 
+import org.dcache.xrootd.protocol.XrootdProtocol;
+
 /**
  *  <p>Used by third-party client to establish connection with source server.</p>
  */
@@ -30,13 +32,9 @@ public class HandshakeRequest implements XrootdOutboundRequest
     @Override
     public void writeTo(ChannelHandlerContext ctx, ChannelPromise promise)
     {
-        ByteBuf buffer = ctx.alloc().buffer(20);
+        ByteBuf buffer = ctx.alloc().buffer(XrootdProtocol.CLIENT_HANDSHAKE_LEN);
         try {
-            buffer.writeInt(0);
-            buffer.writeInt(0);
-            buffer.writeInt(0);
-            buffer.writeInt(4);
-            buffer.writeInt(2012);
+            buffer.writeBytes(XrootdProtocol.HANDSHAKE_REQUEST);
         } catch (Error | RuntimeException t) {
             promise.setFailure(t);
             buffer.release();
