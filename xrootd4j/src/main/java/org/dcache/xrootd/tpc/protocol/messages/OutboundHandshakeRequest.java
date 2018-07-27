@@ -19,43 +19,34 @@
 package org.dcache.xrootd.tpc.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
 
-import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.protocol.XrootdProtocol;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_handshake;
-
 /**
- * <p>Reply from third-party source server establishing connection.</p>
+ * <p>Initial handshake on a new connection.</p>
  */
-public class HandshakeResponse extends AbstractXrootdInboundResponse
+public class OutboundHandshakeRequest implements XrootdOutboundRequest
 {
-    protected final int rlen;
-    protected final int pval;
-    protected final int flag;
-
-    public HandshakeResponse(ByteBuf buffer) throws XrootdException
-    {
-        super(buffer);
-        rlen = buffer.getInt(4);
-        if (rlen != 8) {
-            throw new XrootdException(XrootdProtocol.kXR_NotAuthorized,
-                                      "handshake rlen was " + rlen);
-        }
-        pval = buffer.getInt(8);
-        flag = buffer.getInt(12);
-    }
-
-    public int getFlag() {
-        return flag;
-    }
-
-    public int getPval() {
-        return pval;
+    @Override
+    public int getStreamId() {
+        return 0;
     }
 
     @Override
-    public int getRequestId() {
-        return kXR_handshake;
+    public void writeTo(ChannelHandlerContext ctx, ChannelPromise promise)
+    {
+        ByteBuf buffer = ctx.alloc().buffer(
+                        XrootdProtocol.CLIENT_HANDSHAKE_LEN);
+        try {
+            buffer.writeBytes(XrootdProtocol.HANDSHAKE_REQUEST);
+        } catch (Error | RuntimeException t) {
+            promise.setFailure(t);
+            buffer.release();
+            return;
+        }
+
+        ctx.write(buffer, promise);
     }
 }

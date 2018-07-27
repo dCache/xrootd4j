@@ -20,26 +20,59 @@ package org.dcache.xrootd.tpc.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
+import java.util.List;
+
+import org.dcache.xrootd.security.XrootdBucket;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
+import static org.dcache.xrootd.protocol.messages.AuthenticationResponse.writeBytes;
 
 /**
- *  <p>TODO currently unimplemented</p>
+ * <p>Request to third-party source server.</p>
  */
-public class OutboundAuthenticationRequest extends AbstractXrootdOutboundRequest
-{
-    public OutboundAuthenticationRequest(int streamId)
-    {
-        super(streamId, kXR_protocol);
-        throw new RuntimeException("Not yet implemented.");
+public class OutboundAuthenticationRequest
+                extends AbstractXrootdOutboundRequest {
+    private final String             protocol;
+    private final int                step;
+    private final List<XrootdBucket> buckets;
+    private final int length;
+
+    /**
+     * @param streamId of this request
+     * @param length
+     * @param protocol the currently used authentication protocol
+     * @param step the processing step
+     * @param buckets list of buckets containing server-side authentication
+     *                information (challenge, host certificate, etc.)
+     */
+    public OutboundAuthenticationRequest(int streamId,
+                                         int length,
+                                         String protocol,
+                                         int step,
+                                         List<XrootdBucket> buckets) {
+        super(streamId, kXR_auth);
+        this.protocol = protocol;
+        this.step = step;
+        this.length = length;
+        this.buckets = buckets;
     }
 
     @Override
-    protected void getParams(ByteBuf buffer)
-    {
+    protected void getParams(ByteBuf buffer) {
+        // pad ... skip the 16 bytes
+        buffer.writeZero(16);
+        buffer.writeInt(12 + length);
+        writeBytes(buffer, protocol, step, buckets);
     }
 
     @Override
     protected int getParamsLen() {
-        return 0;
+        // 16 bytes reserved + len + data
+        return getDataLen() + 20;
+    }
+
+    private int getDataLen() {
+        // 12 = protocol + step + terminal
+        return 12 + length;
     }
 }

@@ -30,6 +30,26 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class AuthenticationResponse extends AbstractXrootdResponse<AuthenticationRequest>
 {
+    /**
+     * Code is shared by outbound authentication request used by tpc client.
+     */
+    public static void writeBytes(ByteBuf buffer,
+                                  String protocol,
+                                  int step,
+                                  List<XrootdBucket> buckets) {
+        byte[] bytes = protocol.getBytes(US_ASCII);
+        buffer.writeBytes(bytes);
+        /* protocol must be 0-padded to 4 bytes */
+        buffer.writeZero(4 - bytes.length);
+
+        buffer.writeInt(step);
+        for (XrootdBucket bucket : buckets) {
+            bucket.serialize(buffer);
+        }
+
+        buffer.writeInt(BucketType.kXRS_none.getCode());
+    }
+
     private final String protocol;
     private final int step;
     private final List<XrootdBucket> buckets;
@@ -81,16 +101,6 @@ public class AuthenticationResponse extends AbstractXrootdResponse<Authenticatio
     @Override
     protected void getBytes(ByteBuf buffer)
     {
-        byte[] bytes = protocol.getBytes(US_ASCII);
-        buffer.writeBytes(bytes);
-        /* protocol must be 0-padded to 4 bytes */
-        buffer.writeZero(4 - bytes.length);
-
-        buffer.writeInt(step);
-        for (XrootdBucket bucket : buckets) {
-            bucket.serialize(buffer);
-        }
-
-        buffer.writeInt(BucketType.kXRS_none.getCode());
+        writeBytes(buffer, protocol, step, buckets);
     }
 }

@@ -31,4 +31,6 @@ public interface XrootdOutboundRequest
      *      it to the context.</p>
      */
     void writeTo(ChannelHandlerContext ctx, ChannelPromise promise);
+
+    int getStreamId();
 }

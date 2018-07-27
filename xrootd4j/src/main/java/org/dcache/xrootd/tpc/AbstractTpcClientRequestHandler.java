@@ -28,17 +28,17 @@ import java.util.concurrent.TimeUnit;
 
 import org.dcache.xrootd.core.XrootdSessionIdentifier;
 import org.dcache.xrootd.tpc.core.XrootdClientDecoder;
-import org.dcache.xrootd.tpc.protocol.messages.HandshakeRequest;
-import org.dcache.xrootd.tpc.protocol.messages.HandshakeResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundCloseResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundEndSessionResponse;
+import org.dcache.xrootd.tpc.protocol.messages.InboundHandshakeResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundLoginResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundOpenReadOnlyResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundReadResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundWaitResponse;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundCloseRequest;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundEndSessionRequest;
+import org.dcache.xrootd.tpc.protocol.messages.OutboundHandshakeRequest;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundLoginRequest;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundOpenReadOnlyRequest;
 import org.dcache.xrootd.tpc.protocol.messages.XrootdInboundResponse;
@@ -201,7 +201,7 @@ public abstract class AbstractTpcClientRequestHandler extends
     }
 
     protected void doOnHandshakeResponse(ChannelHandlerContext ctx,
-                                       HandshakeResponse response)
+                                       InboundHandshakeResponse response)
     {
         int status = response.getStatus();
         if (status == kXR_ok) {
@@ -329,7 +329,7 @@ public abstract class AbstractTpcClientRequestHandler extends
         switch (requestId) {
             case kXR_handshake:
                 LOGGER.trace("responseReceived, requestId = kXR_handshake.");
-                doOnHandshakeResponse(ctx, (HandshakeResponse) response);
+                doOnHandshakeResponse(ctx, (InboundHandshakeResponse) response);
                 break;
             case kXR_auth:
                 LOGGER.trace("responseReceived, requestId = kXR_auth.");
@@ -391,7 +391,7 @@ public abstract class AbstractTpcClientRequestHandler extends
         LOGGER.trace("sendHandshakeRequest to {}:{}.",
                      tpcInfo.getSrc(), tpcInfo.getSrcPort());
         decoder.setExpectedResponse(kXR_handshake);
-        ctx.writeAndFlush(new HandshakeRequest(),
+        ctx.writeAndFlush(new OutboundHandshakeRequest(),
                           ctx.newPromise())
            .addListener(FIRE_EXCEPTION_ON_FAILURE);
     }

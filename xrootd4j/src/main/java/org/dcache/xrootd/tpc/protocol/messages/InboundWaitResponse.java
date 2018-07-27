@@ -25,8 +25,8 @@ import io.netty.buffer.ByteBuf;
  * certain number of seconds.</p>
  */
 public class InboundWaitResponse extends AbstractXrootdInboundResponse {
-    protected int maxWaitInSeconds;
-    protected int nextRequest;
+    private int maxWaitInSeconds;
+    private int nextRequest;
 
     public InboundWaitResponse(ByteBuf buffer, int requestId)
     {

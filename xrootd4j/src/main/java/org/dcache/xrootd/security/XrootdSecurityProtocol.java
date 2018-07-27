@@ -51,6 +51,21 @@ public class XrootdSecurityProtocol {
     public static final int kOptsPxFile     = 16;     // 0x0010: Save delegated proxies in file
     public static final int kOptsDelChn     = 32;      // 0x0020: Delete chain
 
+    // server security levels
+    public static final int kXR_secNone         = 0;
+    public static final int kXR_secCompatible   = 1;
+    public static final int kXR_secStandard     = 2;
+    public static final int kXR_secIntense      = 3;
+    public static final int kXR_secPedantic     = 4;
+
+    // signing action
+    public static final int kXR_signIgnore      = 0;
+    public static final int kXR_signLikely      = 1;
+    public static final int kXR_signNeeded      = 2;
+
+    // protocol response
+    public static final byte kXR_secOFrce   = 0x02;    // apply signing requirements even if no encryption
+
     public static enum BucketType {
         kXRS_none           (0),    // end-of-vector
         kXRS_inactive       (1),    // inactive (dropped at serialization)

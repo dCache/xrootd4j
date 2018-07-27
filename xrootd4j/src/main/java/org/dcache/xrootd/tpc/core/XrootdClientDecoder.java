@@ -28,10 +28,10 @@ import java.util.List;
 
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.protocol.XrootdProtocol;
-import org.dcache.xrootd.tpc.protocol.messages.HandshakeResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundCloseResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundEndSessionResponse;
+import org.dcache.xrootd.tpc.protocol.messages.InboundHandshakeResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundLoginResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundOpenReadOnlyResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundReadResponse;
@@ -110,7 +110,7 @@ public class XrootdClientDecoder extends ByteToMessageDecoder
             switch (requestId) {
                 case kXR_handshake:
                     LOGGER.trace("adding handshake response.");
-                    out.add(new HandshakeResponse(frame));
+                    out.add(new InboundHandshakeResponse(frame));
                     break;
                 case kXR_login:
                     LOGGER.trace("adding login response.");

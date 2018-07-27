@@ -107,6 +107,7 @@ public interface XrootdProtocol {
     public static final int   kXR_verifyw   = 3026;
     public static final int   kXR_locate    = 3027;
     public static final int   kXR_truncate  = 3028;
+    public static final int   kXR_sigver    = 3029;
 
     // open mode for remote files
     public static final short kXR_ur = 0x100;
@@ -172,6 +173,9 @@ public interface XrootdProtocol {
     // verification options
     public static final int kXR_nocrc = 0;
     public static final int kXR_crc32 = 1;
+
+    // protocol request options
+    public static final byte kXR_secreqs  = 1;
 
     // query types
     public static final int kXR_QStats = 1;

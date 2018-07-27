@@ -22,6 +22,7 @@ import io.netty.buffer.ByteBuf;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secStandard;
 
 /**
  * <p>According to the third-party protocol, the destination server must
@@ -32,15 +33,16 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.*;
  */
 public class OutboundOpenReadOnlyRequest extends AbstractXrootdOutboundRequest
 {
-    protected static final int RESERVED_LEN = 12;
-    protected static final byte[] RESERVED = {0,0,0,0,0,0,0,0,0,0,0,0};
+    private static final int RESERVED_LEN = 12;
+    private static final byte[] RESERVED = {0,0,0,0,0,0,0,0,0,0,0,0};
 
-    protected final String path;
+    private final String path;
 
     public OutboundOpenReadOnlyRequest(int streamId, String path)
     {
         super(streamId, kXR_open);
         this.path = path;
+        signingLevel = kXR_secStandard;
     }
 
     @Override

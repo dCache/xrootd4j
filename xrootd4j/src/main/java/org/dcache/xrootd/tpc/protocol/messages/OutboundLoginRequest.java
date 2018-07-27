@@ -30,9 +30,9 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_useruser;
  */
 public class OutboundLoginRequest extends AbstractXrootdOutboundRequest
 {
-    protected final String username;
-    protected final int pid;
-    protected final String token;
+    private final String username;
+    private final int pid;
+    private final String token;
 
     public OutboundLoginRequest(int streamId,
                                 int pid,

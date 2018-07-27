@@ -29,11 +29,11 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_open;
  */
 public class InboundOpenReadOnlyResponse extends AbstractXrootdInboundResponse
 {
-    protected final int    resplen;
-    protected final int    fhandle;
-    protected final int    cpsize;  // should be 0, since we request kXR_restat
-    protected final int    cptype;  // should have first byte = \0, no compression
-    protected final String info;
+    private final int    resplen;
+    private final int    fhandle;
+    private final int    cpsize;  // should be 0, since we request kXR_restat
+    private final int    cptype;  // should have first byte = \0, no compression
+    private final String info;
 
     public InboundOpenReadOnlyResponse(ByteBuf buffer)
     {

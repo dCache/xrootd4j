@@ -19,27 +19,39 @@
 package org.dcache.xrootd.tpc.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPromise;
 
-import org.dcache.xrootd.protocol.XrootdProtocol;
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
 /**
- *  <p>Used by third-party client to establish connection with source server.</p>
+ *  <table>
+ *      <tr><td>kXR_char</td><td>streamid[2]</td></tr>
+ *      <tr><td>kXR_unt16</td><td>stat</td></tr>
+ *      <tr><td>kXR_int32</td><td>dlen</td></tr>
+ *      <tr><td>kXR_int32</td><td>errnum</td></tr>
+ *      <tr><td>kXR_char</td><td>errmsg[dlen-4]</td></tr>
+ *  </table>
  */
-public class HandshakeRequest implements XrootdOutboundRequest
-{
+public class InboundErrorResponse extends AbstractXrootdInboundResponse {
+    private int    error;
+    private String errorMessage;
+
+    public InboundErrorResponse(ByteBuf buffer) {
+        super(buffer);
+        int len = buffer.getInt(4);
+        error = buffer.getInt(8);
+        errorMessage = buffer.toString(12, len-4, US_ASCII);
+    }
+
+    public int getError() {
+        return error;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
     @Override
-    public void writeTo(ChannelHandlerContext ctx, ChannelPromise promise)
-    {
-        ByteBuf buffer = ctx.alloc().buffer(XrootdProtocol.CLIENT_HANDSHAKE_LEN);
-        try {
-            buffer.writeBytes(XrootdProtocol.HANDSHAKE_REQUEST);
-        } catch (Error | RuntimeException t) {
-            promise.setFailure(t);
-            buffer.release();
-            return;
-        }
-        ctx.write(buffer, promise);
+    public int getRequestId() {
+        return 0;
     }
 }

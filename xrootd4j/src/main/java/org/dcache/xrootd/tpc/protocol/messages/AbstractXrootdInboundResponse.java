@@ -39,10 +39,15 @@ public abstract class AbstractXrootdInboundResponse
     protected final int streamId;
     protected final int stat;
 
+    protected AbstractXrootdInboundResponse(int streamId, int stat)
+    {
+        this.streamId = streamId;
+        this.stat = stat;
+    }
+
     protected AbstractXrootdInboundResponse(ByteBuf buffer)
     {
-        streamId = buffer.getUnsignedShort(0);
-        stat = buffer.getUnsignedShort(2);
+        this(buffer.getUnsignedShort(0), buffer.getUnsignedShort(2));
     }
 
     @Override

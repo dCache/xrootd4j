@@ -40,9 +40,9 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_read;
 public class InboundReadResponse extends AbstractXrootdInboundResponse
                 implements ByteBuffersProvider
 {
-    protected final ByteBuf data;
-    protected final int     dlen;
-    protected long writeOffset;
+    private final      ByteBuf data;
+    private final      int     dlen;
+    private            long    writeOffset;
 
     public InboundReadResponse(ByteBuf buffer)
     {

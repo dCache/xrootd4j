@@ -31,8 +31,8 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
  */
 public class InboundLoginResponse extends AbstractXrootdInboundResponse
 {
-    protected final XrootdSessionIdentifier sessionId;
-    protected final String                  sec;
+    private final XrootdSessionIdentifier sessionId;
+    private final String                  sec;
 
     public InboundLoginResponse(ByteBuf buffer)
     {

@@ -20,38 +20,45 @@ package org.dcache.xrootd.tpc.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_close;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secIntense;
+import org.dcache.xrootd.core.XrootdException;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_NotAuthorized;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_handshake;
 
 /**
- * <p>Request to close file on the source server.</p>
+ * <p>Reply from third-party source server establishing connection.</p>
  */
-public class OutboundCloseRequest extends AbstractXrootdOutboundRequest
+public class InboundHandshakeResponse extends AbstractXrootdInboundResponse
 {
-    private final int fhandle;
+    private final int pval;
+    private final int flag;
 
-    public OutboundCloseRequest(int streamId, int fhandle)
+    public InboundHandshakeResponse(ByteBuf buffer) throws XrootdException
     {
-        super(streamId, kXR_close);
-        this.fhandle = fhandle;
-        signingLevel = kXR_secIntense;
+        super(buffer);
+        int len = buffer.getInt(4);
+
+        if (len < 8) {
+            throw new XrootdException(kXR_NotAuthorized, "bad handshake");
+        }
+
+        pval = buffer.getInt(8);
+        flag = buffer.getInt(12);
+    }
+
+    public int getFlag()
+    {
+        return flag;
+    }
+
+    public int getPval()
+    {
+        return pval;
     }
 
     @Override
-    protected void getParams(ByteBuf buffer)
+    public int getRequestId()
     {
-        buffer.writeInt(fhandle);
-        /*
-         * The original open was read-only,
-         * no need to enforce file size on the server end
-         */
-        buffer.writeLong(0);
-        buffer.writeInt(0);
-        buffer.writeInt(0);
-    }
-
-    @Override
-    protected int getParamsLen() {
-        return 20;
+        return kXR_handshake;
     }
 }
