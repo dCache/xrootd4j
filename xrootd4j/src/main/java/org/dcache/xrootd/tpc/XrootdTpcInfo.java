@@ -19,14 +19,25 @@
 package org.dcache.xrootd.tpc;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSet;
 
+import java.net.URL;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.dcache.xrootd.tpc.protocol.messages.InboundRedirectResponse;
+import org.dcache.xrootd.util.OpaqueStringParser;
+import org.dcache.xrootd.util.ParseException;
+
 /**
- * <p>Metadata established via interaction with client, source and
- *    destination in a third-party copy.  Used to verify and
- *    coordinate the open and close requests.</p>
+ * <p>Metadata established via interaction between user client, source and
+ *    destination in a third-party copy, occurring prior to the launching
+ *    of an internal third-party copy operation.</p>
+ *
+ * <p>Used to verify and coordinate the open and close requests.</p>
  */
 public class XrootdTpcInfo {
     /**
@@ -63,6 +74,17 @@ public class XrootdTpcInfo {
 
     public static final String MD5 = "md5";
 
+    private static final Set<String> TPC_KEYS
+                    = ImmutableSet.of(STAGE,
+                                      RENDEZVOUS_KEY,
+                                      SRC,
+                                      DST,
+                                      LOGICAL_NAME,
+                                      CLIENT,
+                                      CHECKSUM,
+                                      TIME_TO_LIVE,
+                                      SIZE_IN_BYTES);
+
     public enum Status
     {
         PENDING, READY, CANCELLED
@@ -84,14 +106,19 @@ public class XrootdTpcInfo {
     private String org;
 
     /**
-     * <p>The hostname of the destination server.</p>
+     * <p>The host:port of the destination server.</p>
      */
     private String dst;
 
     /**
-     * <p>The hostname of the source server.</p>
+     * <p>The host:port of the source server.</p>
      */
     private String src;
+
+    /**
+     * <p>The hostname of the source server.</p>
+     */
+    private String srcHost;
 
     /**
      * <p>The port of the source server.</p>
@@ -135,6 +162,17 @@ public class XrootdTpcInfo {
      */
     private long startTime;
 
+    /**
+     * <p>External (non xrootd-tpc) opaque key-values.</p>
+     */
+    private String external;
+
+    /**
+     * <p>Possibly returned by a redirect.</p>
+     */
+    private String loginToken;
+
+
     public XrootdTpcInfo(String key)
     {
         this.key = key;
@@ -158,6 +196,7 @@ public class XrootdTpcInfo {
             this.asize = Long.parseLong(asize);
         }
         status = Status.READY;
+        addExternal(opaque);
     }
 
     /**
@@ -205,7 +244,58 @@ public class XrootdTpcInfo {
             this.status = Status.PENDING;
         }
 
+        addExternal(opaque);
+
         return this;
+    }
+
+    /**
+     * <p>Saves relevant fields which should remain the same,
+     *    and constructs new source endpoint info.</p>
+     *
+     * @param response received from source.
+     * @return new info object which can be used to instantiate new client.
+     */
+    public XrootdTpcInfo copyForRedirect(InboundRedirectResponse response)
+                    throws ParseException {
+        XrootdTpcInfo info = new XrootdTpcInfo(key);
+
+        URL url = response.getUrl();
+        if (url != null) {
+            info.srcHost = url.getHost();
+            info.srcPort = url.getPort();
+        } else {
+            info.srcHost = response.getHost();
+            info.srcPort = response.getPort();
+        }
+
+        info.src = info.srcHost + ":" + info.srcPort;
+
+        info.lfn = lfn;
+        info.asize = asize;
+        info.cks = cks;
+        info.loginToken = response.getToken();
+
+        String opaque = response.getOpaque();
+
+        if (opaque == null && url != null) {
+            opaque = url.getQuery();
+        }
+
+        if (opaque != null) {
+            /*
+             * Perform the transformation to map and back as a way of
+             * checking that the string parses.
+             */
+            if (!opaque.startsWith("?")) {
+                opaque = "?" + opaque;
+            }
+            info.addExternal(OpaqueStringParser.getOpaqueMap(opaque));
+        }
+
+        info.status = Status.READY;
+
+        return info;
     }
 
     public Status verify(String dst, String slfn, String org)
@@ -239,7 +329,7 @@ public class XrootdTpcInfo {
                                   .append(")(dst ")
                                   .append(dst)
                                   .append(")(src ")
-                                  .append(src)
+                                  .append(srcHost)
                                   .append(":")
                                   .append(srcPort)
                                   .append(")(org ")
@@ -256,7 +346,11 @@ public class XrootdTpcInfo {
                                   .append(fd)
                                   .append(")(status ")
                                   .append(status)
-                                  .append(")")
+                                  .append(")(token ")
+                                  .append(loginToken)
+                                  .append(")(external [")
+                                  .append(external)
+                                  .append("])")
                                   .toString();
     }
 
@@ -266,86 +360,152 @@ public class XrootdTpcInfo {
                         > (startTime + TimeUnit.SECONDS.toMillis(ttl));
     }
 
-    public long getAsize() {
+    public long getAsize()
+    {
         return asize;
     }
 
-    public String getCks() {
+    public String getCks()
+    {
         return cks;
     }
 
-    public long getCreatedTime() { return createdTime; }
+    public long getCreatedTime()
+    {
+        return createdTime;
+    }
 
-    public String getDst() {
+    public String getExternal()
+    {
+        return external;
+    }
+
+    public String getDst()
+    {
         return dst;
     }
 
-    public Integer getSrcPort() { return srcPort; }
-
-    public int getFd() {
+    public int getFd()
+    {
         return fd;
     }
 
-    public String getKey() {
+    public String getKey()
+    {
         return key;
     }
 
-    public String getLfn() {
+    public String getLfn()
+    {
         return lfn;
     }
 
-    public String getOrg() {
+    public String getLoginToken()
+    {
+        return loginToken;
+    }
+
+    public String getOrg()
+    {
         return org;
     }
 
-    public String getSrc() {
+    public String getSrc()
+    {
         return src;
     }
 
-    public Status getStatus() {
+    public String getSrcHost()
+    {
+        return srcHost;
+    }
+
+    public Integer getSrcPort()
+    {
+        return srcPort;
+    }
+
+    public Status getStatus()
+    {
         return status;
     }
 
-    public Long getTtl() {
+    public Long getTtl()
+    {
+
         return ttl;
     }
 
-    public void setAsize(long asize) {
+    public void setAsize(long asize)
+    {
         this.asize = asize;
     }
 
-    public void setCks(String cks) {
+    public void setCks(String cks)
+    {
         this.cks = cks;
     }
 
-    public void setDst(String dst) {
+    public void setDst(String dst)
+    {
         this.dst = dst;
     }
 
-    public void setFd(int fd) {
+    public void setFd(int fd)
+    {
         this.fd = fd;
     }
 
-    public void setLfn(String lfn) {
+    public void setLfn(String lfn)
+    {
         this.lfn = lfn;
     }
 
-    public void setOrg(String org) {
+    public void setLoginToken(String loginToken)
+    {
+        this.loginToken = loginToken;
+    }
+
+    public void setOrg(String org)
+    {
         this.org = org;
     }
 
-    public void setSrc(String src) {
+    public void setSrc(String src)
+    {
         this.src = src;
     }
 
-    public void setSrcPort(Integer srcPort) { this.srcPort = srcPort; }
+    public void setSrcHost(String srcHost)
+    {
+        this.srcHost = srcHost;
+    }
 
-    public void setStatus(Status status) {
+    public void setSrcPort(Integer srcPort)
+    {
+        this.srcPort = srcPort;
+    }
+
+    public void setStatus(Status status)
+    {
         this.status = status;
     }
 
-    public void setTtl(Long ttl) {
+    public void setTtl(Long ttl)
+    {
         this.ttl = ttl;
+    }
+
+    private void addExternal(Map<String,String> opaque)
+    {
+        Map<String, String> external = new HashMap<>();
+        for (Entry<String, String> entry: opaque.entrySet()) {
+            if (!TPC_KEYS.contains(entry.getKey())) {
+                external.put(entry.getKey(), entry.getValue());
+            }
+        }
+        this.external = OpaqueStringParser.buildOpaqueString(external)
+                                          .substring(1);  // remove '?'
     }
 
     private void setSourceFromOpaque(Map<String, String> map)
@@ -353,7 +513,7 @@ public class XrootdTpcInfo {
         this.src = map.get(SRC);
         if (this.src != null) {
             String[] source = this.src.split(":");
-            this.src = source[0];
+            this.srcHost = source[0];
             if (Strings.emptyToNull(source[1]) != null) {
                 this.srcPort = Integer.parseInt(source[1]);
             }

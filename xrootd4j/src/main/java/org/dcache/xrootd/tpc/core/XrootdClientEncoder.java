@@ -22,6 +22,10 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
 
+import org.dcache.xrootd.core.XrootdException;
+import org.dcache.xrootd.tpc.TpcSigverRequestHandler;
+import org.dcache.xrootd.tpc.XrootdTpcClient;
+import org.dcache.xrootd.tpc.protocol.messages.OutboundSigverRequest;
 import org.dcache.xrootd.tpc.protocol.messages.XrootdOutboundRequest;
 
 /**
@@ -29,18 +33,50 @@ import org.dcache.xrootd.tpc.protocol.messages.XrootdOutboundRequest;
  *      objects into xrootd ByteBuf objects.</p>
  *
  *  <p>Intended to support third-party client requests to a source server.</p>
+ *
+ *  <p>Checks to see if a signing verfication request needs to precede the
+ *     actual request, and sends it first if so.</p>
  */
 public class XrootdClientEncoder extends ChannelOutboundHandlerAdapter
 {
+    protected final XrootdTpcClient client;
+
+    public XrootdClientEncoder(XrootdTpcClient client)
+    {
+        this.client = client;
+    }
+
     @Override
     public void write(ChannelHandlerContext ctx, Object msg,
                       ChannelPromise promise)
                     throws Exception
     {
         if (msg instanceof XrootdOutboundRequest) {
-            ((XrootdOutboundRequest) msg).writeTo(ctx, promise);
+            XrootdOutboundRequest request = (XrootdOutboundRequest) msg;
+            int streamId = request.getStreamId();
+            if (streamId != 0) {
+                conditionallySendSigverRequest(request, ctx);
+            }
+            request.writeTo(ctx, promise);
         } else {
             super.write(ctx, msg, promise);
+        }
+    }
+
+    private void conditionallySendSigverRequest(XrootdOutboundRequest request,
+                                                ChannelHandlerContext ctx)
+                    throws XrootdException
+    {
+        TpcSigverRequestHandler sigverHandler
+                        = client.getSigverRequestHandler();
+
+        if (sigverHandler != null) {
+            OutboundSigverRequest sigverRequest
+                            = sigverHandler.createSigverRequest(ctx,
+                                                                request);
+            if (sigverRequest != null) {
+                sigverRequest.writeTo(ctx, ctx.newPromise());
+            }
         }
     }
 }

@@ -20,6 +20,7 @@ package org.dcache.xrootd.tpc.core;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelId;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,16 +28,22 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 import org.dcache.xrootd.core.XrootdException;
-import org.dcache.xrootd.protocol.XrootdProtocol;
+import org.dcache.xrootd.tpc.XrootdTpcClient;
+import org.dcache.xrootd.tpc.protocol.messages.InboundAttnResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
+import org.dcache.xrootd.tpc.protocol.messages.InboundChecksumResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundCloseResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundEndSessionResponse;
+import org.dcache.xrootd.tpc.protocol.messages.InboundErrorResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundHandshakeResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundLoginResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundOpenReadOnlyResponse;
+import org.dcache.xrootd.tpc.protocol.messages.InboundProtocolResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundReadResponse;
+import org.dcache.xrootd.tpc.protocol.messages.InboundRedirectResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundWaitResponse;
 import org.dcache.xrootd.tpc.protocol.messages.XrootdInboundResponse;
+import org.dcache.xrootd.util.ParseException;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
@@ -45,30 +52,26 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.*;
  * {@link XrootdInboundResponse} objects.</p>.
  *
  * <p>Intended to support third-party client requests to a source server.</p>
- *
- * <p>Not thread safe. Instance should be bound to a single client session
- *    at a time.</p>
  */
 public class XrootdClientDecoder extends ByteToMessageDecoder
 {
     private static final Logger LOGGER =
                     LoggerFactory.getLogger(XrootdClientDecoder.class);
 
-    private int requestId;
+    protected final XrootdTpcClient client;
+    protected final String sourceUrn;
 
-    public int getExpectedResponse() {
-        return requestId;
-    }
-
-    public void setExpectedResponse(int requestId)
-    {
-        this.requestId = requestId;
+    public XrootdClientDecoder(XrootdTpcClient client) {
+        this.client = client;
+        sourceUrn = client.getInfo().getSrc();
     }
 
     @Override
-    protected void decode(ChannelHandlerContext ctx, ByteBuf in,
+    protected void decode(ChannelHandlerContext ctx,
+                          ByteBuf in,
                           List<Object> out)
     {
+        ChannelId id = ctx.channel().id();
         int readable = in.readableBytes();
 
         if (readable < SERVER_RESPONSE_LEN) {
@@ -79,9 +82,11 @@ public class XrootdClientDecoder extends ByteToMessageDecoder
         int headerFrameLength = in.getInt(pos + 4);
 
         if (headerFrameLength < 0) {
-            LOGGER.trace("Received illegal frame length in xrootd header: {}."
+            LOGGER.error("Decoder {}, channel {}: received illegal "
+                                         + "frame length in "
+                                         + "xrootd header: {}."
                                          + " Closing channel.",
-                         headerFrameLength);
+                         sourceUrn, id, headerFrameLength);
             ctx.channel().close();
             return;
         }
@@ -93,59 +98,94 @@ public class XrootdClientDecoder extends ByteToMessageDecoder
         }
 
         ByteBuf frame = in.readSlice(length);
-
-        /*
-         *  Need to check if the status is 4006.
-         */
-
-        int stat = frame.getUnsignedByte(2);
+        int requestId = client.getExpectedResponse();
 
         try {
-            if (stat == kXR_waitresp) {
-                LOGGER.trace("adding wait response.");
-                out.add(new InboundWaitResponse(frame, requestId));
-                return;
+            switch (frame.getUnsignedShort(2)) {
+                case kXR_error:
+                    LOGGER.trace("Decoder {}, channel {}: adding error response.",
+                                sourceUrn, id);
+                    out.add(new InboundErrorResponse(frame));
+                    return;
+                case kXR_waitresp:
+                    LOGGER.trace("Decoder {}, channel {}: adding wait response.",
+                                sourceUrn, id);
+                    out.add(new InboundWaitResponse(frame, requestId));
+                    return;
+                case kXR_redirect:
+                    LOGGER.trace("Decoder {}, channel {}: adding redirect response.",
+                                 sourceUrn, id);
+                    out.add(new InboundRedirectResponse(frame, requestId));
+                    return;
+                case kXR_attn:
+                    LOGGER.trace("Decoder {}, channel {}: adding attn response.",
+                                 sourceUrn, id);
+                    out.add(new InboundAttnResponse(frame, requestId));
+                    return;
             }
 
             switch (requestId) {
                 case kXR_handshake:
-                    LOGGER.trace("adding handshake response.");
+                    LOGGER.trace("Decoder {}, channel {}: adding handshake response.",
+                                 sourceUrn, id);
                     out.add(new InboundHandshakeResponse(frame));
                     break;
+                case kXR_protocol:
+                    LOGGER.trace("Decoder {}, channel {}: adding protocol response.",
+                                sourceUrn, id);
+                    out.add(new InboundProtocolResponse(frame));
+                    break;
                 case kXR_login:
-                    LOGGER.trace("adding login response.");
+                    LOGGER.trace("Decoder {}, channel {}: adding login response.",
+                                sourceUrn, id);
                     out.add(new InboundLoginResponse(frame));
                     break;
                 case kXR_auth:
-                    LOGGER.trace("adding authentication response.");
+                    LOGGER.trace("Decoder {}, channel {}: adding authentication response.",
+                                sourceUrn, id);
                     out.add(new InboundAuthenticationResponse(frame));
                     break;
                 case kXR_open:
-                    LOGGER.trace("adding open response.");
+                    LOGGER.trace("Decoder {}, channel {}: adding open response.",
+                                sourceUrn, id);
                     out.add(new InboundOpenReadOnlyResponse(frame));
                     break;
                 case kXR_read:
-                    LOGGER.trace("adding read response.");
+                    LOGGER.trace("Decoder {}, channel {}: adding read response.",
+                                sourceUrn, id);
                     out.add(new InboundReadResponse(frame));
                     break;
+                case kXR_query:
+                    LOGGER.trace("Decoder {}, channel {}: adding query response.",
+                                sourceUrn, id);
+                    out.add(new InboundChecksumResponse(frame));
+                    break;
                 case kXR_close:
-                    LOGGER.trace("adding close response.");
+                    LOGGER.trace("Decoder {}, channel {}: adding close response.",
+                                sourceUrn, id);
                     out.add(new InboundCloseResponse(frame));
                     break;
                 case kXR_endsess:
-                    LOGGER.trace("adding endsess response.");
+                    LOGGER.trace("Decoder {}, channel {}: adding endsess response.",
+                                sourceUrn, id);
                     out.add(new InboundEndSessionResponse(frame));
                     break;
                 default:
-                    throw new XrootdException(XrootdProtocol.kXR_error,
-                                              "Client should not have received "
-                                                              + "response for "
-                                                              + "this request type.");
+                    String error = String.format("Decoder %s, channel %s, received "
+                                   + "incorrect response of request type %s.",
+                                                 sourceUrn, id, requestId);
+                    throw new XrootdException(kXR_error, error);
             }
-        } catch (XrootdException e) {
-            LOGGER.trace("Error for request type {}: {}. Closing channel.",
-                         requestId, e.getMessage());
-            ctx.channel().close();
+        } catch (ParseException | XrootdException e) {
+            LOGGER.error("Decoder {}, channel {}: error for request type {}: {}. "
+                                         + "Closing channel.",
+                         requestId, id, e.getMessage());
+            client.setError(e);
+            try {
+                client.shutDown(ctx);
+            } catch (InterruptedException e1) {
+                LOGGER.warn("client shutdown interrupted.");
+            }
         }
     }
 }
