@@ -22,8 +22,6 @@ import eu.emi.security.authn.x509.X509CertChainValidator;
 import eu.emi.security.authn.x509.X509Credential;
 import eu.emi.security.authn.x509.impl.CertificateUtils;
 import io.netty.buffer.ByteBuf;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
 import javax.security.auth.Subject;
@@ -32,7 +30,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
-import java.security.SecureRandom;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
@@ -55,7 +52,9 @@ import org.dcache.xrootd.security.XrootdBucket;
 
 import static io.netty.buffer.Unpooled.wrappedBuffer;
 import static java.nio.charset.StandardCharsets.US_ASCII;
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_IOError;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
 
@@ -67,75 +66,27 @@ import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
  * @author tzangerl
  *
  */
-public class GSIAuthenticationHandler implements AuthenticationHandler
+public class GSIAuthenticationHandler extends BaseGSIAuthenticationHandler
+                implements AuthenticationHandler
 {
-    public static final String PROTOCOL = "gsi";
-    public static final String PROTOCOL_VERSION= "10200";
-    public static final String CRYPTO_MODE = "ssl";
-    /** for now, we limit ourselves to AES-128 with CBC blockmode. */
-    public static final String SUPPORTED_CIPHER_ALGORITHMS = "aes-128-cbc";
-    public static final String SUPPORTED_DIGESTS = "sha1:md5";
-
-    private static final Logger _logger =
-        LoggerFactory.getLogger(GSIAuthenticationHandler.class);
-
-    /**
-     * RSA algorithm, no block chaining mode (not a block-cipher) and PKCS1
-     * padding, which is recommended to be used in conjunction with RSA
-     */
-    private static final String SERVER_ASYNC_CIPHER_MODE = "RSA/NONE/PKCS1Padding";
-
-    /** the sync cipher mode supported by the server. Unless this is made
-     * configurable (todo), it has to match the SUPPORTED_CIPHER_ALGORITHMS
-     * advertised by the server
-     */
-    private static final String SERVER_SYNC_CIPHER_MODE = "AES/CBC/PKCS5Padding";
-    private static final String SERVER_SYNC_CIPHER_NAME = "AES";
-    /** blocksize in bytes */
-    private static final int SERVER_SYNC_CIPHER_BLOCKSIZE = 16;
-    private static final int CHALLENGE_BYTES = 8;
-
-    /** cryptographic helper classes */
-    private static final SecureRandom _random = new SecureRandom();
-
-    /** certificates/keys/trust-anchors */
-    private final X509Credential _hostCredential;
-    private final X509CertChainValidator _validator;
-
-    private String _challenge = "";
-    private Cipher _challengeCipher;
-    private DHSession _dhSession;
-
     /**
      * Container for principals and credentials found during the authentication
      * process.
      */
-    private final Subject _subject;
+    private final Subject subject;
 
-    private boolean _finished = false;
+    private String challenge = "";
+    private Cipher challengeCipher;
+    private DHSession dhSession;
 
-    public GSIAuthenticationHandler(X509Credential hostCredential, X509CertChainValidator validator) {
-        _hostCredential = hostCredential;
-        _validator = validator;
-        _subject = new Subject();
-    }
+    private boolean finished = false;
 
-    class XrootdBucketContainer {
-        private final int _size;
-        private final List<XrootdBucket> _buckets;
-
-        public XrootdBucketContainer(List<XrootdBucket> buckets, int size) {
-            _buckets = buckets;
-            _size = size;
-        }
-
-        public int getSize() {
-            return _size;
-        }
-
-        public List<XrootdBucket> getBuckets() {
-            return _buckets;
-        }
+    public GSIAuthenticationHandler(X509Credential hostCredential,
+                                    X509CertChainValidator validator,
+                                    String certDir)
+    {
+        super(hostCredential, validator, certDir);
+        subject = new Subject();
     }
 
     /**
@@ -151,11 +102,11 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
         throws XrootdException
     {
         try {
-            if (_dhSession == null) {
-                _dhSession = new DHSession();
+            if (dhSession == null) {
+                dhSession = new DHSession(true);
             }
         } catch (GeneralSecurityException gssex) {
-            _logger.error("Error setting up cryptographic classes: {}", gssex.getMessage());
+            LOGGER.error("Error setting up cryptographic classes: {}", gssex.getMessage());
             throw new XrootdException(kXR_ServerError,
                                       "Server probably misconfigured.");
         }
@@ -203,8 +154,8 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
         throws XrootdException
     {
         try {
-            _challengeCipher = Cipher.getInstance(SERVER_ASYNC_CIPHER_MODE, "BC");
-            _challengeCipher.init(Cipher.ENCRYPT_MODE, _hostCredential.getKey());
+            challengeCipher = Cipher.getInstance(SERVER_ASYNC_CIPHER_MODE, "BC");
+            challengeCipher.init(Cipher.ENCRYPT_MODE, hostCredential.getKey());
 
             Map<BucketType, XrootdBucket> buckets = request.getBuckets();
             NestedBucketBuffer buffer =
@@ -215,21 +166,21 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
             String rtag = rtagBucket.getContent();
 
             /* sign the rtag for the client */
-            _challengeCipher.update(rtag.getBytes());
-            byte [] signedRtag = _challengeCipher.doFinal();
+            challengeCipher.update(rtag.getBytes());
+            byte [] signedRtag = challengeCipher.doFinal();
             /* generate a new challenge, to be signed by the client */
-            _challenge = generateChallengeString();
+            challenge = generateChallengeString();
             /* send DH params */
-            byte[] puk = _dhSession.getEncodedDHMaterial().getBytes();
+            byte[] puk = dhSession.getEncodedDHMaterial().getBytes();
             /* send host certificate */
-            _hostCredential.getCertificate().getEncoded();
+            hostCredential.getCertificate().getEncoded();
 
             String hostCertificateString =
-                CertUtil.certToPEM(_hostCredential.getCertificate());
+                CertUtil.certToPEM(hostCredential.getCertificate());
 
             XrootdBucketContainer responseBuckets =
                             buildCertReqResponse(signedRtag,
-                                                 _challenge,
+                                                 challenge,
                                                  CRYPTO_MODE,
                                                  puk,
                                                  SUPPORTED_CIPHER_ALGORITHMS,
@@ -243,19 +194,19 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                                               kXGS_cert,
                                               responseBuckets.getBuckets());
         } catch (InvalidKeyException ikex) {
-            _logger.error("Configured host-key could not be used for" +
+            LOGGER.error("Configured host-key could not be used for" +
                           "signing rtag: {}", ikex.getMessage());
             throw new XrootdException(kXR_ServerError,
                                       "Internal error occurred when trying " +
                                       "to sign client authentication tag.");
         } catch (CertificateEncodingException cee) {
-            _logger.error("Could not extract contents of server certificate:" +
+            LOGGER.error("Could not extract contents of server certificate:" +
                           " {}", cee.getMessage());
             throw new XrootdException(kXR_ServerError,
                                       "Internal error occurred when trying " +
                                       "to send server certificate.");
         } catch (IOException | GeneralSecurityException gssex) {
-            _logger.error("Problems during signing of client authN tag " +
+            LOGGER.error("Problems during signing of client authN tag " +
                           "(algorithm {}): {}", SERVER_ASYNC_CIPHER_MODE,
                           gssex.getMessage() == null ?
                           gssex.getClass().getName() : gssex.getMessage());
@@ -299,8 +250,8 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
             StringBucket dhMessage =
                 (StringBucket) receivedBuckets.get(kXRS_puk);
 
-            _dhSession.finaliseKeyAgreement(dhMessage.getContent());
-            byte [] decrypted = _dhSession.decrypt(SERVER_SYNC_CIPHER_MODE,
+            dhSession.finaliseKeyAgreement(dhMessage.getContent());
+            byte [] decrypted = dhSession.decrypt(SERVER_SYNC_CIPHER_MODE,
                                                    SERVER_SYNC_CIPHER_NAME,
                                                    SERVER_SYNC_CIPHER_BLOCKSIZE,
                                                    encrypted);
@@ -315,63 +266,65 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                 ((StringBucket) clientX509Bucket).getContent();
 
             /* now it's time to verify the client's X509 certificate */
-            X509Certificate[] proxyCertChain = CertificateUtils.loadCertificateChain(new ByteArrayInputStream(clientX509.getBytes(US_ASCII)), CertificateUtils.Encoding.PEM);
+            X509Certificate[] proxyCertChain =
+                            CertificateUtils.loadCertificateChain(new ByteArrayInputStream(clientX509.getBytes(US_ASCII)),
+                                                                  CertificateUtils.Encoding.PEM);
             if (proxyCertChain.length == 0) {
                 throw new IllegalArgumentException("Could not parse user " +
                                                    "certificate from input stream!");
             }
             X509Certificate proxyCert = proxyCertChain[0];
-            _logger.info("The proxy-cert has the subject {} and the issuer {}",
+            LOGGER.info("The proxy-cert has the subject {} and the issuer {}",
                          proxyCert.getSubjectDN(),
                          proxyCert.getIssuerDN());
 
-            _validator.validate(proxyCertChain);
-            _subject.getPublicCredentials().add(proxyCertChain);
+            validator.validate(proxyCertChain);
+            subject.getPublicCredentials().add(proxyCertChain);
 
-            _challengeCipher.init(Cipher.DECRYPT_MODE, proxyCert.getPublicKey());
+            challengeCipher.init(Cipher.DECRYPT_MODE, proxyCert.getPublicKey());
 
             XrootdBucket signedRTagBucket =
                 nestedBucket.getNestedBuckets().get(kXRS_signed_rtag);
             byte[] signedRTag = ((RawBucket) signedRTagBucket).getContent();
 
-            byte[] rTag = _challengeCipher.doFinal(signedRTag);
+            byte[] rTag = challengeCipher.doFinal(signedRTag);
             String rTagString = new String(rTag, US_ASCII);
 
             // check that the challenge sent in the previous step matches
-            if (!_challenge.equals(rTagString)) {
-               _logger.error("The challenge is {}, the serialized rTag is {}." +
+            if (!challenge.equals(rTagString)) {
+               LOGGER.error("The challenge is {}, the serialized rTag is {}." +
                              "signature of challenge tag has been proven wrong!!",
-                             _challenge, rTagString);
+                             challenge, rTagString);
                throw new XrootdException(kXR_InvalidRequest,
                                          "Client did not present correct" +
                                          "challenge response!");
             }
-            _logger.debug("signature of challenge tag ok. Challenge: " +
-                          "{}, rTagString: {}", _challenge, rTagString);
+            LOGGER.trace("signature of challenge tag ok. Challenge: " +
+                          "{}, rTagString: {}", challenge, rTagString);
 
-            _finished = true;
+            finished = true;
 
             return new OkResponse<>(request);
         } catch (InvalidKeyException ikex) {
-            _logger.error("The key negotiated by DH key exchange appears to " +
+            LOGGER.error("The key negotiated by DH key exchange appears to " +
                           "be invalid: {}", ikex.getMessage());
             throw new XrootdException(kXR_InvalidRequest,
                                       "Could not decrypt client" +
                                       "information with negotiated key.");
         } catch (InvalidKeySpecException iksex) {
-            _logger.error("DH key negotiation caused problems {}", iksex.getMessage());
+            LOGGER.error("DH key negotiation caused problems {}", iksex.getMessage());
             throw new XrootdException(kXR_InvalidRequest,
                                       "Could not find key negotiation " +
                                       "parameters.");
         } catch (IOException ioex) {
-            _logger.error("Could not deserialize main nested buffer {}",
+            LOGGER.error("Could not deserialize main nested buffer {}",
                           ioex.getMessage() == null ?
                           ioex.getClass().getName() : ioex.getMessage());
             throw new XrootdException(kXR_IOError,
                                       "Could not decrypt encrypted " +
                                       "client message.");
         } catch (GeneralSecurityException gssex) {
-            _logger.error("Error during decrypting/server-side key exchange: {}",
+            LOGGER.error("Error during decrypting/server-side key exchange: {}",
                           gssex.getMessage());
             throw new XrootdException(kXR_ServerError,
                                       "Error in server-side cryptographic " +
@@ -451,35 +404,15 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
     }
 
     /**
-     * Generate a new challenge string to be used in server-client
-     * communication
-     * @return challenge string
-     */
-    private String generateChallengeString() {
-        byte[] challengeBytes = new byte[CHALLENGE_BYTES];
-
-        /*
-         * _random.nextBytes(...) can not be used, since this generates
-         * signed bytes. Upon encoding as string, Java will map negative bytes
-         * to 63 (ASCII 'A'). As this would affect the randomness of the
-         * challenge string, use the following loop instead.
-         */
-        for (int i = 0; i < CHALLENGE_BYTES; i++) {
-            challengeBytes[i] = (byte) _random.nextInt(Byte.MAX_VALUE);
-        }
-
-        return new String(challengeBytes, US_ASCII);
-    }
-
-    /**
      * @return the protocol supported by this client. The protocol string also
      * contains metainformation such as the host-certificate subject hash.
      */
     @Override
-    public String getProtocol() {
+    public String getProtocol()
+    {
         /* hashed principals are cached in CertUtil */
         String subjectHash =
-            CertUtil.computeMD5Hash(_hostCredential.getCertificate().getIssuerX500Principal());
+            CertUtil.computeMD5Hash(hostCredential.getCertificate().getIssuerX500Principal());
 
         return "&P=" + PROTOCOL + "," +
                 "v:" + PROTOCOL_VERSION + "," +
@@ -488,12 +421,14 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
     }
 
     @Override
-    public Subject getSubject() {
-        return _subject;
+    public Subject getSubject()
+    {
+        return subject;
     }
 
     @Override
-    public boolean isCompleted() {
-        return _finished;
+    public boolean isCompleted()
+    {
+        return finished;
     }
 }

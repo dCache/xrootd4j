@@ -18,25 +18,9 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
-import eu.emi.security.authn.x509.CrlCheckingMode;
-import eu.emi.security.authn.x509.NamespaceCheckingMode;
-import eu.emi.security.authn.x509.OCSPCheckingMode;
-import eu.emi.security.authn.x509.OCSPParametes;
-import eu.emi.security.authn.x509.ProxySupport;
-import eu.emi.security.authn.x509.RevocationParameters;
-import eu.emi.security.authn.x509.X509CertChainValidator;
-import eu.emi.security.authn.x509.impl.OpensslCertChainValidator;
-import eu.emi.security.authn.x509.impl.PEMCredential;
-import eu.emi.security.authn.x509.impl.ValidatorParams;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.security.KeyStoreException;
-import java.security.cert.CertificateException;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
@@ -54,51 +38,12 @@ import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
  * @author tzangerl
  *
  */
-public class GSIAuthenticationFactory implements AuthenticationFactory
+public class GSIAuthenticationFactory extends BaseGSIAuthenticationFactory
+                implements AuthenticationFactory
 {
-    private static final Logger _logger =
-        LoggerFactory.getLogger(GSIAuthenticationFactory.class);
-
-    private final String _hostCertificatePath;
-    private final String _hostKeyPath;
-    private final String _caCertificatePath;
-    private final X509CertChainValidator _validator;
-
-    private final long _hostCertRefreshInterval;
-    private final long _trustAnchorRefreshInterval;
-    private long _hostCertRefreshTimestamp = 0;
-
-    private final boolean _verifyHostCertificate;
-
-    private PEMCredential _hostCredential;
-
     public GSIAuthenticationFactory(Properties properties)
     {
-        _hostKeyPath =
-            properties.getProperty("xrootd.gsi.hostcert.key");
-        _hostCertificatePath =
-            properties.getProperty("xrootd.gsi.hostcert.cert");
-        _hostCertRefreshInterval =
-                TimeUnit.valueOf(properties.getProperty("xrootd.gsi.hostcert.refresh.unit"))
-                        .toMillis(Integer.parseInt(properties.getProperty("xrootd.gsi.hostcert.refresh")));
-        _verifyHostCertificate =
-            Boolean.parseBoolean(properties.getProperty("xrootd.gsi.hostcert.verify"));
-
-        _caCertificatePath = properties.getProperty("xrootd.gsi.ca.path");
-        _trustAnchorRefreshInterval =
-                TimeUnit.valueOf(properties.getProperty("xrootd.gsi.ca.refresh.unit"))
-                        .toMillis(Integer.parseInt(properties.getProperty("xrootd.gsi.ca.refresh")));
-        NamespaceCheckingMode namespaceMode =
-                NamespaceCheckingMode.valueOf(properties.getProperty("xrootd.gsi.ca.namespace-mode"));
-        CrlCheckingMode crlCheckingMode =
-                CrlCheckingMode.valueOf(properties.getProperty("xrootd.gsi.ca.crl-mode"));
-        OCSPCheckingMode ocspCheckingMode =
-                OCSPCheckingMode.valueOf(properties.getProperty("xrootd.gsi.ca.ocsp-mode"));
-        ValidatorParams validatorParams = new ValidatorParams(
-                new RevocationParameters(crlCheckingMode, new OCSPParametes(ocspCheckingMode)), ProxySupport.ALLOW);
-        _validator =
-                new OpensslCertChainValidator(_caCertificatePath, false, namespaceMode,
-                                              _trustAnchorRefreshInterval, validatorParams, false);
+        super(properties);
     }
 
     @Override
@@ -115,23 +60,6 @@ public class GSIAuthenticationFactory implements AuthenticationFactory
             throw new InvalidHandlerConfigurationException(msg, ioex);
         }
 
-        return new GSIAuthenticationHandler(_hostCredential, _validator);
-    }
-
-    private synchronized void loadServerCredentials() throws CertificateException, KeyStoreException, IOException
-    {
-        long timeSinceLastServerRefresh = (System.currentTimeMillis() - _hostCertRefreshTimestamp);
-        if (_hostCredential == null || timeSinceLastServerRefresh >= _hostCertRefreshInterval) {
-            _logger.info("Time since last server cert refresh {}", timeSinceLastServerRefresh);
-            _logger.info("Loading server certificates. Current refresh interval: {} ms",
-                      _hostCertRefreshInterval);
-            PEMCredential credential = new PEMCredential(_hostKeyPath, _hostCertificatePath, null);
-             if (_verifyHostCertificate) {
-                 _logger.info("Verifying host certificate");
-                 _validator.validate(credential.getCertificateChain());
-             }
-             _hostCredential = credential;
-             _hostCertRefreshTimestamp = System.currentTimeMillis();
-        }
+        return new GSIAuthenticationHandler(hostCredential, validator, caCertificatePath);
     }
 }

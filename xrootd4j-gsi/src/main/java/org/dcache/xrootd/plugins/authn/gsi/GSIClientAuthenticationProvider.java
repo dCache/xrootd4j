@@ -20,15 +20,16 @@ package org.dcache.xrootd.plugins.authn.gsi;
 
 import java.util.Properties;
 
-import org.dcache.xrootd.plugins.AuthenticationProvider;
-import org.dcache.xrootd.plugins.AuthenticationFactory;
+import org.dcache.xrootd.plugins.ChannelHandlerFactory;
+import org.dcache.xrootd.plugins.ChannelHandlerProvider;
 
-public class GSIAuthenticationProvider implements AuthenticationProvider
+public class GSIClientAuthenticationProvider implements
+                ChannelHandlerProvider
 {
     @Override
-    public AuthenticationFactory createFactory(String plugin, Properties properties)
+    public ChannelHandlerFactory createFactory(String plugin, Properties properties)
     {
         return BaseGSIAuthenticationHandler.PROTOCOL.equals(plugin) ?
-                        new GSIAuthenticationFactory(properties) : null;
+                        new GSIClientAuthenticationFactory(properties) : null;
     }
 }
