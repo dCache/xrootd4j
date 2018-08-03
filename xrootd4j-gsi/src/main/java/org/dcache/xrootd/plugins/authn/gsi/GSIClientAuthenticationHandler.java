@@ -188,7 +188,7 @@ public class GSIClientAuthenticationHandler extends
                                                   CertificateUtils.Encoding.PEM);
             if (proxyCertChain.length == 0) {
                 error = "Could not parse server certificate from input stream!";
-                throw new IllegalArgumentException(error);
+                throw new GeneralSecurityException(error);
             }
 
             serverCert = proxyCertChain[0];
@@ -626,11 +626,15 @@ public class GSIClientAuthenticationHandler extends
     private void parseSec(String sec) throws XrootdException
     {
         int index = sec.indexOf(",");
-        if (index == -1 || index == sec.length()) {
+        if (index == -1 || index == sec.length() - 1) {
             throw new XrootdException(kXR_error, "Invalid 'sec': " + sec);
         }
 
         String[] parts = sec.substring(index + 1).split("[,]");
+        if (parts.length != 3) {
+            throw new XrootdException(kXR_error, "Invalid 'sec': " + sec);
+        }
+
         for (String part : parts) {
             String[] keyVal = part.split("[:]");
             switch (keyVal[0].toLowerCase()) {
