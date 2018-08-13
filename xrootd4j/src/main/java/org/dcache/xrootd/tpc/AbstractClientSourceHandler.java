@@ -53,10 +53,7 @@ public abstract class AbstractClientSourceHandler extends
                 AbstractClientRequestHandler
 {
     /**
-     * <p>If this method is called on this handler with status OK,
-     *    this means that step has succeeded.</p>
-     *
-     * <p>If the response contains a security context, however, then
+     * <p>If the response contains a security context, then
      *    it was not handled by an authentication plugin, and the
      *    transfer should fail.</p>
      */
@@ -66,12 +63,6 @@ public abstract class AbstractClientSourceHandler extends
     {
         ChannelId id = ctx.channel().id();
         XrootdTpcInfo tpcInfo = client.getInfo();
-        LOGGER.trace("login of {} on {}, channel {}, stream {}, complete, "
-                                     + "proceeding to open.",
-                     tpcInfo.getLfn(),
-                     tpcInfo.getSrc(),
-                     id,
-                     client.getStreamId());
         String sec = response.getSec();
         if (sec != null) {
             String error = String.format("Authentication of %s on %s, "
@@ -84,6 +75,12 @@ public abstract class AbstractClientSourceHandler extends
             exceptionCaught(ctx,
                             new XrootdException(kXR_error, error));
         } else {
+            LOGGER.trace("login of {} on {}, channel {}, stream {}, complete, "
+                                         + "proceeding to open.",
+                         tpcInfo.getLfn(),
+                         tpcInfo.getSrc(),
+                         id,
+                         client.getStreamId());
             sendOpenRequest(ctx);
         }
     }
