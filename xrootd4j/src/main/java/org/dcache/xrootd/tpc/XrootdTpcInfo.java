@@ -504,8 +504,7 @@ public class XrootdTpcInfo {
                 external.put(entry.getKey(), entry.getValue());
             }
         }
-        this.external = OpaqueStringParser.buildOpaqueString(external)
-                                          .substring(1);  // remove '?'
+        this.external = OpaqueStringParser.buildOpaqueString(external);
     }
 
     private void setSourceFromOpaque(Map<String, String> map)
