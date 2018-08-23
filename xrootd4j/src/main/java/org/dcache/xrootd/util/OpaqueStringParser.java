@@ -140,9 +140,8 @@ public class OpaqueStringParser {
      */
     public static String buildOpaqueString(Map<String, String> map)
     {
-        return OPAQUE_STRING_PREFIX
-                        + Joiner.on(OPAQUE_PREFIX)
-                                .withKeyValueSeparator("" + OPAQUE_SEPARATOR)
-                                .join(map);
+        return Joiner.on(OPAQUE_PREFIX)
+                     .withKeyValueSeparator("" + OPAQUE_SEPARATOR)
+                     .join(map);
     }
 }
