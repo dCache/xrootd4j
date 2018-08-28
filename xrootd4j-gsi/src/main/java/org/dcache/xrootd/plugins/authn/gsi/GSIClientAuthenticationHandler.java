@@ -159,7 +159,7 @@ public class GSIClientAuthenticationHandler extends
         void encodeHostCerts() throws CertificateEncodingException
         {
             StringBuilder builder = new StringBuilder();
-            X509Certificate[] chain = handler.hostCredential.getCertificateChain();
+            X509Certificate[] chain = handler.credential.getCertificateChain();
             for (X509Certificate cert : chain) {
                 cert.getEncoded();
                 builder.append(CertUtil.certToPEM(cert));
@@ -172,7 +172,7 @@ public class GSIClientAuthenticationHandler extends
                         IllegalBlockSizeException, IOException
         {
             challengeCipher.init(Cipher.ENCRYPT_MODE,
-                                         handler.hostCredential.getKey());
+                                         handler.credential.getKey());
             String serverRtag = randomTagBucket.getContent();
             challengeCipher.update(serverRtag.getBytes());
             signedChallenge = challengeCipher.doFinal();
@@ -350,12 +350,12 @@ public class GSIClientAuthenticationHandler extends
     private BaseGSIAuthenticationHandler handler;
     private String                       issuerHashes;
 
-    public GSIClientAuthenticationHandler(X509Credential hostProxyCert,
+    public GSIClientAuthenticationHandler(X509Credential proxyCredential,
                                           X509CertChainValidator validator,
                                           String certDir,
                                           String issuerHashes)
     {
-        handler = new BaseGSIAuthenticationHandler(hostProxyCert,
+        handler = new BaseGSIAuthenticationHandler(proxyCredential,
                                                    validator,
                                                    certDir);
         this.issuerHashes = issuerHashes;
