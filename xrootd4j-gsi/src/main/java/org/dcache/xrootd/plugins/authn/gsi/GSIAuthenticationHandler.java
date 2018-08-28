@@ -155,7 +155,7 @@ public class GSIAuthenticationHandler extends BaseGSIAuthenticationHandler
     {
         try {
             challengeCipher = Cipher.getInstance(SERVER_ASYNC_CIPHER_MODE, "BC");
-            challengeCipher.init(Cipher.ENCRYPT_MODE, hostCredential.getKey());
+            challengeCipher.init(Cipher.ENCRYPT_MODE, credential.getKey());
 
             Map<BucketType, XrootdBucket> buckets = request.getBuckets();
             NestedBucketBuffer buffer =
@@ -173,10 +173,10 @@ public class GSIAuthenticationHandler extends BaseGSIAuthenticationHandler
             /* send DH params */
             byte[] puk = dhSession.getEncodedDHMaterial().getBytes();
             /* send host certificate */
-            hostCredential.getCertificate().getEncoded();
+            credential.getCertificate().getEncoded();
 
             String hostCertificateString =
-                CertUtil.certToPEM(hostCredential.getCertificate());
+                CertUtil.certToPEM(credential.getCertificate());
 
             XrootdBucketContainer responseBuckets =
                             buildCertReqResponse(signedRtag,
@@ -412,7 +412,7 @@ public class GSIAuthenticationHandler extends BaseGSIAuthenticationHandler
     {
         /* hashed principals are cached in CertUtil */
         String subjectHash =
-            CertUtil.computeMD5Hash(hostCredential.getCertificate().getIssuerX500Principal());
+            CertUtil.computeMD5Hash(credential.getCertificate().getIssuerX500Principal());
 
         return "&P=" + PROTOCOL + "," +
                 "v:" + PROTOCOL_VERSION + "," +
