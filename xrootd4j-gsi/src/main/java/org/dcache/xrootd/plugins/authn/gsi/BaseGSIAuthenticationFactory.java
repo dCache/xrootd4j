@@ -26,14 +26,10 @@ import eu.emi.security.authn.x509.ProxySupport;
 import eu.emi.security.authn.x509.RevocationParameters;
 import eu.emi.security.authn.x509.X509CertChainValidator;
 import eu.emi.security.authn.x509.impl.OpensslCertChainValidator;
-import eu.emi.security.authn.x509.impl.PEMCredential;
 import eu.emi.security.authn.x509.impl.ValidatorParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.cert.CertificateException;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -52,28 +48,12 @@ abstract class BaseGSIAuthenticationFactory
     protected static final Logger LOGGER =
         LoggerFactory.getLogger(BaseGSIAuthenticationFactory.class);
 
-    protected final String hostCertificatePath;
-    protected final String hostKeyPath;
     protected final String caCertificatePath;
     protected final X509CertChainValidator validator;
-
-    protected final long hostCertRefreshInterval;
     protected final long trustAnchorRefreshInterval;
-    protected final boolean verifyHostCertificate;
-
-    protected PEMCredential hostCredential;
-    protected long hostCertRefreshTimestamp = 0;
 
     protected BaseGSIAuthenticationFactory(Properties properties)
     {
-        hostKeyPath = properties.getProperty("xrootd.gsi.hostcert.key");
-        hostCertificatePath = properties.getProperty("xrootd.gsi.hostcert.cert");
-        hostCertRefreshInterval =
-                TimeUnit.valueOf(properties.getProperty("xrootd.gsi.hostcert.refresh.unit"))
-                        .toMillis(Integer.parseInt(properties.getProperty("xrootd.gsi.hostcert.refresh")));
-        verifyHostCertificate =
-            Boolean.parseBoolean(properties.getProperty("xrootd.gsi.hostcert.verify"));
-
         caCertificatePath = properties.getProperty("xrootd.gsi.ca.path");
         trustAnchorRefreshInterval =
                 TimeUnit.valueOf(properties.getProperty("xrootd.gsi.ca.refresh.unit"))
@@ -89,28 +69,5 @@ abstract class BaseGSIAuthenticationFactory
         validator =
                 new OpensslCertChainValidator(caCertificatePath, false, namespaceMode,
                                               trustAnchorRefreshInterval, validatorParams, false);
-    }
-
-    protected synchronized void loadServerCredentials()
-                    throws CertificateException, KeyStoreException, IOException
-    {
-        if (shouldReloadServerCredentials()) {
-            LOGGER.info("Loading server certificates. Current refresh interval: {} ms",
-                      hostCertRefreshInterval);
-            PEMCredential credential = new PEMCredential(hostKeyPath, hostCertificatePath, null);
-            if (verifyHostCertificate) {
-                LOGGER.info("Verifying host certificate");
-                validator.validate(credential.getCertificateChain());
-            }
-            hostCredential = credential;
-            hostCertRefreshTimestamp = System.currentTimeMillis();
-        }
-    }
-
-    protected boolean shouldReloadServerCredentials()
-    {
-        long timeSinceLastServerRefresh = (System.currentTimeMillis() - hostCertRefreshTimestamp);
-        LOGGER.info("Time since last server cert refresh {}", timeSinceLastServerRefresh);
-        return hostCredential == null || timeSinceLastServerRefresh >= hostCertRefreshInterval;
     }
 }

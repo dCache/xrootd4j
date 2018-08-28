@@ -19,7 +19,10 @@
 package org.dcache.xrootd.plugins.authn.gsi;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
+import eu.emi.security.authn.x509.X509Credential;
 import eu.emi.security.authn.x509.helpers.trust.OpensslTruststoreHelper;
+import eu.emi.security.authn.x509.impl.PEMCredential;
 import eu.emi.security.authn.x509.proxy.ProxyCertificate;
 import eu.emi.security.authn.x509.proxy.ProxyCertificateOptions;
 import eu.emi.security.authn.x509.proxy.ProxyGenerator;
@@ -38,6 +41,7 @@ import java.security.cert.X509Certificate;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
 
@@ -53,24 +57,41 @@ import static org.dcache.xrootd.plugins.authn.gsi.BaseGSIAuthenticationHandler.P
  */
 public class GSIClientAuthenticationFactory extends BaseGSIAuthenticationFactory
                 implements ChannelHandlerFactory {
-    private String              hostCredIssuerHashes;
-    private ProxyCertificate    proxy;
+    private final String  clientCertificatePath;
+    private final String  clientKeyPath;
+    private final long    clientCertRefreshInterval;
+    private final boolean verifyClientCertificate;
+
+    private PEMCredential  clientCredential;
+    private long           clientCertRefreshTimestamp = 0;
+
+    private String         clientCredIssuerHashes;
+    private String         proxyPath;
+    private X509Credential proxy;
 
     public GSIClientAuthenticationFactory(Properties properties)
     {
         super(properties);
+        clientKeyPath = properties.getProperty("xrootd.gsi.tpc.cred.key");
+        clientCertificatePath = properties.getProperty("xrootd.gsi.tpc.cred.cert");
+        clientCertRefreshInterval =
+                        TimeUnit.valueOf(properties.getProperty("xrootd.gsi.tpc.cred.refresh.unit"))
+                                .toMillis(Integer.parseInt(properties.getProperty("xrootd.gsi.tpc.cred.refresh")));
+        verifyClientCertificate =
+                        Boolean.parseBoolean(properties.getProperty("xrootd.gsi.tpc.cred.verify"));
+        proxyPath = properties.getProperty("xrootd.gsi.tpc.proxy.path");
     }
 
     @Override
     public ChannelHandler createHandler()
     {
         try {
-            loadServerCredentials();
+            loadClientCredentials();
             GSIClientAuthenticationHandler handler =
-                 new GSIClientAuthenticationHandler(proxy.getCredential(),
+                 new GSIClientAuthenticationHandler(proxy,
                                                     validator,
                                                     caCertificatePath,
-                                                    hostCredIssuerHashes);
+                                                    clientCredIssuerHashes);
             return handler;
         } catch (GeneralSecurityException gssex) {
             String msg = "Could not load certificates/key due to security error";
@@ -93,23 +114,43 @@ public class GSIClientAuthenticationFactory extends BaseGSIAuthenticationFactory
         return PROTOCOL;
     }
 
-    @Override
-    protected synchronized void loadServerCredentials()
+    private synchronized void loadClientCredentials()
                     throws CertificateException, KeyStoreException, IOException
     {
-        super.loadServerCredentials();
-        try {
-            ProxyCertificateOptions options
-                            = new ProxyCertificateOptions(hostCredential.getCertificateChain());
-            proxy = ProxyGenerator.generate(options, hostCredential.getKey());
-        } catch (InvalidKeyException | SignatureException | NoSuchAlgorithmException e) {
-            throw new CertificateException(
-                            "could not generate host proxy credential.", e);
+        if (shouldReloadClientCredentials()) {
+            LOGGER.info("Loading client certificates. Current refresh interval: {} ms",
+                        clientCertRefreshInterval);
+            clientCredential = new PEMCredential(clientKeyPath,
+                                                 clientCertificatePath,
+                                                         null);
+            if (verifyClientCertificate) {
+                LOGGER.info("Verifying client certificate");
+                validator.validate(clientCredential.getCertificateChain());
+            }
+            clientCertRefreshTimestamp = System.currentTimeMillis();
         }
-        hostCredIssuerHashes = getHostCredIssuerHashes();
+
+        if (Strings.emptyToNull(proxyPath) != null) {
+            proxy = new PEMCredential(proxyPath, (char[])null);
+        } else {
+
+            try {
+                ProxyCertificateOptions options
+                                = new ProxyCertificateOptions(
+                                clientCredential.getCertificateChain());
+                ProxyCertificate proxyCert = ProxyGenerator.generate(options,
+                                                                     clientCredential.getKey());
+                proxy = proxyCert.getCredential();
+            } catch (InvalidKeyException | SignatureException | NoSuchAlgorithmException e) {
+                throw new CertificateException(
+                                "could not generate host proxy credential.", e);
+            }
+        }
+
+        clientCredIssuerHashes = getClientCredIssuerHashes();
     }
 
-    private String getHostCredIssuerHashes()
+    private String getClientCredIssuerHashes()
     {
         Set<String> issuers = new HashSet<>();
 
@@ -120,5 +161,12 @@ public class GSIClientAuthenticationFactory extends BaseGSIAuthenticationFactory
         }
 
         return Joiner.on("|").join(issuers);
+    }
+
+    private boolean shouldReloadClientCredentials()
+    {
+        long timeSinceLastClientRefresh = (System.currentTimeMillis() - clientCertRefreshTimestamp);
+        LOGGER.info("Time since last client cert refresh {}", timeSinceLastClientRefresh);
+        return clientCredential == null || timeSinceLastClientRefresh >= clientCertRefreshInterval;
     }
 }

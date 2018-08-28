@@ -107,15 +107,15 @@ class BaseGSIAuthenticationHandler
     /**
      * certificates/keys/trust-anchors
      */
-    protected final X509Credential         hostCredential;
+    protected final X509Credential         credential;
     protected final X509CertChainValidator validator;
     protected final File                   certDir;
 
-    protected BaseGSIAuthenticationHandler(X509Credential hostCredential,
+    protected BaseGSIAuthenticationHandler(X509Credential credential,
                                            X509CertChainValidator validator,
                                            String certDir)
     {
-        this.hostCredential = hostCredential;
+        this.credential = credential;
         this.validator = validator;
         this.certDir = new File(certDir);
     }
