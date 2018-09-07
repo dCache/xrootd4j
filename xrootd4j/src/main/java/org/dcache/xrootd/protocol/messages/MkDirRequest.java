@@ -43,8 +43,22 @@ public class MkDirRequest extends PathRequest
         return options;
     }
 
+    /*
+      According to the xrootd protocol spec http://xrootd.org/doc/dev45/XRdv310.htm#_Toc464248821,
+      kXR_mkdir and kXR_open operations  both accept kXR_mkpath as one of these flags
+      that affect the behaviour of these commands.
+      Nonethenless kXR_mkdir does not accept kXR_mkpath in options field
+      https://github.com/xrootd/xrootd/issues/815.
+      This is wrong as the xrootd code uses bit-0 in kXR_mkdir options to indicate parent directory
+      elements should be created, whereas kXR_open uses bit-8 for the same behaviour.
+      Therefore, the flags cannot be described using the same constant (kXR_mkpath).
+      This is the reason  why dCache could not support kXR_mkpath option.
+
+      This  is modified  to use kXR_mkdirpath one of  mkdir oprtions instead  of kXR_mkpath.
+      Note that is is temporal workaround. And code should be changed once the issue is fixed.
+    */
     public boolean shouldMkPath() {
-        return (getOptions() & kXR_mkpath) == kXR_mkpath;
+        return (getOptions() & kXR_mkdirpath) == kXR_mkdirpath;
     }
 
     public int getMode() {
