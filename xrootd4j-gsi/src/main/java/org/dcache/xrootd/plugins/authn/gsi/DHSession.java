@@ -112,7 +112,13 @@ public class DHSession
                         KeyPairGenerator.getInstance(DH_ALGORITHM_NAME, "BC");
         kpairGen.initialize(_dhParameterSpec);
         _localDHKeyPair = kpairGen.generateKeyPair();
-        _keyAgreement = KeyAgreement.getInstance(DH_ALGORITHM_NAME, "BC");
+        try {
+            // TODO: the DHNP needs to be removed at some point
+            // when xrdcp switches to padded version of DH_compute_key
+            _keyAgreement = KeyAgreement.getInstance("DHNP", "BC");
+        } catch (NoSuchAlgorithmException nsae) {
+            _keyAgreement = KeyAgreement.getInstance(DH_ALGORITHM_NAME, "BC");
+        }
         _keyAgreement.init(_localDHKeyPair.getPrivate());
     }
 
