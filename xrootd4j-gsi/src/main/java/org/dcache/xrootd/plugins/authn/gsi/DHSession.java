@@ -226,19 +226,36 @@ public class DHSession
     {
         byte [] iv = new byte[blocksize];
         Arrays.fill(iv, (byte)0);
-        final byte[] sharedSecret = _keyAgreement.generateSecret();
-        /* need a 128-bit key, that's the way to get it */
-        SecretKey sessionKey = new SecretKeySpec(sharedSecret,
-                                                 0,
-                                                 blocksize,
-                                                 keySpec);
         IvParameterSpec paramSpec = new IvParameterSpec(iv);
-
         Cipher cipher = Cipher.getInstance(cipherSpec,
                                            "BC");
-        cipher.init(mode, sessionKey, paramSpec);
-
-        return cipher.doFinal(buffer);
+        byte[] output;
+        SecretKey sessionKey;
+        /**
+         * This try / catch construct is used to handle
+         * xrootd clients that do not use padded version of DH_compute_key
+         * Once they switched to DH_compute_key_padded this will no longer
+         * be neeeded.
+         */
+        try {
+            /* need a 128-bit key, that's the way to get it */
+            sessionKey = new SecretKeySpec(_keyAgreement.generateSecret(),
+                                           0,
+                                           blocksize,
+                                           keySpec);
+            cipher.init(mode, sessionKey, paramSpec);
+            output = cipher.doFinal(buffer);
+        } catch (BadPaddingException e) {
+            sessionKey = new SecretKeySpec(_keyAgreement
+                                           .generateSecret("TlsPremasterSecret")
+                                           .getEncoded(),
+                                           0,
+                                           blocksize,
+                                           keySpec);
+            cipher.init(mode, sessionKey, paramSpec);
+            output = cipher.doFinal(buffer);
+        }
+        return output;
     }
 
     /**
