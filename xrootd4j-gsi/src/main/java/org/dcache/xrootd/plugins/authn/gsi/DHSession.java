@@ -257,7 +257,9 @@ public class DHSession
         Cipher cipher = Cipher.getInstance(cipherSpec,
                                            "BC");
         /* need a 128-bit key, that's the way to get it */
-        SecretKey sessionKey = new SecretKeySpec(_keyAgreement.generateSecret(),
+        SecretKey sessionKey = new SecretKeySpec(_keyAgreement
+                                                 .generateSecret("TlsPremasterSecret")
+                                                 .getEncoded(),
                                                  0,
                                                  blocksize,
                                                  keySpec);
