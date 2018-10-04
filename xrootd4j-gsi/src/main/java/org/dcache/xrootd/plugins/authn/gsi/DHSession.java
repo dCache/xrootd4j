@@ -233,38 +233,24 @@ public class DHSession
                     BadPaddingException, InvalidAlgorithmParameterException,
                     NoSuchProviderException
     {
-        return translate(cipherSpec,
-                         keySpec,
-                         blocksize,
-                         unencrypted,
-                         Cipher.ENCRYPT_MODE);
-    }
-
-    private byte[] translate(String cipherSpec,
-                             String keySpec,
-                             int blocksize,
-                             byte[] buffer,
-                             int mode)
-                    throws InvalidKeyException,
-                    IllegalStateException, NoSuchAlgorithmException,
-                    NoSuchPaddingException, IllegalBlockSizeException,
-                    BadPaddingException, InvalidAlgorithmParameterException,
-                    NoSuchProviderException
-    {
         byte [] iv = new byte[blocksize];
         Arrays.fill(iv, (byte)0);
         IvParameterSpec paramSpec = new IvParameterSpec(iv);
         Cipher cipher = Cipher.getInstance(cipherSpec,
                                            "BC");
-        /* need a 128-bit key, that's the way to get it */
+        /**
+         * Unlike decrypt, the encrypt method always has use
+         * .generateSecret("TlsPremasterSecret") to be compatible
+         * with SLAC server (e.g. for TPC)
+         */
         SecretKey sessionKey = new SecretKeySpec(_keyAgreement
                                                  .generateSecret("TlsPremasterSecret")
                                                  .getEncoded(),
                                                  0,
                                                  blocksize,
                                                  keySpec);
-        cipher.init(mode, sessionKey, paramSpec);
-        return cipher.doFinal(buffer);
+        cipher.init(Cipher.ENCRYPT_MODE, sessionKey, paramSpec);
+        return cipher.doFinal(unencrypted);
     }
 
     /**
