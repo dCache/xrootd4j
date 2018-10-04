@@ -189,11 +189,38 @@ public class DHSession
                BadPaddingException, InvalidAlgorithmParameterException,
                NoSuchProviderException
     {
-        return translate(cipherSpec,
-                         keySpec,
-                         blocksize,
-                         encrypted,
-                         Cipher.DECRYPT_MODE);
+        byte [] iv = new byte[blocksize];
+        Arrays.fill(iv, (byte)0);
+        IvParameterSpec paramSpec = new IvParameterSpec(iv);
+        Cipher cipher = Cipher.getInstance(cipherSpec,
+                                           "BC");
+        byte[] decrypted;
+        SecretKey sessionKey;
+        /**
+         * This try / catch construct is used to handle
+         * xrootd clients that do not use padded version of DH_compute_key
+         * Once they switched to DH_compute_key_padded this will no longer
+         * be neeeded.
+         */
+        try {
+            /* need a 128-bit key, that's the way to get it */
+            sessionKey = new SecretKeySpec(_keyAgreement.generateSecret(),
+                                           0,
+                                           blocksize,
+                                           keySpec);
+            cipher.init(Cipher.DECRYPT_MODE, sessionKey, paramSpec);
+            decrypted = cipher.doFinal(encrypted);
+        } catch (BadPaddingException e) {
+            sessionKey = new SecretKeySpec(_keyAgreement
+                                           .generateSecret("TlsPremasterSecret")
+                                           .getEncoded(),
+                                           0,
+                                           blocksize,
+                                           keySpec);
+            cipher.init(Cipher.DECRYPT_MODE, sessionKey, paramSpec);
+            decrypted = cipher.doFinal(encrypted);
+        }
+        return decrypted;
     }
 
     public byte[] encrypt(String cipherSpec,
@@ -206,39 +233,24 @@ public class DHSession
                     BadPaddingException, InvalidAlgorithmParameterException,
                     NoSuchProviderException
     {
-        return translate(cipherSpec,
-                         keySpec,
-                         blocksize,
-                         unencrypted,
-                         Cipher.ENCRYPT_MODE);
-    }
-
-    private byte[] translate(String cipherSpec,
-                             String keySpec,
-                             int blocksize,
-                             byte[] buffer,
-                             int mode)
-                    throws InvalidKeyException,
-                    IllegalStateException, NoSuchAlgorithmException,
-                    NoSuchPaddingException, IllegalBlockSizeException,
-                    BadPaddingException, InvalidAlgorithmParameterException,
-                    NoSuchProviderException
-    {
         byte [] iv = new byte[blocksize];
         Arrays.fill(iv, (byte)0);
-        final byte[] sharedSecret = _keyAgreement.generateSecret();
-        /* need a 128-bit key, that's the way to get it */
-        SecretKey sessionKey = new SecretKeySpec(sharedSecret,
+        IvParameterSpec paramSpec = new IvParameterSpec(iv);
+        Cipher cipher = Cipher.getInstance(cipherSpec,
+                                           "BC");
+        /**
+         * Unlike decrypt, the encrypt method always has use
+         * .generateSecret("TlsPremasterSecret") to be compatible
+         * with SLAC server (e.g. for TPC)
+         */
+        SecretKey sessionKey = new SecretKeySpec(_keyAgreement
+                                                 .generateSecret("TlsPremasterSecret")
+                                                 .getEncoded(),
                                                  0,
                                                  blocksize,
                                                  keySpec);
-        IvParameterSpec paramSpec = new IvParameterSpec(iv);
-
-        Cipher cipher = Cipher.getInstance(cipherSpec,
-                                           "BC");
-        cipher.init(mode, sessionKey, paramSpec);
-
-        return cipher.doFinal(buffer);
+        cipher.init(Cipher.ENCRYPT_MODE, sessionKey, paramSpec);
+        return cipher.doFinal(unencrypted);
     }
 
     /**
