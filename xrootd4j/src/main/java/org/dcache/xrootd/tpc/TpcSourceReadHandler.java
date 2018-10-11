@@ -90,88 +90,90 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
     protected void doOnReadResponse(ChannelHandlerContext ctx,
                                     InboundReadResponse response)
     {
-        int status = response.getStatus();
-        XrootdTpcInfo tpcInfo = client.getInfo();
-        int bytesRcvd = response.getDlen();
-        if (status == kXR_ok || status == kXR_oksofar) {
-            LOGGER.trace("Read, status {}, of {} on {}, channel {}, stream {}: "
-                                         + "got {} more bytes.",
-                         status,
-                         tpcInfo.getLfn(),
-                         tpcInfo.getSrc(),
-                         ctx.channel().id(),
-                         client.getStreamId(),
-                         bytesRcvd);
-        } else {
-            String error = String.format(
-                            "Read, status %s, of %s on %s, channel %s, "
-                                            + "stream %d, failed.",
-                            status,
-                            tpcInfo.getLfn(),
-                            tpcInfo.getSrc(),
-                            ctx.channel().id(),
-                            client.getStreamId(),
-                            status);
-            handleTransferTerminated(kXR_error, error, ctx);
-            return;
-        }
-
-        long writeOffset = client.getWriteOffset();
-
-        if (bytesRcvd > 0) {
-            try {
-                response.setWriteOffset(writeOffset);
-                client.getWriteHandler().write(response);
-                writeOffset += bytesRcvd;
-                client.setWriteOffset(writeOffset);
-            } catch (ClosedChannelException e) {
-                handleTransferTerminated(kXR_ServerError, "Channel "
-                                                 + ctx.channel().id()
-                                                 + " was forcefully "
-                                                 + "closed by the server.",
-                                         ctx);
+        try {
+            int status = response.getStatus();
+            XrootdTpcInfo tpcInfo = client.getInfo();
+            int bytesRcvd = response.getDlen();
+            if (status == kXR_ok || status == kXR_oksofar) {
+                LOGGER.trace("Read, status {}, of {} on {}, channel {}, stream {}: "
+                                             + "got {} more bytes.",
+                             status,
+                             tpcInfo.getLfn(),
+                             tpcInfo.getSrc(),
+                             ctx.channel().id(),
+                             client.getStreamId(),
+                             bytesRcvd);
+            } else {
+                String error = String.format(
+                                "Read, status %s, of %s on %s, channel %s, "
+                                                + "stream %d, failed.",
+                                status,
+                                tpcInfo.getLfn(),
+                                tpcInfo.getSrc(),
+                                ctx.channel().id(),
+                                client.getStreamId(),
+                                status);
+                handleTransferTerminated(kXR_error, error, ctx);
                 return;
-            } catch (IOException e) {
-                handleTransferTerminated(kXR_IOError, e.toString(), ctx);
-                return;
-            } finally {
-                ReferenceCountUtil.release(response);
             }
 
-            LOGGER.trace("Read of {} on {}, channel {}, stream {}: "
-                                         + "wrote {}, "
-                                         + "so far {}, expected {}.",
-                         tpcInfo.getLfn(),
-                         tpcInfo.getSrc(),
-                         ctx.channel().id(),
-                         client.getStreamId(),
-                         bytesRcvd,
-                         writeOffset,
-                         tpcInfo.getAsize());
-        }
+            long writeOffset = client.getWriteOffset();
 
-        if (status == kXR_oksofar) {
-            LOGGER.trace("Waiting for more data for {} on {}, channel {}, stream {}",
-                         tpcInfo.getLfn(),
-                         tpcInfo.getSrc(),
-                         ctx.channel().id(),
-                         client.getStreamId());
-            return;
-        }
+            if (bytesRcvd > 0) {
+                try {
+                    response.setWriteOffset(writeOffset);
+                    client.getWriteHandler().write(response);
+                    writeOffset += bytesRcvd;
+                    client.setWriteOffset(writeOffset);
+                } catch (ClosedChannelException e) {
+                    handleTransferTerminated(kXR_ServerError, "Channel "
+                                                             + ctx.channel().id()
+                                                             + " was forcefully "
+                                                             + "closed by the server.",
+                                             ctx);
+                    return;
+                } catch (IOException e) {
+                    handleTransferTerminated(kXR_IOError, e.toString(), ctx);
+                    return;
+                }
 
-        if (writeOffset < tpcInfo.getAsize()) {
-            sendReadRequest(ctx);
-        } else if (tpcInfo.getCks() != null) {
-            sendChecksumRequest(ctx);
-        } else {
-            LOGGER.trace("Read for {} on {}, channel {}, stream {},"
-                                         + " completed without "
-                                         + "checksum verification.",
-                         tpcInfo.getLfn(),
-                         tpcInfo.getSrc(),
-                         ctx.channel().id(),
-                         client.getStreamId());
-            handleTransferTerminated(kXR_ok, null, ctx);
+                LOGGER.trace("Read of {} on {}, channel {}, stream {}: "
+                                             + "wrote {}, "
+                                             + "so far {}, expected {}.",
+                             tpcInfo.getLfn(),
+                             tpcInfo.getSrc(),
+                             ctx.channel().id(),
+                             client.getStreamId(),
+                             bytesRcvd,
+                             writeOffset,
+                             tpcInfo.getAsize());
+            }
+
+            if (status == kXR_oksofar) {
+                LOGGER.trace("Waiting for more data for {} on {}, channel {}, stream {}",
+                             tpcInfo.getLfn(),
+                             tpcInfo.getSrc(),
+                             ctx.channel().id(),
+                             client.getStreamId());
+                return;
+            }
+
+            if (writeOffset < tpcInfo.getAsize()) {
+                sendReadRequest(ctx);
+            } else if (tpcInfo.getCks() != null) {
+                sendChecksumRequest(ctx);
+            } else {
+                LOGGER.trace("Read for {} on {}, channel {}, stream {},"
+                                             + " completed without "
+                                             + "checksum verification.",
+                             tpcInfo.getLfn(),
+                             tpcInfo.getSrc(),
+                             ctx.channel().id(),
+                             client.getStreamId());
+                handleTransferTerminated(kXR_ok, null, ctx);
+            }
+        } finally {
+            ReferenceCountUtil.release(response);
         }
     }
 
