@@ -89,12 +89,12 @@ public abstract class AbstractClientRequestHandler extends
         } else if (t instanceof IOException) {
             LOGGER.error("IOException caught on channel {}: {}.",
                          ctx.channel().id(), t.toString());
-        } else if (t instanceof Exception) {
+        } else if (t instanceof XrootdException) {
             LOGGER.error("Exception caught on channel {}: {}.",
                          ctx.channel().id(),
                          t.toString());
         } else {
-            LOGGER.error("Throwable caught on channel {}: {}",
+            LOGGER.error("Exception caught on channel {}: {}",
                          ctx.channel().id(),
                          t.getMessage());
             Thread me = Thread.currentThread();
