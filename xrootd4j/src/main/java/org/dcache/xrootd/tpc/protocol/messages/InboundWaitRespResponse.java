@@ -22,10 +22,11 @@ import io.netty.buffer.ByteBuf;
 
 /**
  * <p>Server's prerogative to tell the client to wait up to a
- * certain number of seconds.</p>
+ * certain number of seconds.  This response also indicates
+ * the client should wait for instructions from the server.</p>
  */
-public class InboundWaitResponse extends AbstractInboundWaitResponse{
-    public InboundWaitResponse(ByteBuf buffer, int requestId) {
+public class InboundWaitRespResponse extends AbstractInboundWaitResponse {
+    public InboundWaitRespResponse(ByteBuf buffer, int requestId) {
         super(buffer, requestId);
     }
 }

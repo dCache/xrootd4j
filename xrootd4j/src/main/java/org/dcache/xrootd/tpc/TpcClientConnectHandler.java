@@ -138,22 +138,14 @@ public class TpcClientConnectHandler extends
     {
         switch (response.getRequestId()) {
             case kXR_login:
-                client.getExecutor().schedule(new Runnable() {
-                                                  @Override
-                                                  public void run() {
-                                                      sendLoginRequest(ctx);
-                                                  }
-                                              }, getWaitInSeconds(response),
-                                              TimeUnit.SECONDS);
+                client.getExecutor().schedule(() -> {
+                    sendLoginRequest(ctx);
+                }, getWaitInSeconds(response), TimeUnit.SECONDS);
                 break;
             case kXR_protocol:
-                client.getExecutor().schedule(new Runnable() {
-                                                  @Override
-                                                  public void run() {
-                                                      sendProtocolRequest(ctx);
-                                                  }
-                                              }, getWaitInSeconds(response),
-                                              TimeUnit.SECONDS);
+                client.getExecutor().schedule(() -> {
+                    sendProtocolRequest(ctx);
+                }, getWaitInSeconds(response), TimeUnit.SECONDS);
                 break;
             default:
                 super.doOnWaitResponse(ctx, response);

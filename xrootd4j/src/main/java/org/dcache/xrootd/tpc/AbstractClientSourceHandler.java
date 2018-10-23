@@ -214,22 +214,14 @@ public abstract class AbstractClientSourceHandler extends
     {
         switch (response.getRequestId()) {
             case kXR_open:
-                client.getExecutor().schedule(new Runnable() {
-                                                  @Override
-                                                  public void run() {
-                                                      sendOpenRequest(ctx);
-                                                  }
-                                              }, getWaitInSeconds(response),
-                                              TimeUnit.SECONDS);
+                client.getExecutor().schedule(() -> {
+                    sendOpenRequest(ctx);
+                }, getWaitInSeconds(response), TimeUnit.SECONDS);
                 break;
             case kXR_close:
-                client.getExecutor().schedule(new Runnable() {
-                                                  @Override
-                                                  public void run() {
-                                                      client.doClose(ctx);
-                                                  }
-                                              }, getWaitInSeconds(response),
-                                              TimeUnit.SECONDS);
+                client.getExecutor().schedule(() -> {
+                    client.doClose(ctx);
+                }, getWaitInSeconds(response), TimeUnit.SECONDS);
                 break;
             default:
                 super.doOnWaitResponse(ctx, response);

@@ -183,22 +183,14 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
     {
         switch (response.getRequestId()) {
             case kXR_read:
-                client.getExecutor().schedule(new Runnable() {
-                                                  @Override
-                                                  public void run() {
-                                                      sendReadRequest(ctx);
-                                                  }
-                                              }, getWaitInSeconds(response),
-                                              TimeUnit.SECONDS);
+                client.getExecutor().schedule(() -> {
+                    sendReadRequest(ctx);
+                }, getWaitInSeconds(response), TimeUnit.SECONDS);
                 break;
             case kXR_query:
-                client.getExecutor().schedule(new Runnable() {
-                                                  @Override
-                                                  public void run() {
-                                                      sendChecksumRequest(ctx);
-                                                  }
-                                              }, getWaitInSeconds(response),
-                                              TimeUnit.SECONDS);
+                client.getExecutor().schedule(() -> {
+                    sendChecksumRequest(ctx);
+                }, getWaitInSeconds(response), TimeUnit.SECONDS);
                 break;
             default:
                 super.doOnWaitResponse(ctx, response);
