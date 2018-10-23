@@ -64,8 +64,8 @@ import org.dcache.xrootd.tpc.protocol.messages.OutboundAuthenticationRequest;
 
 import static io.netty.channel.ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE;
 import static java.nio.charset.StandardCharsets.US_ASCII;
-import static org.dcache.xrootd.plugins.authn.gsi.BaseGSIAuthenticationHandler.PROTOCOL_VERSION;
 import static org.dcache.xrootd.plugins.authn.gsi.BaseGSIAuthenticationHandler.*;
+import static org.dcache.xrootd.plugins.authn.gsi.BaseGSIAuthenticationHandler.PROTOCOL_VERSION;
 import static org.dcache.xrootd.plugins.authn.gsi.GSIAuthenticationHandler.CRYPTO_MODE;
 import static org.dcache.xrootd.plugins.authn.gsi.GSIAuthenticationHandler.PROTOCOL;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
@@ -471,20 +471,16 @@ public class GSIClientAuthenticationHandler extends
     {
         switch (response.getRequestId()) {
             case kXR_auth:
-                client.getExecutor().schedule(new Runnable() {
-                                                  @Override
-                                                  public void run() {
-                                                      try {
-                                                          sendAuthenticationRequest(ctx);
-                                                      } catch (XrootdException e) {
-                                                          exceptionCaught(ctx, e);
-                                                      }
-                                                  }
-                                              }, getWaitInSeconds(response),
-                                              TimeUnit.SECONDS);
+                client.getExecutor().schedule(() -> {
+                    try {
+                        sendAuthenticationRequest(ctx);
+                    } catch (XrootdException e) {
+                        exceptionCaught(ctx, e);
+                    }
+                }, getWaitInSeconds(response), TimeUnit.SECONDS);
                 break;
             default:
-                ctx.fireChannelRead(response);
+                super.doOnWaitResponse(ctx, response);
         }
     }
 

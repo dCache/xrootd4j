@@ -41,6 +41,7 @@ import org.dcache.xrootd.tpc.protocol.messages.InboundOpenReadOnlyResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundProtocolResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundReadResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundRedirectResponse;
+import org.dcache.xrootd.tpc.protocol.messages.InboundWaitRespResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundWaitResponse;
 import org.dcache.xrootd.tpc.protocol.messages.XrootdInboundResponse;
 import org.dcache.xrootd.util.ParseException;
@@ -107,10 +108,15 @@ public class XrootdClientDecoder extends ByteToMessageDecoder
                                 sourceUrn, id);
                     out.add(new InboundErrorResponse(frame));
                     return;
-                case kXR_waitresp:
+                case kXR_wait:
                     LOGGER.trace("Decoder {}, channel {}: adding wait response.",
-                                sourceUrn, id);
+                                 sourceUrn, id);
                     out.add(new InboundWaitResponse(frame, requestId));
+                    return;
+                case kXR_waitresp:
+                    LOGGER.trace("Decoder {}, channel {}: adding waitresp response.",
+                                sourceUrn, id);
+                    out.add(new InboundWaitRespResponse(frame, requestId));
                     return;
                 case kXR_redirect:
                     LOGGER.trace("Decoder {}, channel {}: adding redirect response.",

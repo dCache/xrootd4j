@@ -42,6 +42,7 @@ import org.dcache.xrootd.tpc.protocol.messages.InboundOpenReadOnlyResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundProtocolResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundReadResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundRedirectResponse;
+import org.dcache.xrootd.tpc.protocol.messages.InboundWaitRespResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundWaitResponse;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundAuthenticationRequest;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundChecksumRequest;
@@ -343,20 +344,17 @@ public abstract class AbstractClientRequestHandler extends
 
     /*
      * Do not wait on the event thread.
+     *
+     * Incoming here is either an InboundWaitResponse or an InboundAttnResponse
+     * of the type kXR_asyncwt.  Cancelled by kXR_ayncgo.
      */
     protected synchronized void doOnWaitResponse(final ChannelHandlerContext ctx,
                                                  AbstractXrootdInboundResponse response)
     {
         switch (response.getRequestId()) {
             case kXR_endsess:
-                future = client.getExecutor().schedule(new Runnable() {
-                    @Override
-                    public void run() {
-                        client.doEndsession(ctx);
-                        synchronized (AbstractClientRequestHandler.this) {
-                            future = null;
-                        }
-                    }
+                future = client.getExecutor().schedule(() -> {
+                    client.doEndsession(ctx);
                 }, getWaitInSeconds(response), TimeUnit.SECONDS);
                 break;
             default:
@@ -364,13 +362,34 @@ public abstract class AbstractClientRequestHandler extends
         }
     }
 
+    /*
+     * Do not wait on the event thread.
+     *
+     * If the future is not cancelled, it must throw a timeout exception/failure.
+     * Cancelled by kXR_asynresp.
+     */
+    protected synchronized void doOnWaitRespResponse(final ChannelHandlerContext ctx,
+                                                     InboundWaitRespResponse response)
+    {
+        future = client.getExecutor().schedule(() -> {
+            exceptionCaught(ctx,
+                            new XrootdException(kXR_noResponsesYet, "waited + "
+                                            + getWaitInSeconds(response)
+                                            + " secs for server attn, "
+                                            + "never received response"));
+        }, getWaitInSeconds(response), TimeUnit.SECONDS);
+    }
+
     protected int getWaitInSeconds(AbstractXrootdInboundResponse response)
     {
         int wsec = 0;
         int msec = 0;
         if (response instanceof InboundWaitResponse) {
-            msec = ((InboundWaitResponse)response).getMaxWaitInSeconds();
+            msec = ((InboundWaitResponse) response).getMaxWaitInSeconds();
             wsec = 10;
+        } else if (response instanceof InboundWaitRespResponse) {
+            msec = ((InboundWaitRespResponse) response).getMaxWaitInSeconds();
+            wsec = msec;
         } else if (response instanceof InboundAttnResponse) {
             InboundAttnResponse attnResponse = (InboundAttnResponse)response;
             wsec = attnResponse.getWsec();
@@ -384,6 +403,11 @@ public abstract class AbstractClientRequestHandler extends
     {
         if (response instanceof InboundWaitResponse) {
             doOnWaitResponse(ctx, (InboundWaitResponse)response);
+            return;
+        }
+
+        if (response instanceof InboundWaitRespResponse) {
+            doOnWaitRespResponse(ctx, (InboundWaitRespResponse)response);
             return;
         }
 
