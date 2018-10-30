@@ -22,6 +22,7 @@ import io.netty.buffer.ByteBuf;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_stat;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_vfs;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secPedantic;
 
 public class StatRequest extends PathRequest
 {
@@ -48,6 +49,7 @@ public class StatRequest extends PathRequest
     public StatRequest(ByteBuf buffer)
     {
         super(buffer, kXR_stat);
+        signingLevel = kXR_secPedantic;
         options = buffer.getUnsignedByte(4);
         fhandle = buffer.getInt(16);
     }

@@ -31,6 +31,7 @@ import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
 
 public class AuthenticationRequest extends AbstractXrootdRequest
 {
@@ -60,6 +61,12 @@ public class AuthenticationRequest extends AbstractXrootdRequest
         buffer.readerIndex(24);
 
         protocol = deserializeProtocol(buffer);
+
+        if (protocol.equals("unix")) {
+            step = kXR_ok;
+            return;
+        }
+
         step = deserializeStep(buffer);
 
         try {

@@ -54,6 +54,7 @@ import org.dcache.xrootd.security.StringBucket;
 import org.dcache.xrootd.security.XrootdBucket;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 import org.dcache.xrootd.tpc.AbstractClientRequestHandler;
+import org.dcache.xrootd.tpc.TpcSigverRequestHandler;
 import org.dcache.xrootd.tpc.XrootdTpcClient;
 import org.dcache.xrootd.tpc.XrootdTpcInfo;
 import org.dcache.xrootd.tpc.protocol.messages.AbstractXrootdInboundResponse;
@@ -576,8 +577,8 @@ public class GSIClientAuthenticationHandler extends
                                                     SERVER_SYNC_CIPHER_MODE,
                                                     SERVER_SYNC_CIPHER_NAME,
                                                     SERVER_SYNC_CIPHER_BLOCKSIZE);
-            GSISigverRequestHandler sigverRequestHandler =
-                            new GSISigverRequestHandler(encrypter, client);
+            TpcSigverRequestHandler sigverRequestHandler =
+                            new TpcSigverRequestHandler(encrypter, client);
             client.setSigverRequestHandler(sigverRequestHandler);
 
             XrootdBucketContainer container =
@@ -615,8 +616,10 @@ public class GSIClientAuthenticationHandler extends
         if (!sec.startsWith("&P=")) {
             throw new XrootdException(kXR_error, "Malformed 'sec': " + sec);
         }
-        String protocol = sec.substring(3, sec.indexOf(","));
-        return PROTOCOL.equals(protocol);
+        int comma = sec.indexOf(",");
+        String protocol = comma > 3 ? sec.substring(3, comma) : sec.substring(3, 7);
+        LOGGER.trace("checking for gsi; protocol is {}", protocol);
+        return PROTOCOL.equals(protocol.trim());
     }
 
     private void parseSec(String sec) throws XrootdException

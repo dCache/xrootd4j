@@ -24,6 +24,7 @@ import org.dcache.xrootd.core.XrootdSessionIdentifier;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.SESSION_ID_SIZE;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_endsess;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secIntense;
 
 public class EndSessionRequest extends AbstractXrootdRequest
 {
@@ -33,6 +34,7 @@ public class EndSessionRequest extends AbstractXrootdRequest
     {
         super(buffer, kXR_endsess);
         buffer.getBytes(4, session);
+        signingLevel = kXR_secIntense;
     }
 
     public XrootdSessionIdentifier getSessionId()

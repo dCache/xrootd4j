@@ -20,6 +20,7 @@ package org.dcache.xrootd.plugins.authn.none;
 
 import javax.security.auth.Subject;
 
+import org.dcache.xrootd.core.XrootdDecoder;
 import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.OkResponse;
@@ -51,5 +52,10 @@ public class NoAuthenticationHandler implements AuthenticationHandler
     @Override
     public boolean isCompleted() {
         return true;
+    }
+
+    @Override
+    public void setDecoder(XrootdDecoder decoder) {
+        // NOP
     }
 }

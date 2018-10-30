@@ -28,6 +28,7 @@ public interface XrootdProtocol {
         (byte) ((PROTOCOL_VERSION & 0xFF00) >> 8);
     public static final byte PROTOCOL_VERSION_MINOR =
         (byte) (PROTOCOL_VERSION & 0x00FF);
+    public static final byte CLIENT_PROTOCOL_VERSION = (byte)4;
 
     public static final byte      CLIENT_REQUEST_LEN = 24;
     public static final byte    CLIENT_HANDSHAKE_LEN = 20;
@@ -176,6 +177,9 @@ public interface XrootdProtocol {
 
     // protocol request options
     public static final byte kXR_secreqs  = 1;
+
+    // sigver request options
+    public static final byte kXR_nodata   = 1;
 
     // query types
     public static final int kXR_QStats = 1;

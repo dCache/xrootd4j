@@ -25,12 +25,15 @@ import javax.security.auth.Subject;
 import org.dcache.xrootd.core.XrootdSession;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secNone;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_signNeeded;
 
 public class AbstractXrootdRequest implements XrootdRequest
 {
     protected final int streamId;
     protected final int requestId;
     protected XrootdSession session;
+    protected int       signingLevel;
 
     public AbstractXrootdRequest(ByteBuf buffer, int requestId)
     {
@@ -42,6 +45,7 @@ public class AbstractXrootdRequest implements XrootdRequest
     {
         streamId = buffer.getUnsignedShort(0);
         requestId = buffer.getUnsignedShort(2);
+        this.signingLevel = kXR_secNone;
     }
 
     @Override
@@ -54,6 +58,12 @@ public class AbstractXrootdRequest implements XrootdRequest
     public int getRequestId()
     {
         return requestId;
+    }
+
+    public boolean isSigned(int level, int override)
+    {
+        return signingLevel != kXR_secNone &&
+                        (level >= signingLevel || override == kXR_signNeeded);
     }
 
     @Override

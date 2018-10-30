@@ -71,6 +71,7 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
 
     private final AuthenticationFactory _authenticationFactory;
     private AuthenticationHandler _authenticationHandler;
+    private XrootdDecoder decoder;
 
     private enum State { NO_LOGIN, NO_AUTH, AUTH }
     private volatile State _state = State.NO_LOGIN;
@@ -205,6 +206,7 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
     {
         try {
             _authenticationHandler = _authenticationFactory.createHandler();
+            _authenticationHandler.setDecoder(decoder);
 
             LoginResponse response =
                 new LoginResponse(request, _sessionId,
@@ -277,5 +279,10 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
         throws XrootdException
     {
         return subject;
+    }
+
+    public void setDecoder(XrootdDecoder decoder)
+    {
+        this.decoder = decoder;
     }
 }

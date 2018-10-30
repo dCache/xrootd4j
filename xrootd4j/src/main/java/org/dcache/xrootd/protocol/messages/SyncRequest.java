@@ -18,8 +18,10 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_sync;
 import io.netty.buffer.ByteBuf;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_sync;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secPedantic;
 
 public class SyncRequest extends AbstractXrootdRequest
 {
@@ -28,6 +30,7 @@ public class SyncRequest extends AbstractXrootdRequest
     public SyncRequest(ByteBuf buffer)
     {
         super(buffer, kXR_sync);
+        signingLevel = kXR_secPedantic;
         fhandle = buffer.getInt(4);
     }
 

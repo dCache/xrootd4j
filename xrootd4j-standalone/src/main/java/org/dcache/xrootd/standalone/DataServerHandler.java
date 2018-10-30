@@ -75,6 +75,7 @@ import org.dcache.xrootd.stream.ChunkedFileReadvResponse;
 import org.dcache.xrootd.util.FileStatus;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secNone;
 
 public class DataServerHandler extends XrootdRequestHandler
 {
@@ -116,7 +117,7 @@ public class DataServerHandler extends XrootdRequestHandler
     protected ProtocolResponse doOnProtocolRequest(
             ChannelHandlerContext ctx, ProtocolRequest msg)
     {
-        return new ProtocolResponse(msg, DATA_SERVER);
+        return new ProtocolResponse(msg, DATA_SERVER, kXR_secNone, (byte)0);
     }
 
     @Override

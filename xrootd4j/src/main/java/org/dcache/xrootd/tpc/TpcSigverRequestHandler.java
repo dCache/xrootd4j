@@ -20,27 +20,85 @@ package org.dcache.xrootd.tpc;
 
 import io.netty.channel.ChannelHandlerContext;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.util.Map;
+
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.security.BufferEncrypter;
+import org.dcache.xrootd.tpc.protocol.messages.AbstractXrootdOutboundRequest;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundSigverRequest;
 import org.dcache.xrootd.tpc.protocol.messages.XrootdOutboundRequest;
 
-/**
- * <p>Wraps method for creating and possibly encrypting signed hash.</p>
- *
- * @param <E> type of object which can encrypt the hash.
- */
-public abstract class TpcSigverRequestHandler<E extends BufferEncrypter> {
-    protected final E                       encrypter;
-    protected final XrootdTpcClient         client;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_signIgnore;
 
-    protected TpcSigverRequestHandler(E encrypter, XrootdTpcClient client)
+/**
+ * <p>Checks to see if the protocol security context requires
+ *    the particular message to be preceded by a signing verification
+ *    request, and returns one if so.</p>
+ *
+ * <p>If the encrypter is <code>null</code>, unencrypted hashes are sent.</p>
+ */
+public class TpcSigverRequestHandler {
+    protected final BufferEncrypter         encrypter;
+    protected final XrootdTpcClient         client;
+    protected long seqno;
+
+    public TpcSigverRequestHandler(BufferEncrypter encrypter, XrootdTpcClient client)
     {
         this.encrypter = encrypter;
         this.client = client;
     }
 
-    public abstract OutboundSigverRequest createSigverRequest(ChannelHandlerContext ctx,
-                                                              XrootdOutboundRequest request)
-        throws XrootdException;
+    /**
+     * @param request to be signed
+     * @return request sent before the main request with hash to be checked.
+     */
+    public OutboundSigverRequest createSigverRequest(ChannelHandlerContext ctx,
+                                                     XrootdOutboundRequest request)
+                    throws XrootdException
+    {
+        if (!(request instanceof AbstractXrootdOutboundRequest)) {
+            return null;
+        }
+
+        AbstractXrootdOutboundRequest abstractRequest
+                        = (AbstractXrootdOutboundRequest)request;
+
+        Map<Integer, Integer> overrides = client.getOverrides();
+        Integer override = overrides.get(abstractRequest.getRequestId());
+
+        if (!abstractRequest.isSigned(client.getSeclvl(),
+                                      override == null ? kXR_signIgnore : override)) {
+            return null;
+        }
+
+        ++seqno;
+
+        try {
+            OutboundSigverRequest sigverRequest = new OutboundSigverRequest(seqno,
+                                                                            abstractRequest,
+                                                                            ctx);
+            if (encrypter != null) {
+                sigverRequest.encrypt(encrypter);
+            }
+
+            return sigverRequest;
+        } catch (NoSuchAlgorithmException |
+                        InvalidKeyException |
+                        InvalidAlgorithmParameterException |
+                        NoSuchPaddingException |
+                        BadPaddingException |
+                        NoSuchProviderException |
+                        IllegalBlockSizeException e) {
+            throw new XrootdException(kXR_ServerError, e.getMessage());
+        }
+    }
 }

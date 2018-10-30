@@ -21,6 +21,7 @@ package org.dcache.xrootd.protocol.messages;
 import io.netty.buffer.ByteBuf;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secIntense;
 
 public class CloseRequest extends AbstractXrootdRequest
 {
@@ -30,6 +31,7 @@ public class CloseRequest extends AbstractXrootdRequest
     {
         super(buffer, kXR_close);
         fileHandle = buffer.getInt(4);
+        signingLevel = kXR_secIntense;
     }
 
     public int getFileHandle()

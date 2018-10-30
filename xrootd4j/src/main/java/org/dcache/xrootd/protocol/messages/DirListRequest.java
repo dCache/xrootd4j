@@ -21,6 +21,7 @@ package org.dcache.xrootd.protocol.messages;
 import io.netty.buffer.ByteBuf;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secPedantic;
 
 public class DirListRequest extends PathRequest
 {
@@ -30,6 +31,7 @@ public class DirListRequest extends PathRequest
     {
         super(buffer, kXR_dirlist);
         options = buffer.getUnsignedByte(19);
+        signingLevel = kXR_secPedantic;
     }
 
     public boolean isDirectoryStat()

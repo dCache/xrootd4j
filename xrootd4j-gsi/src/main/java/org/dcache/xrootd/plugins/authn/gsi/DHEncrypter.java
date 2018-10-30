@@ -27,13 +27,14 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 
+import org.dcache.xrootd.security.BufferDecrypter;
 import org.dcache.xrootd.security.BufferEncrypter;
 
 /**
  * <p>Uses established shared secret from a Diffie Hellman session to
- *    encrypt the buffer.</p>
+ *    encrypt or decrypt the buffer.</p>
  */
-public class DHEncrypter implements BufferEncrypter
+public class DHEncrypter implements BufferEncrypter, BufferDecrypter
 {
     private DHSession session;
     private String    cipherSpec;
@@ -49,6 +50,17 @@ public class DHEncrypter implements BufferEncrypter
         this.cipherSpec = cipherSpec;
         this.keySpec = keySpec;
         this.blocksize = blocksize;
+    }
+
+    @Override
+    public byte[] decrypt(byte[] encrypted)
+                    throws InvalidKeyException, IllegalStateException,
+                    NoSuchAlgorithmException, NoSuchPaddingException,
+                    IllegalBlockSizeException, BadPaddingException,
+                    InvalidAlgorithmParameterException,
+                    NoSuchProviderException
+    {
+        return session.decrypt(cipherSpec, keySpec, blocksize, encrypted);
     }
 
     @Override

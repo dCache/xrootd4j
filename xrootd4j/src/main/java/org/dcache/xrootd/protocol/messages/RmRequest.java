@@ -18,15 +18,17 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-
 import io.netty.buffer.ByteBuf;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_rm;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secCompatible;
 
 public class RmRequest extends PathRequest
 {
     public RmRequest(ByteBuf buffer)
     {
         super(buffer, kXR_rm);
+        signingLevel = kXR_secCompatible;
     }
 
     @Override

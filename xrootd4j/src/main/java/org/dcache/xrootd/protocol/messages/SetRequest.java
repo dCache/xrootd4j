@@ -22,6 +22,7 @@ import io.netty.buffer.ByteBuf;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_set;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secCompatible;
 
 public class SetRequest extends AbstractXrootdRequest
 {
@@ -30,6 +31,7 @@ public class SetRequest extends AbstractXrootdRequest
     public SetRequest(ByteBuf buffer)
     {
         super(buffer, kXR_set);
+        signingLevel = kXR_secCompatible;
         int dlen = buffer.getInt(20);
         data = buffer.toString(24, dlen, US_ASCII);
     }

@@ -18,8 +18,10 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_read;
 import io.netty.buffer.ByteBuf;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_read;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secPedantic;
 
 public class ReadRequest extends GenericReadRequestMessage
 {
@@ -30,7 +32,7 @@ public class ReadRequest extends GenericReadRequestMessage
     public ReadRequest(ByteBuf buffer)
     {
         super(buffer, kXR_read);
-
+        signingLevel = kXR_secPedantic;
         fhandle = buffer.getInt(4);
         offset = buffer.getLong(8);
         rlen = buffer.getInt(16);

@@ -21,6 +21,7 @@ package org.dcache.xrootd.protocol.messages;
 import io.netty.buffer.ByteBuf;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_locate;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secPedantic;
 
 public class LocateRequest extends PathRequest
 {
@@ -30,6 +31,7 @@ public class LocateRequest extends PathRequest
     {
         super(buffer, kXR_locate);
         options = buffer.getUnsignedMedium(4);
+        signingLevel = kXR_secPedantic;
     }
 
     public int getOptions()

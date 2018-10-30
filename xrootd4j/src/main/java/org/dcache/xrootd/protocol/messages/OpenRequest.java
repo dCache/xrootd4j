@@ -18,8 +18,10 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 import io.netty.buffer.ByteBuf;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secCompatible;
 
 public class OpenRequest extends PathRequest
 {
@@ -29,6 +31,7 @@ public class OpenRequest extends PathRequest
     public OpenRequest(ByteBuf buffer)
     {
         super(buffer, kXR_open);
+        signingLevel = kXR_secCompatible;
 
         mode = buffer.getUnsignedShort(4);
         options = buffer.getUnsignedShort(6);

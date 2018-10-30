@@ -24,6 +24,7 @@ import java.util.Arrays;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secPedantic;
 
 public class PrepareRequest extends AbstractXrootdRequest
 {
@@ -34,7 +35,7 @@ public class PrepareRequest extends AbstractXrootdRequest
     public PrepareRequest(ByteBuf buffer)
     {
         super(buffer, kXR_prepare);
-
+        signingLevel = kXR_secPedantic;
         options = buffer.getUnsignedShort(4);
         priority = buffer.getUnsignedShort(5);
 

@@ -22,6 +22,7 @@ import io.netty.buffer.ByteBuf;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_statx;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secPedantic;
 
 public class StatxRequest extends AbstractXrootdRequest
 {
@@ -31,7 +32,7 @@ public class StatxRequest extends AbstractXrootdRequest
     public StatxRequest(ByteBuf buffer)
     {
         super(buffer, kXR_statx);
-
+        signingLevel = kXR_secPedantic;
         int dlen = buffer.getInt(20);
         paths = buffer.toString(24, dlen, US_ASCII).split("\n");
         opaques = new String[paths.length];
