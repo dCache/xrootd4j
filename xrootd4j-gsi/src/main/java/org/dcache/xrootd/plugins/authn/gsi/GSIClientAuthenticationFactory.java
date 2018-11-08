@@ -120,7 +120,7 @@ public class GSIClientAuthenticationFactory extends BaseGSIAuthenticationFactory
                 LOGGER.info("Refreshing proxy credential. Current refresh interval: {} ms",
                             proxyRefreshInterval);
 
-                if (Strings.isNullOrEmpty(proxyPath)) {
+                if (!Strings.isNullOrEmpty(proxyPath)) {
                     proxy = new PEMCredential(proxyPath, (char[]) null);
                 } else {
                     clientCredential = new PEMCredential(clientKeyPath,
