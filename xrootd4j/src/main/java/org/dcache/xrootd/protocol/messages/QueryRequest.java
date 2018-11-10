@@ -23,7 +23,6 @@ import io.netty.buffer.ByteBuf;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_query;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secPedantic;
 
 public class QueryRequest extends AbstractXrootdRequest
 {
@@ -35,7 +34,6 @@ public class QueryRequest extends AbstractXrootdRequest
     public QueryRequest(ByteBuf buffer)
     {
         super(buffer, kXR_query);
-        signingLevel = kXR_secPedantic;
         reqcode = buffer.getUnsignedShort(4);
         fhandle = buffer.getInt(8);
         int alen = buffer.getInt(20);

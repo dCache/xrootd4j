@@ -19,7 +19,6 @@
 package org.dcache.xrootd.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.ReferenceCounted;
 
 import java.io.IOException;
@@ -29,25 +28,20 @@ import java.nio.channels.GatheringByteChannel;
 import org.dcache.xrootd.util.ByteBuffersProvider;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_write;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secIntense;
 
 public class WriteRequest extends AbstractXrootdRequest implements ByteBuffersProvider
 {
-    private static final byte[] RESERVED = {0,0,0};
-
     private final int fhandle;
     private final long offset;
-    private final byte pathid;
     private final int dlen;
     private final ByteBuf data;
 
     public WriteRequest(ByteBuf buffer)
     {
         super(buffer, kXR_write);
-        signingLevel = kXR_secIntense;
+
         fhandle = buffer.getInt(4);
         offset = buffer.getLong(8);
-        pathid = buffer.getByte(16);
         dlen = buffer.getInt(20);
         data = buffer.alloc().ioBuffer(dlen); // Most likely this will be written to disk
         buffer.getBytes(24, data);
@@ -56,30 +50,6 @@ public class WriteRequest extends AbstractXrootdRequest implements ByteBuffersPr
     public int getFileHandle()
     {
         return fhandle;
-    }
-
-    /*
-     *  Needed to support signed hash verification (kXR_nodata).
-     */
-    public byte[] getHeaderOnly(ChannelHandlerContext ctx)
-    {
-        ByteBuf buffer = ctx.alloc().buffer(24 );
-        try {
-            buffer.writeShort(streamId);
-            buffer.writeShort(requestId);
-            buffer.writeInt(fhandle);
-            buffer.writeLong(offset);
-            buffer.writeByte(pathid);
-            buffer.writeBytes(RESERVED);
-            buffer.writeInt(dlen);
-
-            byte[] header = new byte[buffer.readableBytes()];
-            buffer.getBytes(0, header);
-
-            return header;
-        } finally {
-            buffer.release();
-        }
     }
 
     @Override

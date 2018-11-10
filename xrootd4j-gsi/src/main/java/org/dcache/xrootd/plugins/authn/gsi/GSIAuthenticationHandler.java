@@ -38,9 +38,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
-import org.dcache.xrootd.core.XrootdDecoder;
 import org.dcache.xrootd.core.XrootdException;
-import org.dcache.xrootd.core.XrootdSigverRequestHandler;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
 import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
@@ -80,12 +78,6 @@ public class GSIAuthenticationHandler extends BaseGSIAuthenticationHandler
     private String challenge = "";
     private Cipher challengeCipher;
     private DHSession dhSession;
-
-    /**
-     * When the DH key is finalized, the Signed Hash verification handler
-     * is set on the decoder.
-     */
-    private XrootdDecoder decoder;
 
     private boolean finished = false;
 
@@ -312,18 +304,6 @@ public class GSIAuthenticationHandler extends BaseGSIAuthenticationHandler
 
             finished = true;
 
-            /*
-             * For handling signed hashes, if and when the security level
-             * requires it.
-             */
-            DHEncrypter decrypter = new DHEncrypter(dhSession,
-                                                  SERVER_SYNC_CIPHER_MODE,
-                                                  SERVER_SYNC_CIPHER_NAME,
-                                                  SERVER_SYNC_CIPHER_BLOCKSIZE);
-            XrootdSigverRequestHandler sigverRequestHandler =
-                            new XrootdSigverRequestHandler(decrypter);
-            decoder.setSigverRequestHandler(sigverRequestHandler);
-
             return new OkResponse<>(request);
         } catch (InvalidKeyException ikex) {
             LOGGER.error("The key negotiated by DH key exchange appears to " +
@@ -450,11 +430,5 @@ public class GSIAuthenticationHandler extends BaseGSIAuthenticationHandler
     public boolean isCompleted()
     {
         return finished;
-    }
-
-    @Override
-    public void setDecoder(XrootdDecoder decoder)
-    {
-        this.decoder = decoder;
     }
 }

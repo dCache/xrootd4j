@@ -50,7 +50,7 @@ import static org.dcache.xrootd.plugins.authn.gsi.BaseGSIAuthenticationHandler.P
  * <p>Authentication factory that returns GSI security handlers to add to the
  *    third-party client channel pipeline.</p>
  *
- * <p>In addition to loading host cert, key and crl validators, generates
+ * <<p>In addition to loading host cert, key and crl validators, generates
  *     a proxy credential from the host cert and key, as required by
  *     the standard (SLAC) implementation of the server.</p>
  */

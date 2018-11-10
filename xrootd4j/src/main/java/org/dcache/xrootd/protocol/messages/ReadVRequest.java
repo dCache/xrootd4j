@@ -18,19 +18,16 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import io.netty.buffer.ByteBuf;
-
 import java.util.Arrays;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_readv;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secPedantic;
+import io.netty.buffer.ByteBuf;
 
 public class ReadVRequest extends GenericReadRequestMessage
 {
     public ReadVRequest(ByteBuf buffer)
     {
         super(buffer, kXR_readv);
-        signingLevel = kXR_secPedantic;
     }
 
     public int NumberOfReads()

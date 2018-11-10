@@ -22,7 +22,6 @@ import io.netty.buffer.ByteBuf;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mv;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secCompatible;
 
 public class MvRequest extends AbstractXrootdRequest
 {
@@ -32,7 +31,6 @@ public class MvRequest extends AbstractXrootdRequest
 
     public MvRequest(ByteBuf buffer) {
         super(buffer, kXR_mv);
-        signingLevel = kXR_secCompatible;
 
         int dlen = buffer.getInt(20);
         int end = 24 + dlen;

@@ -20,7 +20,6 @@ package org.dcache.xrootd.plugins;
 
 import javax.security.auth.Subject;
 
-import org.dcache.xrootd.core.XrootdDecoder;
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
@@ -35,14 +34,14 @@ public interface AuthenticationHandler
      * @param request Request received from client
      * @return Response to be sent to the client
      */
-    XrootdResponse<AuthenticationRequest> authenticate(AuthenticationRequest request)
+    public XrootdResponse<AuthenticationRequest> authenticate(AuthenticationRequest request)
         throws XrootdException;
 
     /**
      * @return the protocol that is implemented by the authentication
      * handler
      */
-    String getProtocol();
+    public String getProtocol();
 
     /**
      * Get the subject containing the credentials/principals found
@@ -51,16 +50,10 @@ public interface AuthenticationHandler
      * the authentication step has completed - this indicates an
      * anonymous user.
      */
-    Subject getSubject();
+    public Subject getSubject();
 
     /**
      * Indicates if the authentication process completed successfully.
      */
-    boolean isCompleted();
-
-    /**
-     * Allows handler to provide signed hash verification handling to
-     * the decoder/
-     */
-    void setDecoder(XrootdDecoder decoder);
+    public boolean isCompleted();
 }

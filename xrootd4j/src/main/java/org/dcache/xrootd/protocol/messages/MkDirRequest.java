@@ -18,11 +18,9 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import io.netty.buffer.ByteBuf;
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mkdir;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mkdirpath;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secStandard;
+import io.netty.buffer.ByteBuf;
 
 /**
  * FIXME the mode field is currently unsupported, because the owner of the file
@@ -39,7 +37,6 @@ public class MkDirRequest extends PathRequest
 
         options = buffer.getByte(4);
         mode = buffer.getUnsignedShort(18);
-        signingLevel = kXR_secStandard;
     }
 
     public short getOptions() {

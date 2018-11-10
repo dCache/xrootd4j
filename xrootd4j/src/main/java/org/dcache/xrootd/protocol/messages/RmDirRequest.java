@@ -18,17 +18,15 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import io.netty.buffer.ByteBuf;
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_rmdir;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secCompatible;
+import io.netty.buffer.ByteBuf;
 
 public class RmDirRequest extends PathRequest
 {
     public RmDirRequest(ByteBuf buffer)
     {
         super(buffer, kXR_rmdir);
-        signingLevel = kXR_secCompatible;
     }
 
     @Override
