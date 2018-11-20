@@ -364,6 +364,7 @@ public class GSIClientAuthenticationHandler extends
     @Override
     protected void doOnAsynResponse(ChannelHandlerContext ctx,
                                     InboundAttnResponse response)
+                    throws XrootdException
     {
         switch (response.getRequestId()) {
             case kXR_auth:
@@ -381,6 +382,7 @@ public class GSIClientAuthenticationHandler extends
     @Override
     protected void doOnAuthenticationResponse(ChannelHandlerContext ctx,
                                               InboundAuthenticationResponse response)
+                    throws XrootdException
     {
         ChannelId id = ctx.channel().id();
         int status = response.getStatus();
@@ -405,17 +407,14 @@ public class GSIClientAuthenticationHandler extends
                              id,
                              streamId,
                              client.getSessionId());
-                try {
-                    client.setAuthResponse(response);
-                    sendAuthenticationRequest(ctx);
-                } catch (XrootdException e) {
-                    exceptionCaught(ctx, e);
-                }
+                client.setAuthResponse(response);
+                sendAuthenticationRequest(ctx);
                 break;
             default:
-                exceptionCaught(ctx,
-                                new RuntimeException("wrong status from "
-                                + "authentication response: " + status));
+                throw new XrootdException(kXR_ServerError,
+                                          "wrong status from authentication "
+                                                          + "response: "
+                                                          + status);
         }
     }
 
@@ -426,6 +425,7 @@ public class GSIClientAuthenticationHandler extends
     @Override
     protected void doOnLoginResponse(ChannelHandlerContext ctx,
                                      InboundLoginResponse response)
+                    throws XrootdException
     {
         ChannelId id = ctx.channel().id();
         String sec = response.getSec();
@@ -445,29 +445,26 @@ public class GSIClientAuthenticationHandler extends
             return;
         }
 
-        try {
-            if (!isGsiRequired(sec)) {
-                LOGGER.trace("login to {}, channel {}, stream {}, session {}, "
-                                             + "requires a different protocol; "
-                                             + "passing to next handler in chain.",
-                             tpcInfo.getSrc(),
-                             id,
-                             streamId,
-                             client.getSessionId());
-                ctx.fireChannelRead(response);
-                return;
-            }
-
-            parseSec(sec);
-            sendAuthenticationRequest(ctx);
-        } catch (XrootdException e) {
-            exceptionCaught(ctx, e);
+        if (!isGsiRequired(sec)) {
+            LOGGER.trace("login to {}, channel {}, stream {}, session {}, "
+                                         + "requires a different protocol; "
+                                         + "passing to next handler in chain.",
+                         tpcInfo.getSrc(),
+                         id,
+                         streamId,
+                         client.getSessionId());
+            ctx.fireChannelRead(response);
+            return;
         }
+
+        parseSec(sec);
+        sendAuthenticationRequest(ctx);
     }
 
     @Override
     protected void doOnWaitResponse(final ChannelHandlerContext ctx,
                                     AbstractXrootdInboundResponse response)
+                    throws XrootdException
     {
         switch (response.getRequestId()) {
             case kXR_auth:
