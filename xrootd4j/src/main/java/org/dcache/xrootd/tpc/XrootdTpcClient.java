@@ -478,10 +478,10 @@ public class XrootdTpcClient
             errno = kXR_ServerError;
         } else if (t instanceof IOException) {
             errno = kXR_IOError;
-        } else if (t instanceof Exception) {
-            errno = kXR_error;
-        } else {
+        } else if (t instanceof RuntimeException) {
             errno = kXR_ServerError;
+        } else {
+            errno = kXR_error;
         }
 
         writeHandler.fireDelayedSync(errno, error);

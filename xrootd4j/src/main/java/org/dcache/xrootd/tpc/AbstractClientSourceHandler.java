@@ -60,6 +60,7 @@ public abstract class AbstractClientSourceHandler extends
     @Override
     protected void doOnLoginResponse(ChannelHandlerContext ctx,
                                      InboundLoginResponse response)
+        throws XrootdException
     {
         ChannelId id = ctx.channel().id();
         XrootdTpcInfo tpcInfo = client.getInfo();
@@ -72,8 +73,7 @@ public abstract class AbstractClientSourceHandler extends
                                          tpcInfo.getSrc(),
                                          id,
                                          client.getStreamId());
-            exceptionCaught(ctx,
-                            new XrootdException(kXR_error, error));
+            throw new XrootdException(kXR_error, error);
         } else {
             LOGGER.trace("login of {} on {}, channel {}, stream {}, complete, "
                                          + "proceeding to open.",
@@ -88,6 +88,7 @@ public abstract class AbstractClientSourceHandler extends
     @Override
     protected void doOnAsynResponse(ChannelHandlerContext ctx,
                                     InboundAttnResponse response)
+                    throws XrootdException
     {
         switch (response.getRequestId()) {
             case kXR_open:
@@ -108,6 +109,7 @@ public abstract class AbstractClientSourceHandler extends
     @Override
     protected void doOnAuthenticationResponse(ChannelHandlerContext ctx,
                                               InboundAuthenticationResponse response)
+                    throws XrootdException
     {
         ChannelId id = ctx.channel().id();
         XrootdTpcInfo tpcInfo = client.getInfo();
@@ -123,6 +125,7 @@ public abstract class AbstractClientSourceHandler extends
     @Override
     protected void doOnCloseResponse(ChannelHandlerContext ctx,
                                      InboundCloseResponse response)
+                    throws XrootdException
     {
         int status = response.getStatus();
         ChannelId id = ctx.channel().id();
@@ -146,8 +149,7 @@ public abstract class AbstractClientSourceHandler extends
                                              id,
                                              client.getStreamId(),
                                              status);
-                exceptionCaught(ctx,
-                                new XrootdException(kXR_error, error));
+                throw new XrootdException(kXR_error, error);
         }
 
         client.setOpenFile(false);
@@ -156,7 +158,7 @@ public abstract class AbstractClientSourceHandler extends
     @Override
     protected void doOnOpenResponse(ChannelHandlerContext ctx,
                                     InboundOpenReadOnlyResponse response)
-
+                    throws XrootdException
     {
         int status = response.getStatus();
         ChannelId id = ctx.channel().id();
@@ -186,8 +188,7 @@ public abstract class AbstractClientSourceHandler extends
                             id,
                             client.getStreamId(),
                             status);
-            exceptionCaught(ctx,
-                            new XrootdException(kXR_error, error));
+            throw new XrootdException(kXR_error, error);
         }
     }
 
@@ -211,6 +212,7 @@ public abstract class AbstractClientSourceHandler extends
     @Override
     protected void doOnWaitResponse(final ChannelHandlerContext ctx,
                                     AbstractXrootdInboundResponse response)
+                    throws XrootdException
     {
         switch (response.getRequestId()) {
             case kXR_open:
@@ -233,7 +235,8 @@ public abstract class AbstractClientSourceHandler extends
      */
     @Override
     protected abstract void doOnChecksumResponse(ChannelHandlerContext ctx,
-                                                 InboundChecksumResponse response);
+                                                 InboundChecksumResponse response)
+                    throws XrootdException;
 
     /**
      *  Should implement the proper read logic.  If vector reads are supported,
@@ -241,17 +244,20 @@ public abstract class AbstractClientSourceHandler extends
      */
     @Override
     protected abstract void doOnReadResponse(ChannelHandlerContext ctx,
-                                             InboundReadResponse response);
+                                             InboundReadResponse response)
+                    throws XrootdException;
 
     /**
      *  If checksum option is expressed.
      */
     @Override
-    protected abstract void sendChecksumRequest(ChannelHandlerContext ctx);
+    protected abstract void sendChecksumRequest(ChannelHandlerContext ctx)
+                    throws XrootdException;
 
     /**
      *  Should take care of any special handling, such as vectorization.
      */
     @Override
-    protected abstract void sendReadRequest(ChannelHandlerContext ctx);
+    protected abstract void sendReadRequest(ChannelHandlerContext ctx)
+                    throws XrootdException;
 }

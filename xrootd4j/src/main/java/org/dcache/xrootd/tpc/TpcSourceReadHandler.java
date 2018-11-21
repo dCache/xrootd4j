@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.TimeUnit;
 
+import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.tpc.protocol.messages.AbstractXrootdInboundResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAttnResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundChecksumResponse;
@@ -49,6 +50,7 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
     @Override
     protected void doOnAsynResponse(ChannelHandlerContext ctx,
                                     InboundAttnResponse response)
+                    throws XrootdException
     {
         switch (response.getRequestId()) {
             case kXR_read:
@@ -65,6 +67,7 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
     @Override
     protected void doOnChecksumResponse(ChannelHandlerContext ctx,
                                         InboundChecksumResponse response)
+                    throws XrootdException
     {
         int status = response.getStatus();
         XrootdTpcInfo tpcInfo = client.getInfo();
@@ -180,6 +183,7 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
     @Override
     protected void doOnWaitResponse(final ChannelHandlerContext ctx,
                                     AbstractXrootdInboundResponse response)
+                    throws XrootdException
     {
         switch (response.getRequestId()) {
             case kXR_read:
@@ -251,7 +255,8 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
     }
 
     protected abstract void validateChecksum(InboundChecksumResponse response,
-                                             ChannelHandlerContext ctx);
+                                             ChannelHandlerContext ctx)
+                    throws XrootdException;
 
     protected abstract int getChunkSize();
 }

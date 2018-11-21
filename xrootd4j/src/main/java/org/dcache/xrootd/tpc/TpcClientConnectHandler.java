@@ -47,6 +47,7 @@ public class TpcClientConnectHandler extends
     @Override
     protected void doOnAsynResponse(ChannelHandlerContext ctx,
                                     InboundAttnResponse response)
+                    throws XrootdException
     {
         switch (response.getRequestId()) {
             case kXR_login:
@@ -72,6 +73,7 @@ public class TpcClientConnectHandler extends
     @Override
     protected void doOnProtocolResponse(ChannelHandlerContext ctx,
                                         InboundProtocolResponse response)
+                    throws XrootdException
     {
         int status = response.getStatus();
         ChannelId id = ctx.channel().id();
@@ -97,14 +99,14 @@ public class TpcClientConnectHandler extends
                             id,
                             streamId,
                             status);
-            exceptionCaught(ctx,
-                            new XrootdException(kXR_error, error));
+            throw new XrootdException(kXR_error, error);
         }
     }
 
     @Override
     protected void doOnLoginResponse(ChannelHandlerContext ctx,
                                      InboundLoginResponse response)
+                    throws XrootdException
     {
         int status = response.getStatus();
         ChannelId id = ctx.channel().id();
@@ -127,14 +129,14 @@ public class TpcClientConnectHandler extends
                                          id,
                                          streamId,
                                          status);
-            exceptionCaught(ctx,
-                            new XrootdException(kXR_error, error));
+            throw new XrootdException(kXR_error, error);
         }
     }
 
     @Override
     protected void doOnWaitResponse(final ChannelHandlerContext ctx,
                                     AbstractXrootdInboundResponse response)
+                    throws XrootdException
     {
         switch (response.getRequestId()) {
             case kXR_login:
