@@ -184,9 +184,8 @@ public abstract class AbstractClientRequestHandler extends
                                      InboundErrorResponse response)
                     throws XrootdException
     {
-        exceptionCaught(ctx,
-                        new XrootdException(response.getError(),
-                                            response.getErrorMessage()));
+        throw new XrootdException(response.getError(),
+                                  response.getErrorMessage());
     }
 
     protected void doOnHandshakeResponse(ChannelHandlerContext ctx,
@@ -251,11 +250,7 @@ public abstract class AbstractClientRequestHandler extends
                      response.getPort(),
                      id, client.getStreamId(),
                      client.getInfo());
-        try {
-            client.getWriteHandler().redirect(ctx, response);
-        } catch (XrootdException e) {
-            exceptionCaught(ctx, e);
-        }
+        client.getWriteHandler().redirect(ctx, response);
     }
 
     protected void doOnAttnResponse(ChannelHandlerContext ctx,

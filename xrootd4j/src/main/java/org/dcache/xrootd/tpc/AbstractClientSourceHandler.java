@@ -64,8 +64,7 @@ public abstract class AbstractClientSourceHandler extends
     {
         ChannelId id = ctx.channel().id();
         XrootdTpcInfo tpcInfo = client.getInfo();
-        String sec = response.getSec();
-        if (sec != null) {
+        if (!response.getProtocols().isEmpty()) {
             String error = String.format("Authentication of %s on %s, "
                             + "channel %s, stream %d, is required; "
                             + "not handled.",
