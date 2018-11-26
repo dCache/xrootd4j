@@ -28,6 +28,7 @@ public interface XrootdProtocol {
         (byte) ((PROTOCOL_VERSION & 0xFF00) >> 8);
     public static final byte PROTOCOL_VERSION_MINOR =
         (byte) (PROTOCOL_VERSION & 0x00FF);
+    public static final byte CLIENT_PROTOCOL_VERSION = (byte)4;
 
     public static final byte      CLIENT_REQUEST_LEN = 24;
     public static final byte    CLIENT_HANDSHAKE_LEN = 20;

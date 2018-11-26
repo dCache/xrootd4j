@@ -114,7 +114,6 @@ public class XrootdTpcClient
      */
     private int                     seclvl = kXR_secNone;
     private Map<Integer, Integer>   overrides;
-    private TpcSigverRequestHandler sigverRequestHandler;
 
     /*
      * Open
@@ -427,11 +426,6 @@ public class XrootdTpcClient
         return sessionId;
     }
 
-    public TpcSigverRequestHandler getSigverRequestHandler()
-    {
-        return sigverRequestHandler;
-    }
-
     public int getStreamId()
     {
         return streamId;
@@ -532,12 +526,6 @@ public class XrootdTpcClient
     public void setSessionId(XrootdSessionIdentifier sessionId)
     {
         this.sessionId = sessionId;
-    }
-
-    public void setSigverRequestHandler(
-                    TpcSigverRequestHandler sigverRequestHandler)
-    {
-        this.sigverRequestHandler = sigverRequestHandler;
     }
 
     public void setWriteOffset(long writeOffset)

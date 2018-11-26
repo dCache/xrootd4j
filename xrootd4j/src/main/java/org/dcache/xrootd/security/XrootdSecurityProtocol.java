@@ -63,6 +63,9 @@ public class XrootdSecurityProtocol {
     public static final int kXR_signLikely      = 1;
     public static final int kXR_signNeeded      = 2;
 
+    // sigver request options
+    public static final byte kXR_nodata         = 1;
+
     // protocol response
     public static final byte kXR_secOFrce   = 0x02;    // apply signing requirements even if no encryption
 

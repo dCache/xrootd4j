@@ -54,6 +54,7 @@ import org.dcache.xrootd.security.StringBucket;
 import org.dcache.xrootd.security.XrootdBucket;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 import org.dcache.xrootd.tpc.AbstractClientRequestHandler;
+import org.dcache.xrootd.tpc.TpcSigverRequestEncoder;
 import org.dcache.xrootd.tpc.XrootdTpcClient;
 import org.dcache.xrootd.tpc.XrootdTpcInfo;
 import org.dcache.xrootd.tpc.protocol.messages.AbstractXrootdInboundResponse;
@@ -599,9 +600,17 @@ public class GSIClientAuthenticationHandler extends AbstractClientRequestHandler
                                                     SERVER_SYNC_CIPHER_MODE,
                                                     SERVER_SYNC_CIPHER_NAME,
                                                     SERVER_SYNC_CIPHER_BLOCKSIZE);
-            GSISigverRequestHandler sigverRequestHandler =
-                            new GSISigverRequestHandler(encrypter, client);
-            client.setSigverRequestHandler(sigverRequestHandler);
+
+            /*
+             * Insert sigver encoder into pipeline.  Added after the encoder,
+             * but for outbound processing, it gets called before the encoder.
+             */
+            TpcSigverRequestEncoder sigverRequestEncoder =
+                            new TpcSigverRequestEncoder(encrypter, client);
+
+            ctx.pipeline().addAfter("encoder",
+                                     "sigverEncoder",
+                                     sigverRequestEncoder);
 
             XrootdBucketContainer container =
                 new OutboundResponseBuckets(inbound, ctx).buildContainer();
