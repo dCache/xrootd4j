@@ -20,7 +20,14 @@ package org.dcache.xrootd.tpc.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.core.XrootdSessionIdentifier;
+import org.dcache.xrootd.security.SecurityInfo;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.SESSION_ID_SIZE;
@@ -31,10 +38,11 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
  */
 public class InboundLoginResponse extends AbstractXrootdInboundResponse
 {
-    private final XrootdSessionIdentifier sessionId;
-    private final String                  sec;
+    private final XrootdSessionIdentifier   sessionId;
+    private final List<SecurityInfo>        protocols;
+    private final Map<String, SecurityInfo> protocolMap;
 
-    public InboundLoginResponse(ByteBuf buffer)
+    public InboundLoginResponse(ByteBuf buffer) throws XrootdException
     {
         super(buffer);
 
@@ -44,18 +52,33 @@ public class InboundLoginResponse extends AbstractXrootdInboundResponse
             buffer.getBytes(8, session);
             sessionId = new XrootdSessionIdentifier(session);
             if (slen > 0) {
-                sec = buffer.toString(24, slen, US_ASCII);
+                /*
+                 * In the order given by the server.
+                 */
+                protocols = SecurityInfo.parse(buffer.toString(24,
+                                                                     slen,
+                                                                     US_ASCII));
             } else {
-                sec = null;
+                protocols = Collections.EMPTY_LIST;
             }
         } else {
             sessionId = null;
-            sec = null;
+            protocols = Collections.EMPTY_LIST;
         }
+
+        protocolMap = protocols.stream()
+                               .collect(Collectors.toMap((p) -> p.getProtocol(),
+                                                         (p) -> p));
     }
 
-    public String getSec() {
-        return sec;
+    public List<SecurityInfo> getProtocols()
+    {
+        return protocols;
+    }
+
+    public SecurityInfo getInfo(String protocol)
+    {
+        return protocolMap.get(protocol);
     }
 
     public XrootdSessionIdentifier getSessionId() {

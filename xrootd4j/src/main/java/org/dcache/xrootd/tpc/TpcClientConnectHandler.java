@@ -18,12 +18,17 @@
  */
 package org.dcache.xrootd.tpc;
 
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelId;
+import io.netty.channel.ChannelPipeline;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.dcache.xrootd.core.XrootdException;
+import org.dcache.xrootd.security.SecurityInfo;
 import org.dcache.xrootd.tpc.protocol.messages.AbstractXrootdInboundResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAttnResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundHandshakeResponse;
@@ -114,6 +119,33 @@ public class TpcClientConnectHandler extends
         XrootdTpcInfo tpcInfo = client.getInfo();
         if (status == kXR_ok) {
             client.setSessionId(response.getSessionId());
+
+            List<SecurityInfo> protocols = response.getProtocols();
+            Map<String, ChannelHandler> handlers = client.getAuthnHandlers();
+
+            /*
+             *  Name of this handler
+             */
+            String last = "connect";
+            ChannelPipeline pipeline = ctx.pipeline();
+            for (SecurityInfo protocol: protocols) {
+                String name = protocol.getProtocol();
+                ChannelHandler handler = handlers.get(name);
+                if (handler != null) {
+                    pipeline.addAfter(last, name, handler);
+                }
+
+                LOGGER.trace("Login to {}, channel {}, stream {}, sessionId {}, "
+                                             + "adding {} handler to pipeline.",
+                             tpcInfo.getSrc(),
+                             id,
+                             streamId,
+                             client.getSessionId(),
+                             name);
+
+                last = name;
+            }
+
             LOGGER.trace("Login to {}, channel {}, stream {},"
                                          + " succeeded; sessionId {}; "
                                          + "passing to next handler.",

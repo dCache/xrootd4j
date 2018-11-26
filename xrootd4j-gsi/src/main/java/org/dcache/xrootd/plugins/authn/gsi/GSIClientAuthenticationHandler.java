@@ -24,7 +24,6 @@ import eu.emi.security.authn.x509.impl.CertificateUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelId;
-import io.netty.channel.ChannelInboundHandler;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -50,6 +49,7 @@ import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.plugins.authn.gsi.BaseGSIAuthenticationHandler.*;
 import org.dcache.xrootd.security.NestedBucketBuffer;
 import org.dcache.xrootd.security.RawBucket;
+import org.dcache.xrootd.security.SecurityInfo;
 import org.dcache.xrootd.security.StringBucket;
 import org.dcache.xrootd.security.XrootdBucket;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
@@ -79,8 +79,7 @@ import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGS_cert;
  *     Added to the channel pipeline to handle protocol and auth requests
  *     and responses.</p>
  */
-public class GSIClientAuthenticationHandler extends
-                AbstractClientRequestHandler implements ChannelInboundHandler
+public class GSIClientAuthenticationHandler extends AbstractClientRequestHandler
 {
     static XrootdBucketContainer build(XrootdBucket ... buckets)
     {
@@ -349,6 +348,7 @@ public class GSIClientAuthenticationHandler extends
 
     private BaseGSIAuthenticationHandler handler;
     private String                       issuerHashes;
+    private InboundLoginResponse         loginResponse;
 
     public GSIClientAuthenticationHandler(X509Credential proxyCredential,
                                           X509CertChainValidator validator,
@@ -361,6 +361,35 @@ public class GSIClientAuthenticationHandler extends
         this.issuerHashes = issuerHashes;
     }
 
+    /**
+     *  Overridden not to close the client and channel, but
+     *  to pass control off to the next (authentication) handler
+     *  in the chain.
+     */
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable t)
+    {
+        if (t instanceof RuntimeException) {
+            super.exceptionCaught(ctx, t);
+            return;
+        }
+
+        LOGGER.error("Unable to complete GSI authentication to {}, "
+                                     + "channel {}, "
+                                     + "stream {}, session {}: {}.",
+                     client.getInfo().getSrc(),
+                     ctx.channel().id(),
+                     client.getStreamId(),
+                     client.getSessionId(),
+                     t.toString());
+
+        try {
+            super.doOnLoginResponse(ctx, loginResponse);
+        } catch (XrootdException e) {
+            super.exceptionCaught(ctx, e);
+        }
+    }
+
     @Override
     protected void doOnAsynResponse(ChannelHandlerContext ctx,
                                     InboundAttnResponse response)
@@ -368,11 +397,7 @@ public class GSIClientAuthenticationHandler extends
     {
         switch (response.getRequestId()) {
             case kXR_auth:
-                try {
-                    sendAuthenticationRequest(ctx);
-                } catch (XrootdException e) {
-                    exceptionCaught(ctx, e);
-                }
+                sendAuthenticationRequest(ctx);
                 break;
             default:
                 super.doOnAsynResponse(ctx, response);
@@ -419,8 +444,8 @@ public class GSIClientAuthenticationHandler extends
     }
 
     /**
-     * Arriving here means login succeeded.  Check for authentication
-     * requirement.
+     * Arriving here means login succeeded, but authentication required.
+     * Trying GSI.
      */
     @Override
     protected void doOnLoginResponse(ChannelHandlerContext ctx,
@@ -428,36 +453,37 @@ public class GSIClientAuthenticationHandler extends
                     throws XrootdException
     {
         ChannelId id = ctx.channel().id();
-        String sec = response.getSec();
         int streamId = client.getStreamId();
         XrootdTpcInfo tpcInfo = client.getInfo();
-
-        if (sec == null) {
-            LOGGER.trace("login to {}, channel {}, stream {}, session {}, "
-                                         + "does not require "
-                                         + "authentication; "
-                                         + "passing to next handler in chain.",
-                         tpcInfo.getSrc(),
-                         id,
-                         streamId,
-                         client.getSessionId());
-            ctx.fireChannelRead(response);
-            return;
+        SecurityInfo gsiSec = response.getInfo(PROTOCOL);
+        if (gsiSec == null) {
+            String error = String.format("login to %s, channel %s, stream %s, "
+                                                         + "session %s, GSI "
+                                                         + "handler was added "
+                                                         + "to pipeline,"
+                                                         + " but the GSI "
+                                                         + "protocol was not"
+                                                         + "indicated by the "
+                                                         + "server; this is "
+                                                         + "a bug; please report "
+                                                         + "to support@dcache.org.",
+                                         tpcInfo.getSrc(),
+                                         id,
+                                         streamId,
+                                         client.getSessionId());
+            throw new RuntimeException(error);
         }
 
-        if (!isGsiRequired(sec)) {
-            LOGGER.trace("login to {}, channel {}, stream {}, session {}, "
-                                         + "requires a different protocol; "
-                                         + "passing to next handler in chain.",
-                         tpcInfo.getSrc(),
-                         id,
-                         streamId,
-                         client.getSessionId());
-            ctx.fireChannelRead(response);
-            return;
-        }
+        /*
+         *  This needs to be stored, in case GSI fails and there is another
+         *  authn protocol in the pipeline to try.
+         */
+        loginResponse = response;
 
-        parseSec(sec);
+        client.getAuthnContext().put("protocol", gsiSec.getProtocol());
+        client.getAuthnContext().put("version", gsiSec.getVersion());
+        client.getAuthnContext().put("encryption", gsiSec.getEncryption());
+        client.getAuthnContext().put("caIdentities", gsiSec.getCaIdentities());
         sendAuthenticationRequest(ctx);
     }
 
@@ -604,44 +630,6 @@ public class GSIClientAuthenticationHandler extends
                                       "Could not complete cert step: an error "
                                                       + "occurred during "
                                                       + "cryptographic operations.");
-        }
-    }
-
-    private boolean isGsiRequired(String sec) throws XrootdException
-    {
-        if (!sec.startsWith("&P=")) {
-            throw new XrootdException(kXR_error, "Malformed 'sec': " + sec);
-        }
-        String protocol = sec.substring(3, sec.indexOf(","));
-        return PROTOCOL.equals(protocol);
-    }
-
-    private void parseSec(String sec) throws XrootdException
-    {
-        int index = sec.indexOf(",");
-        if (index == -1 || index == sec.length() - 1) {
-            throw new XrootdException(kXR_error, "Invalid 'sec': " + sec);
-        }
-
-        String[] parts = sec.substring(index + 1).split("[,]");
-        if (parts.length != 3) {
-            throw new XrootdException(kXR_error, "Invalid 'sec': " + sec);
-        }
-
-        for (String part : parts) {
-            String[] keyVal = part.split("[:]");
-            switch (keyVal[0].toLowerCase()) {
-                case "v":
-                    client.getAuthnContext().put("version", keyVal[1]);
-                    break;
-                case "c":
-                    client.getAuthnContext().put("encryption", keyVal[1]);
-                    break;
-                case "ca":
-                    client.getAuthnContext().put("caIdentities",
-                                                 keyVal[1].split("[|]"));
-                    break;
-            }
         }
     }
 }
