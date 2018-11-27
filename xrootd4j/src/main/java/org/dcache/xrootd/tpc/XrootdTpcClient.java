@@ -88,6 +88,7 @@ public class XrootdTpcClient
     private final XrootdTpcInfo              info;
     private final TpcDelayedSyncWriteHandler writeHandler;
     private final Map<String, Object>        authnContext;
+    private final Map<String, ChannelHandler> authnHandlers;
     private final int                        pid;
     private final String                     uname;
     private final String                     fullpath;
@@ -150,6 +151,7 @@ public class XrootdTpcClient
         this.writeHandler = writeHandler;
         this.expectedRequestId = kXR_handshake;
         this.authnContext = new HashMap<>();
+        this.authnHandlers = new HashMap<>();
         this.executorService = executorService;
 
         /*
@@ -342,6 +344,11 @@ public class XrootdTpcClient
     public Map<String, Object> getAuthnContext()
     {
         return authnContext;
+    }
+
+    public Map<String, ChannelHandler> getAuthnHandlers()
+    {
+        return authnHandlers;
     }
 
     public InboundAuthenticationResponse getAuthResponse()
@@ -601,16 +608,21 @@ public class XrootdTpcClient
         pipeline.addLast("encoder", new XrootdClientEncoder(this));
         AbstractClientRequestHandler handler = new TpcClientConnectHandler();
         handler.setClient(this);
-        pipeline.addLast(handler);
+        pipeline.addLast("connect", handler);
+        readHandler.setClient(this);
+        pipeline.addLast("read", readHandler);
+
+        /*
+         *  These are deferred until loaded in the order specified by the server
+         *  when the client receives the login response.
+         */
         for (ChannelHandlerFactory factory : plugins) {
             ChannelHandler authHandler = factory.createHandler();
             if (authHandler instanceof AbstractClientRequestHandler) {
                 ((AbstractClientRequestHandler)authHandler).setClient(this);
             }
-            pipeline.addLast(authHandler);
+            authnHandlers.put(factory.getName(), authHandler);
         }
-        readHandler.setClient(this);
-        pipeline.addLast(readHandler);
     }
 
     private void sendHandshakeRequest(ChannelHandlerContext ctx)
