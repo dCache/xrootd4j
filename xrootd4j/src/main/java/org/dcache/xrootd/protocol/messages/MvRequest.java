@@ -27,7 +27,8 @@ public class MvRequest extends AbstractXrootdRequest
 {
     private String sourcePath;
     private String targetPath;
-    private String opaque;
+    private String sourceOpaque;
+    private String targetOpaque;
 
     public MvRequest(ByteBuf buffer) {
         super(buffer, kXR_mv);
@@ -36,41 +37,65 @@ public class MvRequest extends AbstractXrootdRequest
         int end = 24 + dlen;
 
         int psep = buffer.indexOf(24, end, (byte)0x20);
-        int osep = buffer.indexOf(psep, end, (byte)0x3f);
 
         if (psep == -1) {
             throw new IllegalArgumentException("kXR_mv needs two paths!");
         }
 
+        String source = buffer.toString(24,
+                                     psep - 24,
+                                     US_ASCII);
+        String target = buffer.toString(psep + 1,
+                                     end - (psep + 1),
+                                     US_ASCII);
+
+        int osep = source.indexOf("?");
+
         if (osep > -1) {
-            sourcePath = buffer.toString(24,
-                                          psep - 24,
-                                          US_ASCII);
-            targetPath = buffer.toString(psep+1,
-                                          osep - (psep + 1),
-                                          US_ASCII);
-            opaque = buffer.toString(osep + 1,
-                                      end - (osep + 1),
-                                      US_ASCII);
+            sourcePath = source.substring(0, osep);
+            sourceOpaque = source.substring(osep + 1);
         } else {
-            sourcePath = buffer.toString(24,
-                                          psep - 24,
-                                          US_ASCII);
-            targetPath = buffer.toString(psep+1,
-                                          end - (psep + 1),
-                                          US_ASCII);
-            opaque = null;
+            sourcePath = source;
+        }
+
+        osep = target.indexOf("?");
+
+        if (osep > -1) {
+            targetPath = target.substring(0, osep);
+            targetOpaque = target.substring(osep + 1);
+        } else {
+            targetPath = target;
         }
     }
 
-    public void setOpaque(String opaque)
-    {
-        this.opaque = opaque;
-    }
-
+    @Deprecated
     public String getOpaque()
     {
-        return opaque;
+        return targetOpaque;
+    }
+
+    @Deprecated
+    public void setOpaque(String opaque)
+    {
+        targetOpaque = opaque;
+    }
+
+    public String getSourceOpaque() {
+        return sourceOpaque;
+    }
+
+    public void setSourceOpaque(String sourceOpaque)
+    {
+        this.sourceOpaque = sourceOpaque;
+    }
+
+    public String getTargetOpaque() {
+        return targetOpaque;
+    }
+
+    public void setTargetOpaque(String targetOpaque)
+    {
+        this.targetOpaque = targetOpaque;
     }
 
     public void setSourcePath(String sourcePath)
@@ -96,6 +121,10 @@ public class MvRequest extends AbstractXrootdRequest
     @Override
     public String toString()
     {
-        return "mv[" + getSourcePath() + "," + getTargetPath() + "," + getOpaque() + "]";
+        return "mv[" + sourcePath + ","
+                        + (sourceOpaque == null ? "" : "?" + sourceOpaque + ",")
+                        + targetPath + ","
+                        + (targetOpaque == null ? "" : "?" + targetOpaque + ",")
+                        + "]";
     }
 }
