@@ -18,7 +18,6 @@
  */
 package org.dcache.xrootd.core;
 
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 
@@ -150,12 +149,12 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
                                     req,
                                     FilePerm.DELETE,
                                     req.getSourcePath(),
-                                    req.getOpaque()));
+                                    req.getSourceOpaque()));
         req.setTargetPath(authorize(ctx,
                                     req,
                                     FilePerm.WRITE,
                                     req.getTargetPath(),
-                                    req.getOpaque()));
+                                    req.getTargetOpaque()));
         ctx.fireChannelRead(req);
         return null;
     }
