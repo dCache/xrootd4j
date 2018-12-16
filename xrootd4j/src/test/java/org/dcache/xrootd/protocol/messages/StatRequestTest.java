@@ -18,20 +18,18 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import io.netty.buffer.ByteBuf;
 import org.junit.Test;
 
-import java.nio.charset.Charset;
-
-import static io.netty.buffer.Unpooled.buffer;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 
-public class StatRequestTest
+public class StatRequestTest extends DecoderTest<StatRequest>
 {
-    private ByteBuf encoded;
-    private StatRequest decoded;
+    public StatRequestTest()
+    {
+        super(StatRequest::new);
+    }
 
     @Test
     public void shouldDecodeEmptyPath()
@@ -42,9 +40,9 @@ public class StatRequestTest
                 .withByte(0)     // opts
                 .withZeros(11)   // reserved
                 .withInt(2)      // fhandle
-                .withInt(0));    // plen
+                .withString("", US_ASCII)); // path
 
-        whenDecoded();
+        StatRequest decoded = whenDecoded();
 
         assertThat(decoded.getStreamId(), is(equalTo(1)));
         assertThat(decoded.getTarget(), is(equalTo(StatRequest.Target.FHANDLE)));
@@ -62,70 +60,14 @@ public class StatRequestTest
                 .withByte(0)     // opts
                 .withZeros(11)   // reserved
                 .withInt(2)      // fhandle
-                .withInt(11)     // plen
-                .withString("my-file.dat", US_ASCII));
+                .withString("my-file.dat", US_ASCII)); // path
 
-        whenDecoded();
+        StatRequest decoded = whenDecoded();
 
         assertThat(decoded.getStreamId(), is(equalTo(1)));
         assertThat(decoded.getTarget(), is(equalTo(StatRequest.Target.PATH)));
         assertThat(decoded.getFhandle(), is(equalTo(2)));
         assertThat(decoded.getPath(), is(equalTo("my-file.dat")));
         assertThat(decoded.getOpaque(), isEmptyString());
-    }
-
-    private void given(ByteBufBuilder builder)
-    {
-        encoded = builder.build();
-    }
-
-    private void whenDecoded()
-    {
-        decoded = new StatRequest(encoded);
-    }
-
-    private ByteBufBuilder encodedRequest()
-    {
-        return new ByteBufBuilder();
-    }
-
-    private class ByteBufBuilder
-    {
-        private final ByteBuf buffer = buffer();
-
-        public ByteBufBuilder withString(String value, Charset charset)
-        {
-            buffer.writeCharSequence(value, charset);
-            return this;
-        }
-
-        public ByteBufBuilder withInt(int value)
-        {
-            buffer.writeInt(value);
-            return this;
-        }
-
-        public ByteBufBuilder withShort(int value)
-        {
-            buffer.writeShort(value);
-            return this;
-        }
-
-        public ByteBufBuilder withByte(int value)
-        {
-            buffer.writeByte(value);
-            return this;
-        }
-
-        public ByteBufBuilder withZeros(int count)
-        {
-            buffer.writeZero(count);
-            return this;
-        }
-
-        public ByteBuf build()
-        {
-            return buffer;
-        }
     }
 }
