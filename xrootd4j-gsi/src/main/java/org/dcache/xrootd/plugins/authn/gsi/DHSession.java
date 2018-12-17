@@ -78,6 +78,15 @@ public class DHSession
             + "1a:d3:75:c7:c0:3b:61:aa:85:3f:56:69:ae:f2:67:"
             + "da:20:87:5d:93" ).replaceAll("[:\\s]+", "");
 
+    private static String printBytesAsHex(byte[] array)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : array) {
+            sb.append(String.format("%02X ", b));
+        }
+        return sb.toString();
+    }
+
     // the 512 bit DH parameter set used for all DH sessions, consisting
     // of the prime above and the generator value of 2
     // These default values are only used when dCache acts as the server
@@ -228,11 +237,37 @@ public class DHSession
         Arrays.fill(iv, (byte)0);
         IvParameterSpec paramSpec = new IvParameterSpec(iv);
         Cipher cipher = Cipher.getInstance(cipherSpec,"BC");
+
         /**
          * "TlsPremasterSecret" algorithm forces pre 1.50
          * bouncy castle behavior ofgeneration of secret
          * for compatibility with xroord client
          */
+        byte[] encoded = _keyAgreement
+                        .generateSecret("TlsPremasterSecret")
+                        .getEncoded();
+
+        /**
+         * Use of the TlsPremasterSecret encoding on encryption can sometimes produce
+         * an array where the final 0's have been truncated.  This unfortunately
+         * does not play with the key finalization.   Here we simply add
+         * back the missing padding.
+         *
+         * Note:  the non-Tls encoding pads by prepending, not appending; this
+         * seems to be unacceptable to servers using the ssl DH_compute_key
+         * (unpadded) method.
+         */
+        if (encoded.length < blocksize && mode == Cipher.ENCRYPT_MODE) {
+            byte[] defective = encoded;
+            encoded = Arrays.copyOf(defective, blocksize);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Adjusting truncated encoded array by appending 0s; "
+                                            + "old {}, "
+                                            + "new {}.",
+                            printBytesAsHex(defective),
+                            printBytesAsHex(encoded));
+            }
+        }
 
         /* need a 128-bit key, that's the way to get it */
        SecretKey sessionKey = new SecretKeySpec(_keyAgreement
