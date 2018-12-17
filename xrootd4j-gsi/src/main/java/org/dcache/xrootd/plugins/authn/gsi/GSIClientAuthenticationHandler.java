@@ -18,6 +18,7 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
+import com.google.common.base.Splitter;
 import eu.emi.security.authn.x509.X509CertChainValidator;
 import eu.emi.security.authn.x509.X509Credential;
 import eu.emi.security.authn.x509.impl.CertificateUtils;
@@ -481,10 +482,15 @@ public class GSIClientAuthenticationHandler extends AbstractClientRequestHandler
          */
         loginResponse = response;
 
-        client.getAuthnContext().put("protocol", gsiSec.getProtocol());
-        client.getAuthnContext().put("version", gsiSec.getVersion());
-        client.getAuthnContext().put("encryption", gsiSec.getEncryption());
-        client.getAuthnContext().put("caIdentities", gsiSec.getCaIdentities());
+        Map<String, Object> authnContext = client.getAuthnContext();
+        authnContext.put("protocol", gsiSec.getProtocol());
+        authnContext.put("version", gsiSec.getRequiredValue("v"));
+        authnContext.put("encryption", gsiSec.getRequiredValue("c"));
+        gsiSec.getValue("ca")
+                .map(v -> Splitter.on('|').splitToList(v))
+                .map(l -> l.toArray(new String [l.size()]))
+                .ifPresent(a -> authnContext.put("caIdentities", a));
+
         sendAuthenticationRequest(ctx);
     }
 

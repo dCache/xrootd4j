@@ -16,97 +16,44 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
  */
-
 package org.dcache.xrootd.security;
 
-import java.util.ArrayList;
+import com.google.common.base.Splitter;
+
 import java.util.Arrays;
-import java.util.List;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
 
 import org.dcache.xrootd.core.XrootdException;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_error;
 
 /**
- * <p>Utility class for holding security requirement information.</p>
+ * Utility class for holding security requirement information.
  */
-public class SecurityInfo {
+public class SecurityInfo
+{
+    private final String protocol;
+    private final Map<String,String> data;
+    private final String description;
 
-    /**
-     * @param sec the security information included in the Login response.
-     * @return list of security protocols supported by server, in the order
-     *         supplied by the server.
-     */
-    public static List<SecurityInfo> parse(String sec)
-                    throws XrootdException
+    public SecurityInfo(String description) throws XrootdException
     {
-        List<SecurityInfo> info = new ArrayList<>();
-
-        String[] protocols = sec.trim().split("[&]");
-
-        String protocol;
-        String version;
-        String encryption;
-        String[] caIdentities;
-
-        for (int i = 1; i < protocols.length; ++i) {
-            version = null;
-            encryption = null;
-            caIdentities = null;
-
-            String[] parts = protocols[i].split("[,]");
-
-            if (!parts[0].startsWith("P=")) {
-                throw new XrootdException(kXR_error, "Malformed 'sec': " + sec);
-            }
-
-            protocol = parts[0].substring(2).trim();
-
-            for (int j = 1; j < parts.length; ++j) {
-                String[] keyVal = parts[j].split("[:]");
-                switch (keyVal[0].toLowerCase()) {
-                    case "v":
-                        version = keyVal[1];
-                        break;
-                    case "c":
-                        encryption = keyVal[1];
-                        break;
-                    case "ca":
-                        caIdentities = keyVal[1].split("[|]");
-                        break;
-                }
-            }
-
-            info.add(new SecurityInfo(protocol, version, encryption, caIdentities));
+        this.description = description;
+        int comma = description.indexOf(',');
+        if (comma == -1) {
+            protocol = description;
+            data = Collections.emptyMap();
+        } else {
+            protocol = description.substring(0, comma);
+            String keyValueData = description.substring(comma+1);
+            data = Splitter.on(',').omitEmptyStrings().withKeyValueSeparator(':').split(keyValueData);
         }
 
-        return info;
-    }
-
-    private final String   protocol;
-    private final String   version;
-    private final String   encryption;
-    private final String[] caIdentities;
-
-    private SecurityInfo(String protocol,
-                         String version,
-                         String encryption,
-                         String[] caIdentities)
-    {
-        this.protocol = protocol;
-        this.version = version;
-        this.encryption = encryption;
-        this.caIdentities = caIdentities;
-    }
-
-    public String[] getCaIdentities()
-    {
-        return caIdentities;
-    }
-
-    public String getEncryption()
-    {
-        return encryption;
+        if (protocol.isEmpty()) {
+            throw new XrootdException(kXR_error, "Missing protocol name");
+        }
     }
 
     public String getProtocol()
@@ -114,17 +61,29 @@ public class SecurityInfo {
         return protocol;
     }
 
-    public String getVersion()
-    {
-        return version;
-    }
-
+    @Override
     public String toString()
     {
-        return "(protocol " + protocol
-                        + ")(version " + version
-                        + ")(encryption " + encryption
-                        + ")(caIdentities " + (caIdentities == null ? null :
-                            Arrays.asList(caIdentities)) + ")";
+        return description;
+    }
+
+    public Optional<String> getValue(String key)
+    {
+        return Optional.ofNullable(data.get(key));
+    }
+
+    /**
+     * Return the value corresponding to a key.
+     * @param key the item to extract
+     * @return the corresponding value
+     * @throws XrootdException if key is not defined
+     */
+    public String getRequiredValue(String key) throws XrootdException
+    {
+        String value = data.get(key);
+        if (value == null) {
+            throw new XrootdException(kXR_error, "missing '" + key + "' in sec");
+        }
+        return value;
     }
 }

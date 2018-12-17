@@ -18,8 +18,10 @@
  */
 package org.dcache.xrootd.tpc.protocol.messages;
 
+import com.google.common.base.Splitter;
 import io.netty.buffer.ByteBuf;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -30,14 +32,15 @@ import org.dcache.xrootd.core.XrootdSessionIdentifier;
 import org.dcache.xrootd.security.SecurityInfo;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
-import static org.dcache.xrootd.protocol.XrootdProtocol.SESSION_ID_SIZE;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 /**
  * <p>Response from third-party source server.</p>
  */
 public class InboundLoginResponse extends AbstractXrootdInboundResponse
 {
+    private static final String PROTOCOL_PREFIX = "P=";
+
     private final XrootdSessionIdentifier   sessionId;
     private final List<SecurityInfo>        protocols;
     private final Map<String, SecurityInfo> protocolMap;
@@ -52,12 +55,15 @@ public class InboundLoginResponse extends AbstractXrootdInboundResponse
             buffer.getBytes(8, session);
             sessionId = new XrootdSessionIdentifier(session);
             if (slen > 0) {
-                /*
-                 * In the order given by the server.
-                 */
-                protocols = SecurityInfo.parse(buffer.toString(24,
-                                                                     slen,
-                                                                     US_ASCII));
+                protocols = new ArrayList<>();
+
+                String sec = buffer.toString(24, slen, US_ASCII);
+                for (String description : Splitter.on('&').trimResults().omitEmptyStrings().split(sec)) {
+                    if (!description.startsWith(PROTOCOL_PREFIX)) {
+                        throw new XrootdException(kXR_error, "Malformed 'sec': " + sec);
+                    }
+                    protocols.add(new SecurityInfo(description.substring(PROTOCOL_PREFIX.length())));
+                }
             } else {
                 protocols = Collections.EMPTY_LIST;
             }
