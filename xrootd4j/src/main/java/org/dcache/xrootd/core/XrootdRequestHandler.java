@@ -18,7 +18,6 @@
  */
 package org.dcache.xrootd.core;
 
-import com.google.common.base.Strings;
 import com.google.common.net.InetAddresses;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -246,7 +245,7 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
 
     protected <T extends XrootdRequest> ErrorResponse<T> withError(T req, int errorCode, String errMsg)
     {
-        return new ErrorResponse<>(req, errorCode, Strings.nullToEmpty(errMsg));
+        return new ErrorResponse<>(req, errorCode, errMsg);
     }
 
     protected ChannelFuture respond(ChannelHandlerContext ctx, Object response)
