@@ -18,6 +18,7 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import com.google.common.base.Strings;
 import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +38,7 @@ public class ErrorResponse<T extends XrootdRequest> extends AbstractXrootdRespon
     {
         super(request, XrootdProtocol.kXR_error);
         this.errnum = errnum;
-        this.errmsg = errmsg;
+        this.errmsg = Strings.nullToEmpty(errmsg);
         LOGGER.info("Xrootd-Error-Response: ErrorNr={} ErrorMsg={}", errnum, errmsg);
     }
 
