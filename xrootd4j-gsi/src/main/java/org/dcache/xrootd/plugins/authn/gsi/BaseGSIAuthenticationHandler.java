@@ -41,7 +41,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_error;
 class BaseGSIAuthenticationHandler
 {
     public static final String PROTOCOL = "gsi";
-    public static final String PROTOCOL_VERSION = "10200";
+    public static final int PROTOCOL_VERSION = 10200;
     public static final String CRYPTO_MODE = "ssl";
 
     /**
