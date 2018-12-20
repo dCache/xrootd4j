@@ -51,6 +51,7 @@ import org.dcache.xrootd.security.NestedBucketBuffer;
 import org.dcache.xrootd.security.RawBucket;
 import org.dcache.xrootd.security.SecurityInfo;
 import org.dcache.xrootd.security.StringBucket;
+import org.dcache.xrootd.security.UnsignedIntBucket;
 import org.dcache.xrootd.security.XrootdBucket;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 import org.dcache.xrootd.tpc.AbstractClientRequestHandler;
@@ -268,9 +269,9 @@ public class GSIClientAuthenticationHandler extends AbstractClientRequestHandler
 
     class OutboundRequestBuckets implements BucketContainerBuilder
     {
-        private StringBucket cryptoBucket;
-        private StringBucket versionBucket;
-        private StringBucket issuerBucket;
+        private StringBucket       cryptoBucket;
+        private UnsignedIntBucket  versionBucket;
+        private StringBucket       issuerBucket;
         private NestedBucketBuffer mainBucket;
 
         OutboundRequestBuckets(String rtag) throws XrootdException {
@@ -281,8 +282,7 @@ public class GSIClientAuthenticationHandler extends AbstractClientRequestHandler
             mainBucket = new NestedBucketBuffer(kXRS_main, PROTOCOL, kXGC_certreq,
                                                 nestedBuckets);
             cryptoBucket = new StringBucket(kXRS_cryptomod, CRYPTO_MODE);
-            versionBucket = new StringBucket(kXRS_version,
-                                             PROTOCOL_VERSION.substring(0, 4));
+            versionBucket = new UnsignedIntBucket(kXRS_version, PROTOCOL_VERSION);
             issuerBucket = new StringBucket(kXRS_issuer_hash, issuerHashes);
         }
 
