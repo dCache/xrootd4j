@@ -87,7 +87,7 @@ public class XrootdTpcInfo {
 
     public enum Status
     {
-        PENDING, READY, CANCELLED
+        PENDING, READY, CANCELLED, ERROR
     }
 
     /**
@@ -205,7 +205,7 @@ public class XrootdTpcInfo {
      *
      * <p>Will not overwrite existing non-null values.</p>
      */
-    public XrootdTpcInfo addInfoFromOpaque(String slfn,
+    public synchronized XrootdTpcInfo addInfoFromOpaque(String slfn,
                                            Map<String, String> opaque)
     {
         if (this.lfn == null) {
@@ -298,8 +298,12 @@ public class XrootdTpcInfo {
         return info;
     }
 
-    public Status verify(String dst, String slfn, String org)
+    public synchronized Status verify(String dst, String slfn, String org)
     {
+        if (this.status == Status.ERROR) {
+            return this.status;
+        }
+
         if (this.dst == null) {
             /*
              *  Client open has not yet occurred.
@@ -425,7 +429,7 @@ public class XrootdTpcInfo {
         return srcPort;
     }
 
-    public Status getStatus()
+    public synchronized Status getStatus()
     {
         return status;
     }
@@ -486,7 +490,7 @@ public class XrootdTpcInfo {
         this.srcPort = srcPort;
     }
 
-    public void setStatus(Status status)
+    public synchronized void setStatus(Status status)
     {
         this.status = status;
     }
