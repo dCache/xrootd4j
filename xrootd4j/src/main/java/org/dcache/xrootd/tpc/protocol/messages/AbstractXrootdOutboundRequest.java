@@ -22,9 +22,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secNone;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_signNeeded;
-
 /**
  * <p>Supports outgoing client requests to the source server
  *      in third-party copies.</p>
@@ -48,19 +45,11 @@ public abstract class AbstractXrootdOutboundRequest implements
 {
     protected final int streamId;
     protected final int requestId;
-    protected int       signingLevel;
 
     protected AbstractXrootdOutboundRequest(int streamId, int requestId)
     {
         this.streamId = streamId;
         this.requestId = requestId;
-        this.signingLevel = kXR_secNone;
-    }
-
-    public boolean isSigned(int level, int override)
-    {
-        return signingLevel != kXR_secNone &&
-                        (level >= signingLevel || override == kXR_signNeeded);
     }
 
     public int getStreamId()

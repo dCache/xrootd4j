@@ -25,7 +25,6 @@ import java.nio.charset.StandardCharsets;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_Qcksum;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_query;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secPedantic;
 
 /**
  * <p>According to protocol, has the following packet structure:</p>
@@ -49,7 +48,6 @@ public class OutboundChecksumRequest extends AbstractXrootdOutboundRequest
     {
         super(streamId, kXR_query);
         this.path = Preconditions.checkNotNull(path);
-        signingLevel = kXR_secPedantic;
     }
 
     @Override

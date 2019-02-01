@@ -22,7 +22,6 @@ import io.netty.buffer.ByteBuf;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secStandard;
 
 /**
  * <p>According to the third-party protocol, the destination server must
@@ -42,7 +41,6 @@ public class OutboundOpenReadOnlyRequest extends AbstractXrootdOutboundRequest
     {
         super(streamId, kXR_open);
         this.path = path;
-        signingLevel = kXR_secStandard;
     }
 
     @Override

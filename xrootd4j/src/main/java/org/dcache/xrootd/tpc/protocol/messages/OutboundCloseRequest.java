@@ -21,7 +21,6 @@ package org.dcache.xrootd.tpc.protocol.messages;
 import io.netty.buffer.ByteBuf;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_close;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secIntense;
 
 /**
  * <p>Request to close file on the source server.</p>
@@ -34,7 +33,6 @@ public class OutboundCloseRequest extends AbstractXrootdOutboundRequest
     {
         super(streamId, kXR_close);
         this.fhandle = fhandle;
-        signingLevel = kXR_secIntense;
     }
 
     @Override

@@ -85,16 +85,13 @@ public class TpcClientConnectHandler extends
         int streamId = client.getStreamId();
         XrootdTpcInfo tpcInfo = client.getInfo();
         if (status == kXR_ok) {
-            client.setSeclvl(response.getSeclvl());
-            client.setOverrides(response.getOverrides());
+            client.setSigningPolicy(response.getSigningPolicy());
             LOGGER.trace("Protocol request to {}, channel {}, stream {},"
-                                         + " succeeded, level {}, "
-                                         + "overrides {}.",
+                                         + " succeeded, {}.",
                          tpcInfo.getSrc(),
                          id,
                          streamId,
-                         client.getSeclvl(),
-                         client.getOverrides());
+                         client.getSigningPolicy());
             sendLoginRequest(ctx);
         } else {
             String error = String.format(

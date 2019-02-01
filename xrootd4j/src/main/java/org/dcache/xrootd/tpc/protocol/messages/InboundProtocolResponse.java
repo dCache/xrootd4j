@@ -24,10 +24,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.dcache.xrootd.core.XrootdException;
+import org.dcache.xrootd.security.SigningPolicy;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secNone;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secOFrce;
 
 /**
  * <p>According to protocol, has the following packet structure:</p>
@@ -52,15 +52,16 @@ import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secOFrce;
  */
 public class InboundProtocolResponse extends AbstractXrootdInboundResponse
 {
-    private int secopt;
-    private int seclvl = kXR_secNone;
-
-    private Map<Integer, Integer> overrides = new HashMap<>();
+    private SigningPolicy signingPolicy;
 
     public InboundProtocolResponse(ByteBuf buffer) throws XrootdException
     {
         super(buffer);
         int len = buffer.getInt(4);
+
+        byte secopt = (byte)0;
+        int seclvl = kXR_secNone;
+        Map<Integer, Integer> overrides = new HashMap<>();
 
         if (len >= 14) {
             secopt = buffer.getByte(19);
@@ -72,33 +73,18 @@ public class InboundProtocolResponse extends AbstractXrootdInboundResponse
                               (int) buffer.getByte(index++));
             }
         }
+
+        signingPolicy = new SigningPolicy(seclvl, secopt, overrides);
     }
 
-    public Map<Integer, Integer> getOverrides()
+    public SigningPolicy getSigningPolicy()
     {
-        return overrides;
+        return signingPolicy;
     }
 
     @Override
     public int getRequestId()
     {
         return kXR_protocol;
-    }
-
-    public int getSeclvl()
-    {
-        return seclvl;
-    }
-
-    public boolean isForceSigningIfNoEncryption()
-    {
-        return secopt == kXR_secOFrce;
-    }
-
-    public String toString()
-    {
-        return "force unencrypted signing ? " + isForceSigningIfNoEncryption()
-                        + ", level " + seclvl
-                        + ", overrides " + overrides;
     }
 }

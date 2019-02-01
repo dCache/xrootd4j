@@ -21,7 +21,6 @@ package org.dcache.xrootd.tpc.protocol.messages;
 import io.netty.buffer.ByteBuf;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_read;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secPedantic;
 
 /**
  * <p>Third-party client request to read <code>rlen</code> bytes of
@@ -40,7 +39,6 @@ public class OutboundReadRequest extends AbstractXrootdOutboundRequest
         this.fhandle = fhandle;
         this.offset = offset;
         this.rlen = rlen;
-        signingLevel = kXR_secPedantic;
     }
 
     @Override

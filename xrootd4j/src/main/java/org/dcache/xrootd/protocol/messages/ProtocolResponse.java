@@ -21,15 +21,61 @@ package org.dcache.xrootd.protocol.messages;
 import io.netty.buffer.ByteBuf;
 
 import org.dcache.xrootd.protocol.XrootdProtocol;
+import org.dcache.xrootd.security.SigningPolicy;
 
+/**
+ * <p>According to protocol, has the following packet structure:</p>
+ *
+ *  <table>
+ *      <tr><td>kXR_char</td><td>streamid[2]</td></tr>
+ *      <tr><td>kXR_unt16</td><td>0</td></tr>
+ *      <tr><td>kXR_int32</td><td>dlen</td></tr>
+ *      <tr><td>kXR_int32</td><td>pval</td></tr>
+ *      <tr><td>kXR_int32</td><td>flags</td></tr>
+ *      <tr><td>kXR_char</td><td>'S'</td></tr>
+ *      <tr><td>kXR_char</td><td>rsvd</td></tr>
+ *      <tr><td>kXR_char</td><td>secver</td></tr>
+ *      <tr><td>kXR_char</td><td>secopt</td></tr>
+ *      <tr><td>kXR_char</td><td>seclvl</td></tr>
+ *      <tr><td>kXR_char</td><td>secvsz</td></tr>
+ *      <tr><td>{kXR_char,kXR_char}</td><td>[reqidx,reqlvl]</td></tr>
+ *  </table>
+ *
+ *  <p>dlen is either 8, if no security requirements are returned,
+ *     or 14 + secvsz*2.</p>
+ *
+ *  <p>For the moment, the dCache server does not set any overrides,
+ *     but merely communicates the security level (this determines
+ *     which requests it expects to be preceded by a signed hash
+ *     verification request).  This may change in the future, so
+ *     provision is made for non-zero secvsz.</p>
+ *
+ *  <p>Signing can be enforced if the protocol does not
+ *     provide encryption by setting a dCache property.  In this
+ *     case, secopt should be set to kXR_secOFrce</p>
+ */
 public class ProtocolResponse extends AbstractXrootdResponse<ProtocolRequest>
 {
-    private final int flags;
+    private static final byte RESERVED = 0;
+    private static final byte SECVER = 0;
 
-    public ProtocolResponse(ProtocolRequest request, int flags)
+    private final int           flags;
+    private final SigningPolicy signingPolicy;
+
+
+    public ProtocolResponse(ProtocolRequest request,
+                            int flags)
+    {
+        this(request, flags, new SigningPolicy());
+    }
+
+    public ProtocolResponse(ProtocolRequest request,
+                            int flags,
+                            SigningPolicy signingPolicy)
     {
         super(request, XrootdProtocol.kXR_ok);
         this.flags = flags;
+        this.signingPolicy = signingPolicy;
     }
 
     public int getFlags()
@@ -37,10 +83,15 @@ public class ProtocolResponse extends AbstractXrootdResponse<ProtocolRequest>
         return flags;
     }
 
+    public SigningPolicy getSigningPolicy()
+    {
+        return signingPolicy;
+    }
+
     @Override
     public int getDataLength()
     {
-        return 8;
+        return signingPolicy.isSigningOn() ? 14 : 8;
     }
 
     @Override
@@ -48,11 +99,18 @@ public class ProtocolResponse extends AbstractXrootdResponse<ProtocolRequest>
     {
         buffer.writeInt(XrootdProtocol.PROTOCOL_VERSION);
         buffer.writeInt(flags);
+        if (getDataLength() == 14) {
+            buffer.writeByte('S');
+            buffer.writeByte(RESERVED);
+            buffer.writeByte(SECVER);
+            signingPolicy.writeBytes(buffer);
+        }
     }
 
     @Override
     public String toString()
     {
-        return String.format("protocol-response[%d]", flags);
+        return String.format("protocol-response[%d][%s]",
+                             flags, signingPolicy);
     }
 }

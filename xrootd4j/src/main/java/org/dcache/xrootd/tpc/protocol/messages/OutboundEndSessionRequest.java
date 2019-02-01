@@ -24,7 +24,6 @@ import org.dcache.xrootd.core.XrootdSessionIdentifier;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.SESSION_ID_SIZE;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_endsess;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secIntense;
 
 /**
  * <p>Request to end session on the source server.</p>
@@ -37,7 +36,6 @@ public class OutboundEndSessionRequest extends AbstractXrootdOutboundRequest
     {
         super(streamId, kXR_endsess);
         this.sessionId = sessionId;
-        signingLevel = kXR_secIntense;
     }
 
     @Override

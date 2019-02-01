@@ -51,6 +51,7 @@ import org.dcache.xrootd.plugins.authn.gsi.BaseGSIAuthenticationHandler.*;
 import org.dcache.xrootd.security.NestedBucketBuffer;
 import org.dcache.xrootd.security.RawBucket;
 import org.dcache.xrootd.security.SecurityInfo;
+import org.dcache.xrootd.security.SigningPolicy;
 import org.dcache.xrootd.security.StringBucket;
 import org.dcache.xrootd.security.UnsignedIntBucket;
 import org.dcache.xrootd.security.XrootdBucket;
@@ -607,16 +608,21 @@ public class GSIClientAuthenticationHandler extends AbstractClientRequestHandler
                                                     SERVER_SYNC_CIPHER_NAME,
                                                     SERVER_SYNC_CIPHER_BLOCKSIZE);
 
-            /*
-             * Insert sigver encoder into pipeline.  Added after the encoder,
-             * but for outbound processing, it gets called before the encoder.
-             */
-            TpcSigverRequestEncoder sigverRequestEncoder =
-                            new TpcSigverRequestEncoder(encrypter, client);
+            SigningPolicy signingPolicy = client.getSigningPolicy();
 
-            ctx.pipeline().addAfter("encoder",
-                                     "sigverEncoder",
-                                     sigverRequestEncoder);
+            if (signingPolicy.isSigningOn()) {
+                /*
+                 * Insert sigver encoder into pipeline.  Added after the encoder,
+                 * but for outbound processing, it gets called before the encoder.
+                 */
+                TpcSigverRequestEncoder sigverRequestEncoder =
+                                new TpcSigverRequestEncoder(encrypter,
+                                                            signingPolicy);
+
+                ctx.pipeline().addAfter("encoder",
+                                        "sigverEncoder",
+                                        sigverRequestEncoder);
+            }
 
             XrootdBucketContainer container =
                 new OutboundResponseBuckets(inbound, ctx).buildContainer();

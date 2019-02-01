@@ -43,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.dcache.xrootd.core.XrootdSessionIdentifier;
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
+import org.dcache.xrootd.security.SigningPolicy;
 import org.dcache.xrootd.tpc.core.XrootdClientDecoder;
 import org.dcache.xrootd.tpc.core.XrootdClientEncoder;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
@@ -53,7 +54,6 @@ import org.dcache.xrootd.util.OpaqueStringParser;
 
 import static io.netty.channel.ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secNone;
 
 /**
  * <p>Internal third-party copy client responsible for reading the
@@ -110,10 +110,9 @@ public class XrootdTpcClient
     private XrootdSessionIdentifier sessionId;
 
     /*
-     *  Hash signing support
+     *  Hash signing configuration
      */
-    private int                     seclvl = kXR_secNone;
-    private Map<Integer, Integer>   overrides;
+    private SigningPolicy signingPolicy;
 
     /*
      * Open
@@ -401,11 +400,6 @@ public class XrootdTpcClient
         return info;
     }
 
-    public Map<Integer, Integer> getOverrides()
-    {
-        return overrides;
-    }
-
     public int getPid()
     {
         return pid;
@@ -416,14 +410,14 @@ public class XrootdTpcClient
         return pval;
     }
 
-    public int getSeclvl()
-    {
-        return seclvl;
-    }
-
     public XrootdSessionIdentifier getSessionId()
     {
         return sessionId;
+    }
+
+    public SigningPolicy getSigningPolicy()
+    {
+        return signingPolicy;
     }
 
     public int getStreamId()
@@ -508,24 +502,19 @@ public class XrootdTpcClient
         isOpenFile = openFile;
     }
 
-    public void setOverrides(Map<Integer, Integer> overrides)
-    {
-        this.overrides = overrides;
-    }
-
     public void setPval(int pval)
     {
         this.pval = pval;
     }
 
-    public void setSeclvl(int seclvl)
-    {
-        this.seclvl = seclvl;
-    }
-
     public void setSessionId(XrootdSessionIdentifier sessionId)
     {
         this.sessionId = sessionId;
+    }
+
+    public void setSigningPolicy(SigningPolicy signingPolicy)
+    {
+        this.signingPolicy = signingPolicy;
     }
 
     public void setWriteOffset(long writeOffset)
@@ -562,11 +551,9 @@ public class XrootdTpcClient
                                   .append(flag)
                                   .append(")(sessionId ")
                                   .append(sessionId)
-                                  .append(")(seclvl ")
-                                  .append(seclvl)
-                                  .append(")(overrides ")
-                                  .append(overrides)
-                                  .append(")(cpsize ")
+                                  .append(")")
+                                  .append(signingPolicy)
+                                  .append("(cpsize ")
                                   .append(cpsize)
                                   .append(")(cptype ")
                                   .append(cptype)
