@@ -23,6 +23,7 @@ import javax.security.auth.Subject;
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
+import org.dcache.xrootd.security.BufferDecrypter;
 
 public interface AuthenticationHandler
 {
@@ -51,6 +52,12 @@ public interface AuthenticationHandler
      * anonymous user.
      */
     public Subject getSubject();
+
+    /**
+     * Get the handler needed for signed hash verification
+     */
+
+    public BufferDecrypter getDecrypter();
 
     /**
      * Indicates if the authentication process completed successfully.

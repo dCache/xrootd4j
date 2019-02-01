@@ -24,6 +24,7 @@ import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
+import org.dcache.xrootd.security.BufferDecrypter;
 
 /**
  * Dummy authentication handler that accepts all authentication
@@ -45,6 +46,12 @@ public class NoAuthenticationHandler implements AuthenticationHandler
 
     @Override
     public Subject getSubject() {
+        return null;
+    }
+
+    @Override
+    public BufferDecrypter getDecrypter()
+    {
         return null;
     }
 

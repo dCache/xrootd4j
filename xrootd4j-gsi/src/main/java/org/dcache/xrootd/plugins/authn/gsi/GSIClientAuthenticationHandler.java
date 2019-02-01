@@ -48,6 +48,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.plugins.authn.gsi.BaseGSIAuthenticationHandler.*;
+import org.dcache.xrootd.security.BufferEncrypter;
 import org.dcache.xrootd.security.NestedBucketBuffer;
 import org.dcache.xrootd.security.RawBucket;
 import org.dcache.xrootd.security.SecurityInfo;
@@ -603,14 +604,14 @@ public class GSIClientAuthenticationHandler extends AbstractClientRequestHandler
             inbound.signChallenge();
             inbound.encodeHostCerts();
             inbound.finalizeDHSessionKey();
-            DHEncrypter encrypter = new DHEncrypter(inbound.session,
-                                                    SERVER_SYNC_CIPHER_MODE,
-                                                    SERVER_SYNC_CIPHER_NAME,
-                                                    SERVER_SYNC_CIPHER_BLOCKSIZE);
 
             SigningPolicy signingPolicy = client.getSigningPolicy();
 
             if (signingPolicy.isSigningOn()) {
+                BufferEncrypter encrypter = new DHBufferHandler(inbound.session,
+                                                                SERVER_SYNC_CIPHER_MODE,
+                                                                SERVER_SYNC_CIPHER_NAME,
+                                                                SERVER_SYNC_CIPHER_BLOCKSIZE);
                 /*
                  * Insert sigver encoder into pipeline.  Added after the encoder,
                  * but for outbound processing, it gets called before the encoder.

@@ -34,7 +34,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
 import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
-import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.EndSessionRequest;
 import org.dcache.xrootd.protocol.messages.ErrorResponse;
@@ -42,6 +41,9 @@ import org.dcache.xrootd.protocol.messages.LoginRequest;
 import org.dcache.xrootd.protocol.messages.LoginResponse;
 import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.dcache.xrootd.protocol.messages.XrootdRequest;
+import org.dcache.xrootd.protocol.messages.XrootdResponse;
+import org.dcache.xrootd.security.BufferDecrypter;
+import org.dcache.xrootd.security.SigningPolicy;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
@@ -70,6 +72,9 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
     private final XrootdSessionIdentifier _sessionId = new XrootdSessionIdentifier();
 
     private final AuthenticationFactory _authenticationFactory;
+
+    private SigningPolicy _signingPolicy;
+
     private AuthenticationHandler _authenticationHandler;
 
     private enum State { NO_LOGIN, NO_AUTH, AUTH }
@@ -200,6 +205,11 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
         }
     }
 
+    public void setSigningPolicy(SigningPolicy signingPolicy)
+    {
+        _signingPolicy = signingPolicy;
+    }
+
     private void doOnLogin(ChannelHandlerContext context,
                            LoginRequest request)
         throws XrootdException
@@ -259,6 +269,21 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
     {
         _session.setSubject(login(context, subject));
         _state = State.AUTH;
+
+        if (_signingPolicy.isSigningOn()) {
+            /*
+             * Add the sigver decoder to the pipeline and remove the original
+             * message decoder.
+             */
+            BufferDecrypter decrypter = _authenticationHandler.getDecrypter();
+            context.pipeline().addAfter("decoder",
+                                         "sigverDecoder",
+                                         new XrootdSigverDecoder(_signingPolicy,
+                                                                 decrypter));
+            context.pipeline().remove("decoder");
+            _log.trace("switched decoder to sigverDecoder, decrypter {}.", decrypter);
+        }
+
         _authenticationHandler = null;
     }
 

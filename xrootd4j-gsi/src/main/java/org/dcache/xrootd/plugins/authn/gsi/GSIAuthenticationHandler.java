@@ -45,6 +45,7 @@ import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.AuthenticationResponse;
 import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.dcache.xrootd.protocol.messages.XrootdResponse;
+import org.dcache.xrootd.security.BufferDecrypter;
 import org.dcache.xrootd.security.NestedBucketBuffer;
 import org.dcache.xrootd.security.RawBucket;
 import org.dcache.xrootd.security.StringBucket;
@@ -78,6 +79,7 @@ public class GSIAuthenticationHandler extends BaseGSIAuthenticationHandler
     private String challenge = "";
     private Cipher challengeCipher;
     private DHSession dhSession;
+    private BufferDecrypter decrypter;
 
     private boolean finished = false;
 
@@ -131,6 +133,12 @@ public class GSIAuthenticationHandler extends BaseGSIAuthenticationHandler
                                       "unknown processing step: "
                                       + request.getStep());
         }
+    }
+
+    @Override
+    public BufferDecrypter getDecrypter()
+    {
+        return decrypter;
     }
 
     /**
@@ -303,6 +311,15 @@ public class GSIAuthenticationHandler extends BaseGSIAuthenticationHandler
                           "{}, rTagString: {}", challenge, rTagString);
 
             finished = true;
+
+            /*
+             * For handling signed hashes, if and when the security level
+             * requires it.
+             */
+            decrypter = new DHBufferHandler(dhSession,
+                                            SERVER_SYNC_CIPHER_MODE,
+                                            SERVER_SYNC_CIPHER_NAME,
+                                            SERVER_SYNC_CIPHER_BLOCKSIZE);
 
             return new OkResponse<>(request);
         } catch (InvalidKeyException ikex) {
