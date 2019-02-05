@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -44,7 +44,6 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.plugins.authn.gsi.BaseGSIAuthenticationHandler.*;
@@ -57,12 +56,10 @@ import org.dcache.xrootd.security.StringBucket;
 import org.dcache.xrootd.security.UnsignedIntBucket;
 import org.dcache.xrootd.security.XrootdBucket;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
-import org.dcache.xrootd.tpc.AbstractClientRequestHandler;
+import org.dcache.xrootd.tpc.AbstractClientAuthnHandler;
 import org.dcache.xrootd.tpc.TpcSigverRequestEncoder;
 import org.dcache.xrootd.tpc.XrootdTpcClient;
 import org.dcache.xrootd.tpc.XrootdTpcInfo;
-import org.dcache.xrootd.tpc.protocol.messages.AbstractXrootdInboundResponse;
-import org.dcache.xrootd.tpc.protocol.messages.InboundAttnResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundLoginResponse;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundAuthenticationRequest;
@@ -84,7 +81,7 @@ import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGS_cert;
  *     Added to the channel pipeline to handle protocol and auth requests
  *     and responses.</p>
  */
-public class GSIClientAuthenticationHandler extends AbstractClientRequestHandler
+public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
 {
     static XrootdBucketContainer build(XrootdBucket ... buckets)
     {
@@ -176,7 +173,7 @@ public class GSIClientAuthenticationHandler extends AbstractClientRequestHandler
                         IllegalBlockSizeException, IOException
         {
             challengeCipher.init(Cipher.ENCRYPT_MODE,
-                                         handler.credential.getKey());
+                                 handler.credential.getKey());
             String serverRtag = randomTagBucket.getContent();
             challengeCipher.update(serverRtag.getBytes());
             signedChallenge = challengeCipher.doFinal();
@@ -199,7 +196,7 @@ public class GSIClientAuthenticationHandler extends AbstractClientRequestHandler
             handler.validator.validate(proxyCertChain);
 
             if (serverCert.getSubjectDN().getName().contains(srcHost) ||
-                CERT_CHECKER.checkMatching(srcHost, serverCert)) {
+                            CERT_CHECKER.checkMatching(srcHost, serverCert)) {
                 return;
             }
 
@@ -359,6 +356,7 @@ public class GSIClientAuthenticationHandler extends AbstractClientRequestHandler
                                           String certDir,
                                           String issuerHashes)
     {
+        super(PROTOCOL);
         handler = new BaseGSIAuthenticationHandler(proxyCredential,
                                                    validator,
                                                    certDir);
@@ -394,21 +392,6 @@ public class GSIClientAuthenticationHandler extends AbstractClientRequestHandler
         }
     }
 
-    @Override
-    protected void doOnAsynResponse(ChannelHandlerContext ctx,
-                                    InboundAttnResponse response)
-                    throws XrootdException
-    {
-        switch (response.getRequestId()) {
-            case kXR_auth:
-                sendAuthenticationRequest(ctx);
-                break;
-            default:
-                super.doOnAsynResponse(ctx, response);
-        }
-    }
-
-    @Override
     protected void doOnAuthenticationResponse(ChannelHandlerContext ctx,
                                               InboundAuthenticationResponse response)
                     throws XrootdException
@@ -444,75 +427,6 @@ public class GSIClientAuthenticationHandler extends AbstractClientRequestHandler
                                           "wrong status from authentication "
                                                           + "response: "
                                                           + status);
-        }
-    }
-
-    /**
-     * Arriving here means login succeeded, but authentication required.
-     * Trying GSI.
-     */
-    @Override
-    protected void doOnLoginResponse(ChannelHandlerContext ctx,
-                                     InboundLoginResponse response)
-                    throws XrootdException
-    {
-        ChannelId id = ctx.channel().id();
-        int streamId = client.getStreamId();
-        XrootdTpcInfo tpcInfo = client.getInfo();
-        SecurityInfo gsiSec = response.getInfo(PROTOCOL);
-        if (gsiSec == null) {
-            String error = String.format("login to %s, channel %s, stream %s, "
-                                                         + "session %s, GSI "
-                                                         + "handler was added "
-                                                         + "to pipeline,"
-                                                         + " but the GSI "
-                                                         + "protocol was not"
-                                                         + "indicated by the "
-                                                         + "server; this is "
-                                                         + "a bug; please report "
-                                                         + "to support@dcache.org.",
-                                         tpcInfo.getSrc(),
-                                         id,
-                                         streamId,
-                                         client.getSessionId());
-            throw new RuntimeException(error);
-        }
-
-        /*
-         *  This needs to be stored, in case GSI fails and there is another
-         *  authn protocol in the pipeline to try.
-         */
-        loginResponse = response;
-
-        Map<String, Object> authnContext = client.getAuthnContext();
-        authnContext.put("protocol", gsiSec.getProtocol());
-        authnContext.put("version", gsiSec.getRequiredValue("v"));
-        authnContext.put("encryption", gsiSec.getRequiredValue("c"));
-        gsiSec.getValue("ca")
-                .map(v -> Splitter.on('|').splitToList(v))
-                .map(l -> l.toArray(new String [l.size()]))
-                .ifPresent(a -> authnContext.put("caIdentities", a));
-
-        sendAuthenticationRequest(ctx);
-    }
-
-    @Override
-    protected void doOnWaitResponse(final ChannelHandlerContext ctx,
-                                    AbstractXrootdInboundResponse response)
-                    throws XrootdException
-    {
-        switch (response.getRequestId()) {
-            case kXR_auth:
-                client.getExecutor().schedule(() -> {
-                    try {
-                        sendAuthenticationRequest(ctx);
-                    } catch (XrootdException e) {
-                        exceptionCaught(ctx, e);
-                    }
-                }, getWaitInSeconds(response), TimeUnit.SECONDS);
-                break;
-            default:
-                super.doOnWaitResponse(ctx, response);
         }
     }
 
@@ -626,7 +540,7 @@ public class GSIClientAuthenticationHandler extends AbstractClientRequestHandler
             }
 
             XrootdBucketContainer container =
-                new OutboundResponseBuckets(inbound, ctx).buildContainer();
+                            new OutboundResponseBuckets(inbound, ctx).buildContainer();
 
             return new OutboundAuthenticationRequest(response.getStreamId(),
                                                      container.getSize(),
@@ -635,7 +549,7 @@ public class GSIClientAuthenticationHandler extends AbstractClientRequestHandler
                                                      container.getBuckets());
         } catch (IOException e) {
             LOGGER.error("Problems during cert step {}." +
-                         e.getMessage() == null ? e.getClass().getName() :
+                                         e.getMessage() == null ? e.getClass().getName() :
                                          e.getMessage());
             throw new XrootdException(kXR_ServerError,
                                       "Internal error occurred during cert step.");
