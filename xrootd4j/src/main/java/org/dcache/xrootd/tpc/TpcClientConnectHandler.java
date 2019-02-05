@@ -84,22 +84,25 @@ public class TpcClientConnectHandler extends
         ChannelId id = ctx.channel().id();
         int streamId = client.getStreamId();
         XrootdTpcInfo tpcInfo = client.getInfo();
+        LOGGER.trace("Protocol response on {}, channel {}, stream {},"
+                                     + " received, signing policy {}; status {}.",
+                     tpcInfo.getSrc(),
+                     id,
+                     streamId,
+                     response.getSigningPolicy(),
+                     status);
         if (status == kXR_ok) {
             client.setSigningPolicy(response.getSigningPolicy());
             LOGGER.trace("Protocol request to {}, channel {}, stream {},"
-                                         + " succeeded, {}.",
+                                         + " succeeded; sending login request.",
                          tpcInfo.getSrc(),
                          id,
-                         streamId,
-                         client.getSigningPolicy());
+                         streamId);
             sendLoginRequest(ctx);
         } else {
             String error = String.format(
-                            "Protocol request to %s, channel %s, stream %d, "
-                                            + "failed: status %d.",
+                            "Protocol request to %s failed with status %d.",
                             tpcInfo.getSrc(),
-                            id,
-                            streamId,
                             status);
             throw new XrootdException(kXR_error, error);
         }
@@ -114,6 +117,14 @@ public class TpcClientConnectHandler extends
         ChannelId id = ctx.channel().id();
         int streamId = client.getStreamId();
         XrootdTpcInfo tpcInfo = client.getInfo();
+        LOGGER.trace("Login response on {}, channel {}, stream {},"
+                                     + " received; sessionId {}, status {}.",
+                     tpcInfo.getSrc(),
+                     id,
+                     streamId,
+                     response.getSessionId(),
+                     status);
+
         if (status == kXR_ok) {
             client.setSessionId(response.getSessionId());
 
@@ -150,13 +161,11 @@ public class TpcClientConnectHandler extends
                          id,
                          streamId,
                          client.getSessionId());
+
             ctx.fireChannelRead(response);
         } else {
-            String error = String.format("Login to %s, channel %s, stream %d, "
-                                                         + "failed: status %d.",
+            String error = String.format("Login to %s failed: status %d.",
                                          tpcInfo.getSrc(),
-                                         id,
-                                         streamId,
                                          status);
             throw new XrootdException(kXR_error, error);
         }

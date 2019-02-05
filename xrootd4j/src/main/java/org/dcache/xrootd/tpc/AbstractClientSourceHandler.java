@@ -64,14 +64,14 @@ public abstract class AbstractClientSourceHandler extends
     {
         ChannelId id = ctx.channel().id();
         XrootdTpcInfo tpcInfo = client.getInfo();
+        LOGGER.trace("login response to {} received, channel {}, stream {}.",
+                     tpcInfo.getSrc(),
+                     id,
+                     client.getStreamId());
         if (!response.getProtocols().isEmpty()) {
-            String error = String.format("Authentication of %s on %s, "
-                            + "channel %s, stream %d, is required; "
-                            + "not handled.",
-                                         tpcInfo.getLfn(),
-                                         tpcInfo.getSrc(),
-                                         id,
-                                         client.getStreamId());
+            String error = String.format("Authentication to %s failed; "
+                            + "all protocols have been tried.",
+                                         tpcInfo.getSrc());
             throw new XrootdException(kXR_error, error);
         } else {
             LOGGER.trace("login of {} on {}, channel {}, stream {}, complete, "
@@ -129,6 +129,13 @@ public abstract class AbstractClientSourceHandler extends
         int status = response.getStatus();
         ChannelId id = ctx.channel().id();
         XrootdTpcInfo tpcInfo = client.getInfo();
+        LOGGER.trace("Close response for {} on {}, channel {}, stream {}, "
+                                     + "received with status {}.",
+                     tpcInfo.getLfn(),
+                     tpcInfo.getSrc(),
+                     id,
+                     client.getStreamId(),
+                     status);
         switch (status) {
             case kXR_ok:
                 LOGGER.trace("Close of {} on {}, channel {}, stream {}, "
@@ -140,13 +147,10 @@ public abstract class AbstractClientSourceHandler extends
                 client.doEndsession(ctx);
                 break;
             default:
-                String error = String.format("Close of %s on %s, channel %s, "
-                                                             + "stream %d, failed: "
-                                                             + "status %d.",
+                String error = String.format("Close of %s on %s failed "
+                                                             + "with status %s.",
                                              tpcInfo.getLfn(),
                                              tpcInfo.getSrc(),
-                                             id,
-                                             client.getStreamId(),
                                              status);
                 throw new XrootdException(kXR_error, error);
         }
@@ -162,31 +166,27 @@ public abstract class AbstractClientSourceHandler extends
         int status = response.getStatus();
         ChannelId id = ctx.channel().id();
         XrootdTpcInfo tpcInfo = client.getInfo();
+        LOGGER.trace("Open response for {} on {} received, channel {}, stream {}, "
+                                     + "fhandle {}, cpsize {}, cptype {}; status {}.",
+                     tpcInfo.getLfn(),
+                     tpcInfo.getSrc(),
+                     id,
+                     client.getStreamId(),
+                     response.getFhandle(),
+                     response.getCpsize(),
+                     response.getCptype(),
+                     status);
         if (status == kXR_ok) {
             client.setOpenFile(true);
             client.setFhandle(response.getFhandle());
             client.setCpsize(response.getCpsize());
             client.setCptype(response.getCptype());
-            LOGGER.trace("Open of {} on {}, channel {}, stream {}, succeeded, "
-                                         + "fhandle {}, cpsize {}, cptype {}.",
-                         tpcInfo.getLfn(),
-                         tpcInfo.getSrc(),
-                         id,
-                         client.getStreamId(),
-                         client.getFhandle(),
-                         client.getCpsize(),
-                         client.getCptype());
             sendReadRequest(ctx);
         } else {
-            String error = String.format(
-                            "Open of %s on %s, channel %s, "
-                                            + "stream %d, failed: "
-                                            + "status %d.",
-                            tpcInfo.getLfn(),
-                            tpcInfo.getSrc(),
-                            id,
-                            client.getStreamId(),
-                            status);
+            String error = String.format("Open of %s on %s failed with status %s.",
+                                         tpcInfo.getLfn(),
+                                         tpcInfo.getSrc(),
+                                         status);
             throw new XrootdException(kXR_error, error);
         }
     }

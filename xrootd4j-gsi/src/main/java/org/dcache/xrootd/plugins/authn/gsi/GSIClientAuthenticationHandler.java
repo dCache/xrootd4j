@@ -18,7 +18,6 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
-import com.google.common.base.Splitter;
 import eu.emi.security.authn.x509.X509CertChainValidator;
 import eu.emi.security.authn.x509.X509Credential;
 import eu.emi.security.authn.x509.impl.CertificateUtils;
@@ -363,35 +362,6 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
         this.issuerHashes = issuerHashes;
     }
 
-    /**
-     *  Overridden not to close the client and channel, but
-     *  to pass control off to the next (authentication) handler
-     *  in the chain.
-     */
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable t)
-    {
-        if (t instanceof RuntimeException) {
-            super.exceptionCaught(ctx, t);
-            return;
-        }
-
-        LOGGER.error("Unable to complete GSI authentication to {}, "
-                                     + "channel {}, "
-                                     + "stream {}, session {}: {}.",
-                     client.getInfo().getSrc(),
-                     ctx.channel().id(),
-                     client.getStreamId(),
-                     client.getSessionId(),
-                     t.toString());
-
-        try {
-            super.doOnLoginResponse(ctx, loginResponse);
-        } catch (XrootdException e) {
-            super.exceptionCaught(ctx, e);
-        }
-    }
-
     protected void doOnAuthenticationResponse(ChannelHandlerContext ctx,
                                               InboundAuthenticationResponse response)
                     throws XrootdException
@@ -424,7 +394,7 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
                 break;
             default:
                 throw new XrootdException(kXR_ServerError,
-                                          "wrong status from authentication "
+                                          "wrong status from GSI authentication "
                                                           + "response: "
                                                           + status);
         }

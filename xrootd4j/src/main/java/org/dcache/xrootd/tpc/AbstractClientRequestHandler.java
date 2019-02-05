@@ -515,7 +515,9 @@ public abstract class AbstractClientRequestHandler extends
                                                     + "should not have "
                                                     + "been received "
                                                     + "by tpc client; "
-                                                    + "this is a bug.",
+                                                    + "this is a bug;"
+                                                    + "please report to "
+                                                    + "support@dcache.org.",
                                     id, streamId, requestId);
                     throw new RuntimeException(error);
             }

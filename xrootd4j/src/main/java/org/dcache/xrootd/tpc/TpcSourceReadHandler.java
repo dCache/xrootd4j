@@ -71,14 +71,16 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
     {
         int status = response.getStatus();
         XrootdTpcInfo tpcInfo = client.getInfo();
+        LOGGER.trace("Checksum query response for {} on {}, channel {}, stream {} "
+                                     + "received, status {}.",
+                     tpcInfo.getLfn(),
+                     tpcInfo.getSrc(),
+                     ctx.channel().id(),
+                     client.getStreamId(),
+                     status);
         if (status != kXR_ok) {
-            String error = String.format("Checksum query for %s on %s, "
-                                                         + "channel %s, "
-                                                         + "stream %d, failed.",
-                                         tpcInfo.getLfn(),
-                                         tpcInfo.getSrc(),
-                                         ctx.channel().id(),
-                                         client.getStreamId());
+            String error = String.format("Checksum query for %s failed.",
+                                         tpcInfo.getLfn());
             handleTransferTerminated(status, error, ctx);
             return;
         }
@@ -97,25 +99,19 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
             int status = response.getStatus();
             XrootdTpcInfo tpcInfo = client.getInfo();
             int bytesRcvd = response.getDlen();
-            if (status == kXR_ok || status == kXR_oksofar) {
-                LOGGER.trace("Read, status {}, of {} on {}, channel {}, stream {}: "
-                                             + "got {} more bytes.",
-                             status,
-                             tpcInfo.getLfn(),
-                             tpcInfo.getSrc(),
-                             ctx.channel().id(),
-                             client.getStreamId(),
-                             bytesRcvd);
-            } else {
-                String error = String.format(
-                                "Read, status %s, of %s on %s, channel %s, "
-                                                + "stream %d, failed.",
-                                status,
-                                tpcInfo.getLfn(),
-                                tpcInfo.getSrc(),
-                                ctx.channel().id(),
-                                client.getStreamId(),
-                                status);
+            LOGGER.trace("Read response received for {} on {}, channel {}, "
+                                         + "stream {}: status {}, "
+                                         + "got {} more bytes.",
+                         tpcInfo.getLfn(),
+                         tpcInfo.getSrc(),
+                         ctx.channel().id(),
+                         client.getStreamId(),
+                         status,
+                         bytesRcvd);
+
+            if (status != kXR_ok && status != kXR_oksofar) {
+                String error = String.format("Read of %s failed with status %s.",
+                                                tpcInfo.getLfn(), status);
                 handleTransferTerminated(kXR_error, error, ctx);
                 return;
             }
@@ -153,7 +149,8 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
             }
 
             if (status == kXR_oksofar) {
-                LOGGER.trace("Waiting for more data for {} on {}, channel {}, stream {}",
+                LOGGER.trace("Waiting for more data for {} on {}, "
+                                             + "channel {}, stream {}",
                              tpcInfo.getLfn(),
                              tpcInfo.getSrc(),
                              ctx.channel().id(),

@@ -1,6 +1,6 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
- * <p>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ *
  * This file is part of xrootd4j.
  * <p>
  * xrootd4j is free software: you can redistribute it and/or modify it

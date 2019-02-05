@@ -177,10 +177,11 @@ public class XrootdClientDecoder extends ByteToMessageDecoder
                     out.add(new InboundEndSessionResponse(frame));
                     break;
                 default:
-                    String error = String.format("Decoder %s, channel %s, received "
-                                   + "incorrect response of request type %s.",
-                                                 sourceUrn, id, requestId);
-                    throw new XrootdException(kXR_error, error);
+                    LOGGER.trace("Decoder {}, channel {}, received incorrect "
+                                                 + "response of request type {}.",
+                                 sourceUrn, id, requestId);
+                    throw new XrootdException(kXR_error,
+                                              "received incorrect response type.");
             }
         } catch (ParseException | XrootdException e) {
             LOGGER.error("Decoder {}, channel {}: error for request type {}: {}. "

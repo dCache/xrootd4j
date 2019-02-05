@@ -169,18 +169,20 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
     {
         boolean forceSigning = signingPolicy.isForceSigning();
 
-        LOGGER.trace("calling verify signed hash for request {}, force {}.",
-                     requestId, forceSigning);
+        LOGGER.trace("calling verify signed hash for request {} on stream {}, "
+                                     + "force {}.",
+                     requestId, streamId, forceSigning);
 
         if (currentSigverRequest == null) {
             if (decryptionHandler != null || forceSigning) {
                 throw new XrootdException(kXR_error,
                                           "signed hash verification: "
                                                           + "did not receive preceding "
-                                                          + "sigver request for stream "
-                                                          + streamId + ", request "
-                                                          + requestId);
+                                                          + "sigver request.");
             }
+
+            LOGGER.trace("skipping verify signed hash for request {} on stream {}.",
+                         requestId, streamId);
             return;
         }
 
@@ -225,6 +227,9 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
                                        ctx));
         }
 
+        LOGGER.trace("verify signed hash for request {} on stream {}, "
+                                     + "force {}, succeeded.",
+                     requestId, streamId, forceSigning);
         updateSeqNo();
     }
 
