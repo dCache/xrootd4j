@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -20,7 +20,6 @@ package org.dcache.xrootd.security;
 
 import com.google.common.base.Splitter;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -43,12 +42,15 @@ public class SecurityInfo
         this.description = description;
         int comma = description.indexOf(',');
         if (comma == -1) {
-            protocol = description;
+            protocol = description.trim();
             data = Collections.emptyMap();
         } else {
             protocol = description.substring(0, comma);
             String keyValueData = description.substring(comma+1);
-            data = Splitter.on(',').omitEmptyStrings().withKeyValueSeparator(':').split(keyValueData);
+            data = Splitter.on(',')
+                           .omitEmptyStrings()
+                           .withKeyValueSeparator(':')
+                           .split(keyValueData);
         }
 
         if (protocol.isEmpty()) {
