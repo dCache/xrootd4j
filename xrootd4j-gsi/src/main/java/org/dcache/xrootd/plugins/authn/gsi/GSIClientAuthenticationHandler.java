@@ -43,13 +43,13 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.plugins.authn.gsi.BaseGSIAuthenticationHandler.*;
 import org.dcache.xrootd.security.BufferEncrypter;
 import org.dcache.xrootd.security.NestedBucketBuffer;
 import org.dcache.xrootd.security.RawBucket;
-import org.dcache.xrootd.security.SecurityInfo;
 import org.dcache.xrootd.security.SigningPolicy;
 import org.dcache.xrootd.security.StringBucket;
 import org.dcache.xrootd.security.UnsignedIntBucket;
@@ -440,16 +440,22 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
     private OutboundAuthenticationRequest handleCertReqStep()
                     throws XrootdException
     {
-        String encryption = (String)client.getAuthnContext().get("encryption");
+        String encryption = ((Optional<String>)client.getAuthnContext()
+                                                     .get("encryption"))
+                                                     .orElse("");
         if (!encryption.equalsIgnoreCase(CRYPTO_MODE)) {
             throw new XrootdException(kXR_error,
                                       "handler does not support "
                                                       + encryption);
         }
 
-        String[] caIdentities = (String[])client.getAuthnContext().get("caIdentities");
-        handler.checkCaIdentities(caIdentities);
-        String version = (String)client.getAuthnContext().get("version");
+        String caIdentities = ((Optional<String>)client.getAuthnContext()
+                                                       .get("caIdentities"))
+                                                       .orElse("");
+        handler.checkCaIdentities(caIdentities.split("[|]"));
+        String version = ((Optional<String>)client.getAuthnContext()
+                                                  .get("version"))
+                                                  .orElse("");
         handler.checkVersion(version);
         String rtag = handler.generateChallengeString();
         client.getAuthnContext().put("rtag", rtag);
