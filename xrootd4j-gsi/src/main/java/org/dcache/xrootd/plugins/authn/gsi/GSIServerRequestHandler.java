@@ -67,4 +67,10 @@ public abstract class GSIServerRequestHandler extends GSIRequestHandler
     public abstract XrootdResponse<AuthenticationRequest>
         handleCertStep(AuthenticationRequest request)
                     throws XrootdException;
+
+    public abstract XrootdResponse<AuthenticationRequest>
+        handlePrxReqStep(AuthenticationRequest request)
+                    throws XrootdException;
+
+    public abstract boolean isFinished(AuthenticationRequest request);
 }

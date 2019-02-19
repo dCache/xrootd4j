@@ -67,9 +67,9 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_error;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kGSErrBadOpt;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_cert;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_certreq;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGS_cert;
 
 public class GSIPre49ClientRequestHandler extends GSIClientRequestHandler
 {
@@ -100,19 +100,6 @@ public class GSIPre49ClientRequestHandler extends GSIClientRequestHandler
         {
             srcHost = client.getInfo().getSrcHost();
             rtag = (String)client.getAuthnContext().get("rtag");
-
-            if (!response.getProtocol().equals(PROTOCOL)) {
-                throw new GeneralSecurityException("server replied with incorrect "
-                                                                   + "protocol: " +
-                                                                   response.getProtocol());
-            }
-
-            if (response.getServerStep() != kXGS_cert) {
-                throw new GeneralSecurityException("server replied with incorrect "
-                                                                   + "step: " +
-                                                                   response.getServerStep());
-            }
-
             Map<BucketType, XrootdBucket> receivedBuckets = response.getBuckets();
             dhPublicBucket = (StringBucket)receivedBuckets.get(kXRS_puk);
             cipherBucket = (StringBucket)receivedBuckets.get(kXRS_cipher_alg);
@@ -249,7 +236,7 @@ public class GSIPre49ClientRequestHandler extends GSIClientRequestHandler
             mainBucket = new NestedBucketBuffer(kXRS_main, PROTOCOL, kXGC_certreq,
                                                 nestedBuckets);
             cryptoBucket = new StringBucket(kXRS_cryptomod, CRYPTO_MODE);
-            versionBucket = new UnsignedIntBucket(kXRS_version, PROTOCOL_VERSION);
+            versionBucket = new UnsignedIntBucket(kXRS_version, getProtocolVersion());
             issuerBucket = new StringBucket(kXRS_issuer_hash,
                                             credentialManager.getClientCredIssuerHashes());
         }
@@ -354,11 +341,6 @@ public class GSIPre49ClientRequestHandler extends GSIClientRequestHandler
                         .get("caIdentities"))
                         .orElse("");
         credentialManager.checkCaIdentities(caIdentities.split("[|]"));
-        String version = ((Optional<String>)client
-                        .getAuthnContext()
-                        .get("version"))
-                        .orElse("");
-        matchVersion(version);
         String rtag = GSIRequestHandler.generateChallengeString();
         client.getAuthnContext().put("rtag", rtag);
 
@@ -448,8 +430,12 @@ public class GSIPre49ClientRequestHandler extends GSIClientRequestHandler
     }
 
     @Override
-    public void matchVersion(String version) throws XrootdException
-    {
-        // REVISIT when 49+ protocol is added
+    public OutboundAuthenticationRequest
+        handleSigPxyStep(InboundAuthenticationResponse response,
+                         ChannelHandlerContext ctx)
+                    throws XrootdException {
+        throw new XrootdException(kGSErrBadOpt, "Version "
+                        + getProtocolVersion()
+                        + " does not support proxy delegation.");
     }
 }

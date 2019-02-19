@@ -47,4 +47,9 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
         handleCertStep(InboundAuthenticationResponse response,
                        ChannelHandlerContext ctx)
                     throws XrootdException;
+
+    public abstract OutboundAuthenticationRequest
+        handleSigPxyStep(InboundAuthenticationResponse response,
+                   ChannelHandlerContext ctx)
+                    throws XrootdException;
 }

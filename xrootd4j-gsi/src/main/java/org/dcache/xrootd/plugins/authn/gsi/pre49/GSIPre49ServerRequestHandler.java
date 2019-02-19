@@ -62,6 +62,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_IOError;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_cert;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGS_cert;
 
 public class GSIPre49ServerRequestHandler extends GSIServerRequestHandler
@@ -175,8 +176,8 @@ public class GSIPre49ServerRequestHandler extends GSIServerRequestHandler
      * @return OkResponse (verification is okay)
      */
     @Override
-    public XrootdResponse<AuthenticationRequest> handleCertStep(
-                    AuthenticationRequest request) throws XrootdException
+    public XrootdResponse<AuthenticationRequest>
+        handleCertStep(AuthenticationRequest request) throws XrootdException
     {
         try {
             Map<BucketType, XrootdBucket> receivedBuckets = request.getBuckets();
@@ -285,14 +286,20 @@ public class GSIPre49ServerRequestHandler extends GSIServerRequestHandler
     }
 
     @Override
-    public int getProtocolVersion() {
-        return PROTO_PRE_DELEGATION;
+    public XrootdResponse<AuthenticationRequest> handlePrxReqStep(
+                    AuthenticationRequest request) throws XrootdException {
+        return null;
     }
 
     @Override
-    public void matchVersion(String version) throws XrootdException
+    public boolean isFinished(AuthenticationRequest request)
     {
-        // TODO
+        return kXGC_cert == request.getStep();
+    }
+
+    @Override
+    public int getProtocolVersion() {
+        return PROTO_PRE_DELEGATION;
     }
 
     /**

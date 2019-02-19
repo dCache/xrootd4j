@@ -23,8 +23,6 @@ import javax.crypto.Cipher;
 import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
 
-import org.dcache.xrootd.core.XrootdException;
-
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
 /**
@@ -35,9 +33,9 @@ public abstract class GSIRequestHandler
 {
     public static final String PROTOCOL = "gsi";
 
-    public static final int PROTO_WITH_DELEGATION   = 10400;
-    public static final int PROTO_PRE_DELEGATION    = 10300;
-    public static final int PROTOCOL_VERSION = PROTO_PRE_DELEGATION;
+    public static final int PROTO_WITH_DELEGATION = 10400;
+    public static final int PROTO_PRE_DELEGATION  = 10300;
+    public static final int PROTOCOL_VERSION      = PROTO_PRE_DELEGATION;
 
     public static final String CRYPTO_MODE = "ssl";
 
@@ -114,9 +112,6 @@ public abstract class GSIRequestHandler
     }
 
     public abstract int getProtocolVersion();
-
-    public abstract void matchVersion(String version)
-                    throws XrootdException;
 
     protected void updateLastRequest()
     {

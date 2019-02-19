@@ -31,11 +31,10 @@ import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.security.BufferDecrypter;
 
 import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.CRYPTO_MODE;
+import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.PROTO_WITH_DELEGATION;
 import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.PROTOCOL;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_cert;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_certreq;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_none;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
 /**
  * Handler for xrootd-security message exchange based on the GSI protocol.
@@ -77,15 +76,12 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
         }
 
         if (requestHandler == null) {
-            /*
-             *  REVISIT  check version and create the correct handler
-             *           when 49+ protocol added
-             */
-            requestHandler = new GSIPre49ServerRequestHandler(subject, credentialManager);
+            requestHandler = createRequestHandler(request.getVersion());
         }
 
         if (requestHandler.isRequestExpired()) {
-            // TODO throw the proper XrootdException
+            throw new XrootdException(kXR_InvalidRequest,
+                                      "Client authentication request time expired.");
         }
 
         XrootdResponse<AuthenticationRequest> response;
@@ -99,7 +95,11 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                 break;
             case kXGC_cert:
                 response = requestHandler.handleCertStep(request);
-                finished = true;
+                finished = requestHandler.isFinished(request);
+                break;
+            case kXGC_sigpxy:
+                response = requestHandler.handlePrxReqStep(request);
+                finished = requestHandler.isFinished(request);;
                 break;
             default:
                 throw new XrootdException(kXR_InvalidRequest,
@@ -128,16 +128,11 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
         PEMCredential credential = credentialManager.getHostCredential();
         /* hashed principals are cached in CertUtil */
         String subjectHash =
-            CertUtil.computeMD5Hash(credentialManager.getHostCredential()
-                                                     .getCertificate()
-                                                     .getIssuerX500Principal());
-
-        int version = requestHandler == null ?
-                        GSIRequestHandler.PROTOCOL_VERSION :
-                        requestHandler.getProtocolVersion();
+            CertUtil.computeMD5Hash(credential.getCertificate()
+                                              .getIssuerX500Principal());
 
         return "&P=" + PROTOCOL + "," +
-                "v:" + version + "," +
+                "v:" + GSIRequestHandler.PROTOCOL_VERSION + "," +
                 "c:" + CRYPTO_MODE + "," +
                 "ca:" + subjectHash;
     }
@@ -152,5 +147,42 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
     public boolean isCompleted()
     {
         return finished;
+    }
+
+    private GSIServerRequestHandler createRequestHandler(Integer clientVersion)
+                    throws XrootdException
+    {
+        if (clientVersion == null) {
+            /*
+             *  This method should be called only on the first exchange,
+             *  so the client only needs to send it then (as it does).
+             */
+            throw new XrootdException(kXR_InvalidRequest, "Client did not "
+                            + "provide GSI protocol version number.");
+        }
+
+        GSIServerRequestHandler handler;
+
+        /*
+         *  If the client supports a protocol of 4.9 or later,
+         *  currently fail.  The client is only informed of the server
+         *  version to use once.  If it insists on using 4.9, this
+         *  cannot be supported until implemented.
+         *
+         *  Else, use the previous.
+         */
+        if (clientVersion >= PROTO_WITH_DELEGATION) {
+            /*
+             *  REVISIT  return 49 version when implemented.
+             */
+            throw new XrootdException(kGSErrBadProtocol,
+                                      "This server does not support "
+                                                      + "protocol version "
+                                                      + clientVersion);
+        } else {
+            handler = new GSIPre49ServerRequestHandler(subject, credentialManager);
+        }
+
+        return handler;
     }
 }

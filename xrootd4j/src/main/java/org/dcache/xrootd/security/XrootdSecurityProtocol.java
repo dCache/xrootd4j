@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -42,6 +42,22 @@ public class XrootdSecurityProtocol {
     public static final int kXGS_cert =     2001;   // 2001: packet with certificate
     public static final int kXGS_pxyreq =   2002;   // 2002: packet with proxy req to be signed
     public static final int kXGS_reserved = 2003;
+
+    // errors
+
+    public static final int kGSErrParseBuffer = 10000; // The received buffer could not be parsed
+    public static final int kGSErrDecodeBuffer = 10001; // Not enough memory for the global buffer
+    public static final int kGSErrBadProtocol = 10003; // Protocol ID does not match the expected one (gsi)
+    public static final int kGSErrCreateBucket = 10004; // Bucket can not be created; type in message string
+    public static final int kGSErrSerialBuffer = 10007; // Main buffer serialization fails
+    public static final int kGSErrBadRndmTag = 10011; // Random tag check failed
+    public static final int kGSErrNoCipher = 10013; // No cipher when expected
+    public static final int kGSErrBadOpt = 10015; // Unrecognized step
+    public static final int kGSErrNoBuffer = 10019; // No input parameters when expected
+    public static final int kGSErrNoPublic = 10021; // Problem extracting public component of cipher
+    public static final int kGSErrAddBucket = 10022; // Bucket can not be added; type in message string
+    public static final int kGSErrInit = 10024; // Error during protocol initialization
+    public static final int kGSErrError = 10026; // Generic error
 
     // handshake options
     public static final int kOptsDlgPxy     = 1;      // 0x0001: Ask for a delegated proxy

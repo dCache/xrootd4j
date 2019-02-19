@@ -26,12 +26,14 @@ import java.io.IOException;
 import java.util.EnumMap;
 import java.util.Map;
 
+import org.dcache.xrootd.security.UnsignedIntBucket;
 import org.dcache.xrootd.security.XrootdBucket;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_version;
 
 public class AuthenticationRequest extends AbstractXrootdRequest
 {
@@ -45,6 +47,12 @@ public class AuthenticationRequest extends AbstractXrootdRequest
     /** store the buckets (kind of a serialized datatype with an
      * int32 block of metadata) received from the client
      */
+    /**
+     *  pull the protocol version of the client out of the bucket map
+     *  for convenient access.
+     */
+    private Integer version;
+
     private final Map<BucketType, XrootdBucket> bucketMap =
         new EnumMap<>(BucketType.class);
 
@@ -74,6 +82,13 @@ public class AuthenticationRequest extends AbstractXrootdRequest
         } catch (IOException ioex) {
             throw new IllegalArgumentException("Illegal credential format: {}",
                                                ioex);
+        }
+
+        UnsignedIntBucket versionBucket
+                        = (UnsignedIntBucket)bucketMap.get(kXRS_version);
+
+        if (versionBucket != null) {
+            version = versionBucket.getContent();
         }
     }
 
@@ -138,5 +153,9 @@ public class AuthenticationRequest extends AbstractXrootdRequest
 
     public String getProtocol() {
         return protocol;
+    }
+
+    public Integer getVersion() {
+        return version;
     }
 }
