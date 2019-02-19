@@ -23,7 +23,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelId;
 import io.netty.channel.ChannelPipeline;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -137,27 +136,22 @@ public class TpcClientConnectHandler extends
              */
             String last = "connect";
             ChannelPipeline pipeline = ctx.pipeline();
-            synchronized (protocols) {
-                for (Iterator<SecurityInfo> protocol = protocols.iterator();
-                                protocol.hasNext();) {
-                    SecurityInfo info = protocol.next();
-                    String name = info.getProtocol();
-                    ChannelHandler handler = handlers.get(name);
-                    if (handler != null) {
-                        pipeline.addAfter(last, name, handler);
-                    }
-                    protocol.remove();
-
-                    LOGGER.trace("Login to {}, channel {}, stream {}, sessionId {}, "
-                                                 + "adding {} handler to pipeline.",
-                                 tpcInfo.getSrc(),
-                                 id,
-                                 streamId,
-                                 client.getSessionId(),
-                                 name);
-
-                    last = name;
+            for (SecurityInfo protocol: protocols) {
+                String name = protocol.getProtocol();
+                ChannelHandler handler = handlers.get(name);
+                if (handler != null) {
+                    pipeline.addAfter(last, name, handler);
                 }
+
+                LOGGER.trace("Login to {}, channel {}, stream {}, sessionId {}, "
+                                             + "adding {} handler to pipeline.",
+                             tpcInfo.getSrc(),
+                             id,
+                             streamId,
+                             client.getSessionId(),
+                             name);
+
+                last = name;
             }
 
             LOGGER.trace("Login to {}, channel {}, stream {},"
