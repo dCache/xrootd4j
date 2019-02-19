@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -18,22 +18,27 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
-import eu.emi.security.authn.x509.helpers.ssl.HostnameToCertificateChecker;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import javax.crypto.Cipher;
 
 import java.security.SecureRandom;
+import java.util.concurrent.TimeUnit;
+
+import org.dcache.xrootd.core.XrootdException;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
 /**
- * <p>Shared fields and functionality for GSI authentication handlers.
- *    Not abstract so it can be both composed and extended.</p>
+ * Shared settings and functionality for processing both client and server
+ * GSI authentication requests.
  */
-class BaseGSIAuthenticationHandler
+public abstract class GSIRequestHandler
 {
     public static final String PROTOCOL = "gsi";
-    public static final int PROTOCOL_VERSION = 10200;
+
+    public static final int PROTO_WITH_DELEGATION   = 10400;
+    public static final int PROTO_PRE_DELEGATION    = 10300;
+    public static final int PROTOCOL_VERSION = PROTO_PRE_DELEGATION;
+
     public static final String CRYPTO_MODE = "ssl";
 
     /**
@@ -47,32 +52,31 @@ class BaseGSIAuthenticationHandler
      * RSA algorithm, no block chaining mode (not a block-cipher) and PKCS1
      * padding, which is recommended to be used in conjunction with RSA
      */
-    protected static final String SERVER_ASYNC_CIPHER_MODE = "RSA/NONE/PKCS1Padding";
+    public static final String SERVER_ASYNC_CIPHER_MODE = "RSA/NONE/PKCS1Padding";
 
     /** the sync cipher mode supported by the server. Unless this is made
      * configurable (todo), it has to match the SUPPORTED_CIPHER_ALGORITHMS
      * advertised by the server
      */
-    protected static final String SERVER_SYNC_CIPHER_MODE = "AES/CBC/PKCS5Padding";
+    public static final String SERVER_SYNC_CIPHER_MODE = "AES/CBC/PKCS5Padding";
 
-    protected static final String SERVER_SYNC_CIPHER_NAME = "AES";
+    public static final String SERVER_SYNC_CIPHER_NAME = "AES";
 
     /**
      * blocksize in bytes
      */
-    protected static final int SERVER_SYNC_CIPHER_BLOCKSIZE = 16;
-    protected static final int CHALLENGE_BYTES = 8;
+    public static final int SERVER_SYNC_CIPHER_BLOCKSIZE = 16;
+    public static final int CHALLENGE_BYTES = 8;
 
-    protected static final Logger LOGGER =
-        LoggerFactory.getLogger(BaseGSIAuthenticationHandler.class);
+    /**
+     * maximum request time skew
+     */
+    public static final long MAX_TIME_SKEW = TimeUnit.SECONDS.toMillis(300);
 
     /**
      * cryptographic helper classes
      */
     protected static final SecureRandom RANDOM = new SecureRandom();
-
-    protected static final  HostnameToCertificateChecker CERT_CHECKER =
-        new HostnameToCertificateChecker();
 
     /**
      * Generate a new challenge string to be used in server-client
@@ -98,8 +102,34 @@ class BaseGSIAuthenticationHandler
 
     protected final GSICredentialManager credentialManager;
 
-    protected BaseGSIAuthenticationHandler(GSICredentialManager credentialManager)
+    protected DHSession            dhSession;
+    protected DHBufferHandler      bufferHandler;
+    protected String               challenge = "";
+    protected Cipher               challengeCipher;
+    protected long                 lastRequest;
+
+    protected GSIRequestHandler(GSICredentialManager credentialManager)
     {
         this.credentialManager = credentialManager;
+    }
+
+    public abstract int getProtocolVersion();
+
+    public abstract void matchVersion(String version)
+                    throws XrootdException;
+
+    protected void updateLastRequest()
+    {
+        lastRequest = System.currentTimeMillis();
+    }
+
+    protected boolean isRequestExpired()
+    {
+        if (lastRequest == 0L) {
+            lastRequest = System.currentTimeMillis();
+            return false;
+        }
+
+        return System.currentTimeMillis() - lastRequest >= MAX_TIME_SKEW;
     }
 }

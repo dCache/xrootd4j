@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -23,8 +23,6 @@ import io.netty.channel.ChannelHandler;
 import java.util.Properties;
 
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
-
-import static org.dcache.xrootd.plugins.authn.gsi.BaseGSIAuthenticationHandler.PROTOCOL;
 
 /**
  * <p>Authentication factory that returns GSI security handlers to add to the
@@ -72,6 +70,6 @@ public class GSIClientAuthenticationFactory implements ChannelHandlerFactory {
     @Override
     public String getName()
     {
-        return PROTOCOL;
+        return GSIRequestHandler.PROTOCOL;
     }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -28,7 +28,7 @@ public class GSIAuthenticationProvider implements AuthenticationProvider
     @Override
     public AuthenticationFactory createFactory(String plugin, Properties properties)
     {
-        return BaseGSIAuthenticationHandler.PROTOCOL.equals(plugin) ?
+        return GSIRequestHandler.PROTOCOL.equals(plugin) ?
                         new GSIAuthenticationFactory(properties) : null;
     }
 }
