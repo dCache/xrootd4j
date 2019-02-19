@@ -18,21 +18,13 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
-import eu.emi.security.authn.x509.X509CertChainValidator;
-import eu.emi.security.authn.x509.X509Credential;
 import eu.emi.security.authn.x509.helpers.ssl.HostnameToCertificateChecker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.security.SecureRandom;
-import java.util.List;
-
-import org.dcache.xrootd.core.XrootdException;
-import org.dcache.xrootd.security.XrootdBucket;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_error;
 
 /**
  * <p>Shared fields and functionality for GSI authentication handlers.
@@ -82,50 +74,12 @@ class BaseGSIAuthenticationHandler
     protected static final  HostnameToCertificateChecker CERT_CHECKER =
         new HostnameToCertificateChecker();
 
-    static class XrootdBucketContainer
-    {
-        private final int                _size;
-        private final List<XrootdBucket> _buckets;
-
-        public XrootdBucketContainer(List<XrootdBucket> buckets, int size)
-        {
-            _buckets = buckets;
-            _size = size;
-        }
-
-        public int getSize()
-        {
-            return _size;
-        }
-
-        public List<XrootdBucket> getBuckets()
-        {
-            return _buckets;
-        }
-    }
-
-    /**
-     * certificates/keys/trust-anchors
-     */
-    protected final X509Credential         credential;
-    protected final X509CertChainValidator validator;
-    protected final File                   certDir;
-
-    protected BaseGSIAuthenticationHandler(X509Credential credential,
-                                           X509CertChainValidator validator,
-                                           String certDir)
-    {
-        this.credential = credential;
-        this.validator = validator;
-        this.certDir = new File(certDir);
-    }
-
     /**
      * Generate a new challenge string to be used in server-client
      * communication
      * @return challenge string
      */
-    protected String generateChallengeString()
+    public static String generateChallengeString()
     {
         byte[] challengeBytes = new byte[CHALLENGE_BYTES];
 
@@ -142,31 +96,10 @@ class BaseGSIAuthenticationHandler
         return new String(challengeBytes, US_ASCII);
     }
 
-    protected void checkCaIdentities(String[] caIdentities)
-                    throws XrootdException
+    protected final GSICredentialManager credentialManager;
+
+    protected BaseGSIAuthenticationHandler(GSICredentialManager credentialManager)
     {
-        for (String ca : caIdentities)
-        {
-            if (!isValidCaPath(ca)) {
-                throw new XrootdException(kXR_error, ca
-                                + " is not a valid ca cert path.");
-            }
-        }
-    }
-
-    protected void checkVersion(String version)
-    {
-        // NOP for now
-    }
-
-    private boolean isValidCaPath(String path)
-    {
-        path = path.trim();
-
-        if (path.indexOf(".") < 1) {
-            path += ".0";
-        }
-
-        return new File(certDir, path).exists();
+        this.credentialManager = credentialManager;
     }
 }

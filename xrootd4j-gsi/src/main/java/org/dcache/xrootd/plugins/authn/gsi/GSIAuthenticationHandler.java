@@ -18,9 +18,8 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
-import eu.emi.security.authn.x509.X509CertChainValidator;
-import eu.emi.security.authn.x509.X509Credential;
 import eu.emi.security.authn.x509.impl.CertificateUtils;
+import eu.emi.security.authn.x509.impl.PEMCredential;
 import io.netty.buffer.ByteBuf;
 
 import javax.crypto.Cipher;
@@ -83,11 +82,9 @@ public class GSIAuthenticationHandler extends BaseGSIAuthenticationHandler
 
     private boolean finished = false;
 
-    public GSIAuthenticationHandler(X509Credential hostCredential,
-                                    X509CertChainValidator validator,
-                                    String certDir)
+    public GSIAuthenticationHandler(GSICredentialManager manager)
     {
-        super(hostCredential, validator, certDir);
+        super(manager);
         subject = new Subject();
     }
 
@@ -162,6 +159,7 @@ public class GSIAuthenticationHandler extends BaseGSIAuthenticationHandler
         throws XrootdException
     {
         try {
+            PEMCredential credential = credentialManager.getHostCredential();
             challengeCipher = Cipher.getInstance(SERVER_ASYNC_CIPHER_MODE, "BC");
             challengeCipher.init(Cipher.ENCRYPT_MODE, credential.getKey());
 
@@ -186,7 +184,7 @@ public class GSIAuthenticationHandler extends BaseGSIAuthenticationHandler
             String hostCertificateString =
                 CertUtil.certToPEM(credential.getCertificate());
 
-            XrootdBucketContainer responseBuckets =
+            GSIBucketContainer responseBuckets =
                             buildCertReqResponse(signedRtag,
                                                  challenge,
                                                  CRYPTO_MODE,
@@ -286,7 +284,7 @@ public class GSIAuthenticationHandler extends BaseGSIAuthenticationHandler
                          proxyCert.getSubjectDN(),
                          proxyCert.getIssuerDN());
 
-            validator.validate(proxyCertChain);
+            credentialManager.validate(proxyCertChain);
             subject.getPublicCredentials().add(proxyCertChain);
 
             challengeCipher.init(Cipher.DECRYPT_MODE, proxyCert.getPublicKey());
@@ -366,7 +364,7 @@ public class GSIAuthenticationHandler extends BaseGSIAuthenticationHandler
      * @return List with the above parameters plus size in bytes of the bucket
      *         list.
      */
-    private XrootdBucketContainer buildCertReqResponse(byte[] signedChallenge,
+    private GSIBucketContainer buildCertReqResponse(byte[] signedChallenge,
                                                        String newChallenge,
                                                        String cryptoMode,
                                                        byte [] puk,
@@ -417,7 +415,7 @@ public class GSIAuthenticationHandler extends BaseGSIAuthenticationHandler
         responseLength += hostCertBucket.getSize();
         responseList.add(hostCertBucket);
 
-        return new XrootdBucketContainer(responseList, responseLength);
+        return new GSIBucketContainer(responseList, responseLength);
     }
 
     /**
@@ -427,6 +425,7 @@ public class GSIAuthenticationHandler extends BaseGSIAuthenticationHandler
     @Override
     public String getProtocol()
     {
+        PEMCredential credential = credentialManager.getHostCredential();
         /* hashed principals are cached in CertUtil */
         String subjectHash =
             CertUtil.computeMD5Hash(credential.getCertificate().getIssuerX500Principal());

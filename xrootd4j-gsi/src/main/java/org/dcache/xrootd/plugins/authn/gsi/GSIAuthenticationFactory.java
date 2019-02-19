@@ -18,14 +18,9 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
-import eu.emi.security.authn.x509.impl.PEMCredential;
-
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.security.KeyStoreException;
-import java.security.cert.CertificateException;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
@@ -43,35 +38,23 @@ import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
  * @author tzangerl
  *
  */
-public class GSIAuthenticationFactory extends BaseGSIAuthenticationFactory
-                implements AuthenticationFactory
+public class GSIAuthenticationFactory implements AuthenticationFactory
 {
-    private final String hostCertificatePath;
-    private final String hostKeyPath;
-    private final long hostCertRefreshInterval;
-    private final boolean verifyHostCertificate;
-
-    private PEMCredential hostCredential;
-    private long hostCertRefreshTimestamp = 0;
+    private final Properties properties;
 
     public GSIAuthenticationFactory(Properties properties)
     {
-        super(properties);
-        hostKeyPath = properties.getProperty("xrootd.gsi.hostcert.key");
-        hostCertificatePath = properties.getProperty("xrootd.gsi.hostcert.cert");
-        hostCertRefreshInterval =
-                        TimeUnit.valueOf(properties.getProperty("xrootd.gsi.hostcert.refresh.unit"))
-                                .toMillis(Integer.parseInt(properties.getProperty("xrootd.gsi.hostcert.refresh")));
-        verifyHostCertificate =
-                        Boolean.parseBoolean(properties.getProperty("xrootd.gsi.hostcert.verify"));
+        this.properties = properties;
     }
 
     @Override
     public AuthenticationHandler createHandler()
         throws InvalidHandlerConfigurationException
     {
+        GSICredentialManager credentialManager
+                        = new GSICredentialManager(properties);
         try {
-            loadServerCredentials();
+            credentialManager.loadServerCredentials();
         } catch (GeneralSecurityException gssex) {
             String msg = "Could not load certificates/key due to security error";
             throw new InvalidHandlerConfigurationException(msg, gssex);
@@ -80,29 +63,6 @@ public class GSIAuthenticationFactory extends BaseGSIAuthenticationFactory
             throw new InvalidHandlerConfigurationException(msg, ioex);
         }
 
-        return new GSIAuthenticationHandler(hostCredential, validator, caCertificatePath);
-    }
-
-    private synchronized void loadServerCredentials()
-                    throws CertificateException, KeyStoreException, IOException
-    {
-        if (shouldReloadServerCredentials()) {
-            LOGGER.info("Loading server certificates. Current refresh interval: {} ms",
-                        hostCertRefreshInterval);
-            PEMCredential credential = new PEMCredential(hostKeyPath, hostCertificatePath, null);
-            if (verifyHostCertificate) {
-                LOGGER.info("Verifying host certificate");
-                validator.validate(credential.getCertificateChain());
-            }
-            hostCredential = credential;
-            hostCertRefreshTimestamp = System.currentTimeMillis();
-        }
-    }
-
-    private boolean shouldReloadServerCredentials()
-    {
-        long timeSinceLastServerRefresh = (System.currentTimeMillis() - hostCertRefreshTimestamp);
-        LOGGER.info("Time since last server cert refresh {}", timeSinceLastServerRefresh);
-        return hostCredential == null || timeSinceLastServerRefresh >= hostCertRefreshInterval;
+        return new GSIAuthenticationHandler(credentialManager);
     }
 }

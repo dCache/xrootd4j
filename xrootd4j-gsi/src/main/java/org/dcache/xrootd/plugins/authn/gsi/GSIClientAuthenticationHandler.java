@@ -18,8 +18,6 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
-import eu.emi.security.authn.x509.X509CertChainValidator;
-import eu.emi.security.authn.x509.X509Credential;
 import eu.emi.security.authn.x509.impl.CertificateUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -39,14 +37,11 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.EnumMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import org.dcache.xrootd.core.XrootdException;
-import org.dcache.xrootd.plugins.authn.gsi.BaseGSIAuthenticationHandler.*;
 import org.dcache.xrootd.security.BufferEncrypter;
 import org.dcache.xrootd.security.NestedBucketBuffer;
 import org.dcache.xrootd.security.RawBucket;
@@ -82,28 +77,12 @@ import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGS_cert;
  */
 public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
 {
-    static XrootdBucketContainer build(XrootdBucket ... buckets)
-    {
-        int responseLength = 0;
-        List<XrootdBucket> responseList = new ArrayList<>();
-        for (XrootdBucket bucket: buckets) {
-            responseList.add(bucket);
-            responseLength += bucket.getSize();
-        }
-        return new XrootdBucketContainer(responseList, responseLength);
-    }
-
-    interface BucketContainerBuilder
-    {
-        XrootdBucketContainer buildContainer();
-    }
-
     class InboundResponseBuckets
     {
         private String srcHost;
         private byte[] signedChallenge;
         private byte[] puk;
-        private String hostProxyCert;
+        private String proxyCert;
         private String selectedCipher;
         private String selectedDigest;
 
@@ -156,23 +135,24 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
             puk = session.getEncodedDHMaterial().getBytes();
         }
 
-        void encodeHostCerts() throws CertificateEncodingException
+        void encodeCerts() throws CertificateEncodingException
         {
             StringBuilder builder = new StringBuilder();
-            X509Certificate[] chain = handler.credential.getCertificateChain();
+            X509Certificate[] chain = credentialManager.getClientCredential()
+                                                       .getCertificateChain();
             for (X509Certificate cert : chain) {
                 cert.getEncoded();
                 builder.append(CertUtil.certToPEM(cert));
             }
 
-            hostProxyCert = builder.toString();
+            proxyCert = builder.toString();
         }
 
         void signChallenge() throws InvalidKeyException, BadPaddingException,
                         IllegalBlockSizeException, IOException
         {
             challengeCipher.init(Cipher.ENCRYPT_MODE,
-                                 handler.credential.getKey());
+                                 credentialManager.getClientCredential().getKey());
             String serverRtag = randomTagBucket.getContent();
             challengeCipher.update(serverRtag.getBytes());
             signedChallenge = challengeCipher.doFinal();
@@ -192,7 +172,7 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
             }
 
             serverCert = proxyCertChain[0];
-            handler.validator.validate(proxyCertChain);
+            credentialManager.validate(proxyCertChain);
 
             if (serverCert.getSubjectDN().getName().contains(srcHost) ||
                             CERT_CHECKER.checkMatching(srcHost, serverCert)) {
@@ -266,7 +246,7 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
         }
     }
 
-    class OutboundRequestBuckets implements BucketContainerBuilder
+    class OutboundRequestBuckets extends GSIBucketContainerBuilder
     {
         private StringBucket       cryptoBucket;
         private UnsignedIntBucket  versionBucket;
@@ -286,12 +266,12 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
         }
 
         @Override
-        public XrootdBucketContainer buildContainer() {
+        public GSIBucketContainer buildContainer() {
             return build(cryptoBucket, versionBucket, issuerBucket, mainBucket);
         }
     }
 
-    class OutboundResponseBuckets implements BucketContainerBuilder
+    class OutboundResponseBuckets extends GSIBucketContainerBuilder
     {
         RawBucket encryptedBucket;
         RawBucket pukBucket;
@@ -310,7 +290,7 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
             cipherBucket = new StringBucket(kXRS_cipher_alg, buckets.selectedCipher);
             digestBucket = new StringBucket(kXRS_md_alg, buckets.selectedDigest);
             StringBucket x509Bucket = new StringBucket(kXRS_x509,
-                                                       buckets.hostProxyCert);
+                                                       buckets.proxyCert);
             RawBucket signedTagBucket = new RawBucket(kXRS_signed_rtag,
                                                       buckets.signedChallenge);
 
@@ -341,24 +321,19 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
         }
 
         @Override
-        public XrootdBucketContainer buildContainer() {
+        public GSIBucketContainer buildContainer() {
             return build(encryptedBucket, cipherBucket, digestBucket, pukBucket);
         }
     }
 
-    private BaseGSIAuthenticationHandler handler;
+    private final GSICredentialManager credentialManager;
     private String                       issuerHashes;
     private InboundLoginResponse         loginResponse;
 
-    public GSIClientAuthenticationHandler(X509Credential proxyCredential,
-                                          X509CertChainValidator validator,
-                                          String certDir,
-                                          String issuerHashes)
+    public GSIClientAuthenticationHandler(GSICredentialManager credentialManager)
     {
         super(PROTOCOL);
-        handler = new BaseGSIAuthenticationHandler(proxyCredential,
-                                                   validator,
-                                                   certDir);
+        this.credentialManager = credentialManager;
         this.issuerHashes = issuerHashes;
     }
 
@@ -452,15 +427,15 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
         String caIdentities = ((Optional<String>)client.getAuthnContext()
                                                        .get("caIdentities"))
                                                        .orElse("");
-        handler.checkCaIdentities(caIdentities.split("[|]"));
+        credentialManager.checkCaIdentities(caIdentities.split("[|]"));
         String version = ((Optional<String>)client.getAuthnContext()
                                                   .get("version"))
-                                                  .orElse("");
-        handler.checkVersion(version);
-        String rtag = handler.generateChallengeString();
+                        .orElse("");
+        checkVersion(version);
+        String rtag = BaseGSIAuthenticationHandler.generateChallengeString();
         client.getAuthnContext().put("rtag", rtag);
 
-        XrootdBucketContainer container
+        GSIBucketContainer container
                         = new OutboundRequestBuckets(rtag).buildContainer();
 
         return new OutboundAuthenticationRequest(client.getStreamId(),
@@ -468,6 +443,11 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
                                                  PROTOCOL,
                                                  kXGC_certreq,
                                                  container.getBuckets());
+    }
+
+    private void checkVersion(String version)
+    {
+        //NOP REVISIT with following refactoring when versions are introduced
     }
 
     /**
@@ -492,7 +472,7 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
             inbound.validateCertificate();
             inbound.validateSignedChallenge();
             inbound.signChallenge();
-            inbound.encodeHostCerts();
+            inbound.encodeCerts();
             inbound.finalizeDHSessionKey();
 
             SigningPolicy signingPolicy = client.getSigningPolicy();
@@ -515,7 +495,7 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
                                         sigverRequestEncoder);
             }
 
-            XrootdBucketContainer container =
+            GSIBucketContainer container =
                             new OutboundResponseBuckets(inbound, ctx).buildContainer();
 
             return new OutboundAuthenticationRequest(response.getStreamId(),
