@@ -31,7 +31,6 @@ import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.security.BufferDecrypter;
 
 import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.CRYPTO_MODE;
-import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.PROTO_WITH_DELEGATION;
 import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.PROTOCOL;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
@@ -161,28 +160,10 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                             + "provide GSI protocol version number.");
         }
 
-        GSIServerRequestHandler handler;
-
         /*
-         *  If the client supports a protocol of 4.9 or later,
-         *  currently fail.  The client is only informed of the server
-         *  version to use once.  If it insists on using 4.9, this
-         *  cannot be supported until implemented.
-         *
-         *  Else, use the previous.
+         *  REVISIT:  return Pre49 or 49 according to clientVersion
+         *            when new handler is implemented.
          */
-        if (clientVersion >= PROTO_WITH_DELEGATION) {
-            /*
-             *  REVISIT  return 49 version when implemented.
-             */
-            throw new XrootdException(kGSErrBadProtocol,
-                                      "This server does not support "
-                                                      + "protocol version "
-                                                      + clientVersion);
-        } else {
-            handler = new GSIPre49ServerRequestHandler(subject, credentialManager);
-        }
-
-        return handler;
+        return new GSIPre49ServerRequestHandler(subject, credentialManager);
     }
 }
