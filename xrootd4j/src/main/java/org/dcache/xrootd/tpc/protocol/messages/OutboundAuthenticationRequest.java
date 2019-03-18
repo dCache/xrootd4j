@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -19,6 +19,10 @@
 package org.dcache.xrootd.tpc.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -26,12 +30,16 @@ import org.dcache.xrootd.security.XrootdBucket;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
 import static org.dcache.xrootd.protocol.messages.AuthenticationResponse.writeBytes;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.getClientStep;
 
 /**
  * <p>Request to third-party source server.</p>
  */
 public class OutboundAuthenticationRequest
                 extends AbstractXrootdOutboundRequest {
+    private static final Logger LOGGER =
+                    LoggerFactory.getLogger(OutboundAuthenticationRequest.class);
+
     private final String             protocol;
     private final int                step;
     private final List<XrootdBucket> buckets;
@@ -55,6 +63,36 @@ public class OutboundAuthenticationRequest
         this.step = step;
         this.length = length;
         this.buckets = buckets;
+    }
+
+    @Override
+    public void writeTo(ChannelHandlerContext ctx, ChannelPromise promise)
+    {
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace(describe());
+        }
+        super.writeTo(ctx, promise);
+    }
+
+    public String describe()
+    {
+        StringBuilder builder = new StringBuilder("\n");
+        builder.append("/////////////////////////////////////////////////////////\n");
+        builder.append("//           Outbound Authentication Response\n");
+        builder.append("//\n");
+        builder.append("//  stream:  ").append(streamId).append("\n");
+        builder.append("//  request: ").append(requestId).append("\n");
+        builder.append("//\n");
+
+        int i = 0;
+
+        for (XrootdBucket bucket : buckets) {
+            i = bucket.dump(builder, getClientStep(step), ++i);
+        }
+
+        builder.append("/////////////////////////////////////////////////////////\n");
+
+        return builder.toString();
     }
 
     @Override

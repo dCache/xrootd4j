@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -20,7 +20,11 @@ package org.dcache.xrootd.security;
 
 import io.netty.buffer.ByteBuf;
 
+import java.nio.ByteBuffer;
+
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
+
+import static org.dcache.xrootd.security.RawBucket.dumpBytes;
 
 /**
  * A bucket containing a header plus an unsigned integer.
@@ -38,6 +42,22 @@ public class UnsignedIntBucket extends XrootdBucket
     public UnsignedIntBucket(BucketType type, int data) {
         super(type);
         _data = data;
+    }
+
+    @Override
+    public int dump(StringBuilder builder, String step, int number)
+    {
+        super.dump(builder, step, number);
+        builder.append("//\n");
+        builder.append("//                UNSIGNED INT CONTENTS\n");
+        builder.append("//\n");
+        builder.append("//  decimal: ").append(_data).append("\n");
+        builder.append("//\n");
+        ByteBuffer b = ByteBuffer.allocate(4);
+        b.putInt(_data);
+        byte[] result = b.array();
+        dumpBytes(builder, result);
+        return number;
     }
 
     public int getContent() {

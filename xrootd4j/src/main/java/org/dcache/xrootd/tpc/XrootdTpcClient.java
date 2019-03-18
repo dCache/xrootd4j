@@ -268,7 +268,7 @@ public class XrootdTpcClient
 
     public void doClose(ChannelHandlerContext ctx)
     {
-        LOGGER.trace("sendCloseRequest to {}, channel {}, stream {}, fhandle {}.",
+        LOGGER.debug("sendCloseRequest to {}, channel {}, stream {}, fhandle {}.",
                      info.getSrc(),
                      ctx.channel().id(),
                      streamId,
@@ -282,7 +282,7 @@ public class XrootdTpcClient
     public void doEndsession(ChannelHandlerContext ctx)
     {
         if (sessionId != null) {
-            LOGGER.trace("sendEndSessionRequest to {}, channel {}, stream {}, "
+            LOGGER.debug("sendEndSessionRequest to {}, channel {}, stream {}, "
                                          + "session {}.",
                          info.getSrc(),
                          ctx.channel().id(),
@@ -294,7 +294,7 @@ public class XrootdTpcClient
                .addListener(FIRE_EXCEPTION_ON_FAILURE);
             sessionId = null;
         } else {
-            LOGGER.trace("sendEndSessionRequest to {}, channel {}, stream {}, session was null.",
+            LOGGER.debug("sendEndSessionRequest to {}, channel {}, stream {}, session was null.",
                         info.getSrc(),
                         ctx.channel().id(),
                         streamId);
@@ -391,7 +391,7 @@ public class XrootdTpcClient
 
     public String getFullpath()
     {
-        LOGGER.trace("Client asked for full path: {}.", this);
+        LOGGER.debug("Client asked for full path: {}.", this);
         return fullpath;
     }
 
@@ -602,7 +602,7 @@ public class XrootdTpcClient
 
     private void sendHandshakeRequest(ChannelHandlerContext ctx)
     {
-        LOGGER.trace("sendHandshakeRequest to {}, channel {}, stream {}.",
+        LOGGER.debug("sendHandshakeRequest to {}, channel {}, stream {}.",
                      info.getSrc(), ctx.channel().id(), streamId);
         ctx.writeAndFlush(new OutboundHandshakeRequest(),
                           ctx.newPromise())

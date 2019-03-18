@@ -215,7 +215,7 @@ public class GSIPre49ClientRequestHandler extends GSIClientRequestHandler
                                                           "challenge response!");
             }
 
-            LOGGER.trace("signature of challenge tag ok. Challenge: " +
+            LOGGER.debug("signature of challenge tag ok. Challenge: " +
                                          "{}, rTagString: {}",
                          rtag, rTagString);
         }

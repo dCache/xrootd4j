@@ -280,7 +280,7 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
                                          new XrootdSigverDecoder(_signingPolicy,
                                                                  decrypter));
             context.pipeline().remove("decoder");
-            _log.trace("switched decoder to sigverDecoder, decrypter {}.", decrypter);
+            _log.debug("switched decoder to sigverDecoder, decrypter {}.", decrypter);
         }
 
         _authenticationHandler = null;

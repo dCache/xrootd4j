@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -34,6 +35,7 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_version;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.getClientStep;
 
 public class AuthenticationRequest extends AbstractXrootdRequest
 {
@@ -90,6 +92,33 @@ public class AuthenticationRequest extends AbstractXrootdRequest
         if (versionBucket != null) {
             version = versionBucket.getContent();
         }
+
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace(describe());
+        }
+    }
+
+    public String describe()
+    {
+        StringBuilder builder = new StringBuilder("\n");
+        builder.append("/////////////////////////////////////////////////////////\n");
+        builder.append("//                Authentication Request\n");
+        builder.append("//\n");
+        builder.append("//  stream:  ").append(streamId).append("\n");
+        builder.append("//  request: ").append(requestId).append("\n");
+        builder.append("//\n");
+
+        int i = 0;
+
+        Collection<XrootdBucket> buckets = bucketMap.values();
+
+        for (XrootdBucket bucket : buckets) {
+            i = bucket.dump(builder, getClientStep(step), ++i);
+        }
+
+        builder.append("/////////////////////////////////////////////////////////\n");
+
+        return builder.toString();
     }
 
     /**

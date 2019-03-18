@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -46,8 +46,7 @@ public class XrootdClientEncoder extends ChannelOutboundHandlerAdapter
                     throws Exception
     {
         if (msg instanceof XrootdOutboundRequest) {
-            XrootdOutboundRequest request = (XrootdOutboundRequest) msg;
-            request.writeTo(ctx, promise);
+            ((XrootdOutboundRequest) msg).writeTo(ctx, promise);
         } else {
             super.write(ctx, msg, promise);
         }

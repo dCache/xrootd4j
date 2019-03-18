@@ -154,7 +154,7 @@ public abstract class AbstractClientRequestHandler extends
                                               InboundAuthenticationResponse response)
                     throws XrootdException
     {
-        LOGGER.trace("doOnAuthenticationResponse, channel {}, stream {}"
+        LOGGER.debug("doOnAuthenticationResponse, channel {}, stream {}"
                                      + " –– passing to next in chain.",
                      ctx.channel().id(), response.getStreamId());
         ctx.fireChannelRead(response);
@@ -164,7 +164,7 @@ public abstract class AbstractClientRequestHandler extends
                                         InboundChecksumResponse response)
                     throws XrootdException
     {
-        LOGGER.trace("doOnChecksumResponse, channel {}, stream {}"
+        LOGGER.debug("doOnChecksumResponse, channel {}, stream {}"
                                      + " –– passing to next in chain.",
                      ctx.channel().id(), response.getStreamId());
         ctx.fireChannelRead(response);
@@ -174,7 +174,7 @@ public abstract class AbstractClientRequestHandler extends
                                      InboundCloseResponse response)
                     throws XrootdException
     {
-        LOGGER.trace("doOnCloseResponse, channel {}, stream {}"
+        LOGGER.debug("doOnCloseResponse, channel {}, stream {}"
                                      + " –– passing to next in chain.",
                      ctx.channel().id(), response.getStreamId());
         ctx.fireChannelRead(response);
@@ -192,7 +192,7 @@ public abstract class AbstractClientRequestHandler extends
                                          InboundHandshakeResponse response)
                     throws XrootdException
     {
-        LOGGER.trace("doOnHandshakeResponse, channel {}"
+        LOGGER.debug("doOnHandshakeResponse, channel {}"
                                      + " –– passing to next in chain.",
                      ctx.channel().id());
         ctx.fireChannelRead(response);
@@ -202,7 +202,7 @@ public abstract class AbstractClientRequestHandler extends
                                    InboundLoginResponse response)
                     throws XrootdException
     {
-        LOGGER.trace("doOnLoginResponse, channel {}, stream {}"
+        LOGGER.debug("doOnLoginResponse, channel {}, stream {}"
                                      + " –– passing to next in chain.",
                      ctx.channel().id(), response.getStreamId());
         ctx.fireChannelRead(response);
@@ -212,7 +212,7 @@ public abstract class AbstractClientRequestHandler extends
                                   InboundOpenReadOnlyResponse response)
                     throws XrootdException
     {
-        LOGGER.trace("doOnOpenResponse, channel {}, stream {}"
+        LOGGER.debug("doOnOpenResponse, channel {}, stream {}"
                                      + " –– passing to next in chain.",
                      ctx.channel().id(), response.getStreamId());
         ctx.fireChannelRead(response);
@@ -222,7 +222,7 @@ public abstract class AbstractClientRequestHandler extends
                                         InboundProtocolResponse response)
                     throws XrootdException
     {
-        LOGGER.trace("doOnProtocolResponse, channel {}, stream {}"
+        LOGGER.debug("doOnProtocolResponse, channel {}, stream {}"
                                      + " –– passing to next in chain.",
                      ctx.channel().id(), response.getStreamId());
         ctx.fireChannelRead(response);
@@ -232,7 +232,7 @@ public abstract class AbstractClientRequestHandler extends
                                     InboundReadResponse response)
                     throws XrootdException
     {
-        LOGGER.trace("doOnReadResponse, channel {}, stream {}"
+        LOGGER.debug("doOnReadResponse, channel {}, stream {}"
                                      + " –– passing to next in chain.",
                      ctx.channel().id(), response.getStreamId());
         ctx.fireChannelRead(response);
@@ -243,7 +243,7 @@ public abstract class AbstractClientRequestHandler extends
                     throws XrootdException
     {
         ChannelId id = ctx.channel().id();
-        LOGGER.trace("redirecting client from {} to {}:{}, channel {}, "
+        LOGGER.debug("redirecting client from {} to {}:{}, channel {}, "
                                      + "stream {}; [info {}].",
                      client.getInfo().getSrc(),
                      response.getHost(),
@@ -449,61 +449,61 @@ public abstract class AbstractClientRequestHandler extends
 
             switch (requestId) {
                 case kXR_auth:
-                    LOGGER.trace("responseReceived, channel {}, stream {}, "
+                    LOGGER.debug("responseReceived, channel {}, stream {}, "
                                                  + "requestId = kXR_auth.",
                                  id, streamId);
                     doOnAuthenticationResponse(ctx,
                                                (InboundAuthenticationResponse) response);
                     break;
                 case kXR_close:
-                    LOGGER.trace("responseReceived, channel {}, stream {}, "
+                    LOGGER.debug("responseReceived, channel {}, stream {}, "
                                                  + "requestId = kXR_close.",
                                  id, streamId);
                     doOnCloseResponse(ctx, (InboundCloseResponse) response);
                     break;
                 case kXR_endsess:
-                    LOGGER.trace("responseReceived, channel {}, stream {}, "
+                    LOGGER.debug("responseReceived, channel {}, stream {}, "
                                                  + "requestId = kXR_endsess.",
                                  id, streamId);
-                    LOGGER.trace("endsession response received.");
+                    LOGGER.debug("endsession response received.");
                     client.disconnect(); // will not attempt disconnect twice
                     break;
                 case kXR_handshake:
-                    LOGGER.trace("responseReceived, channel {}, stream {}, "
+                    LOGGER.debug("responseReceived, channel {}, stream {}, "
                                                  + "requestId = kXR_handshake.",
                                  id, streamId);
                     doOnHandshakeResponse(ctx,
                                           (InboundHandshakeResponse) response);
                     break;
                 case kXR_login:
-                    LOGGER.trace("responseReceived, channel {}, stream {}, "
+                    LOGGER.debug("responseReceived, channel {}, stream {}, "
                                                  + "requestId = kXR_login.",
                                  id, streamId);
                     doOnLoginResponse(ctx, (InboundLoginResponse) response);
                     break;
                 case kXR_open:
-                    LOGGER.trace("responseReceived, channel {}, stream {}, "
+                    LOGGER.debug("responseReceived, channel {}, stream {}, "
                                                  + "requestId = kXR_open.",
                                  id, streamId);
                     doOnOpenResponse(ctx,
                                      (InboundOpenReadOnlyResponse) response);
                     break;
                 case kXR_protocol:
-                    LOGGER.trace("responseReceived, channel {}, stream {}, "
+                    LOGGER.debug("responseReceived, channel {}, stream {}, "
                                                  + "requestId = kXR_protocol.",
                                  id, streamId);
                     doOnProtocolResponse(ctx,
                                          (InboundProtocolResponse) response);
                     break;
                 case kXR_query:
-                    LOGGER.trace("responseReceived, channel {}, stream {}, "
+                    LOGGER.debug("responseReceived, channel {}, stream {}, "
                                                  + "requestId = kXR_query.",
                                  id, streamId);
                     doOnChecksumResponse(ctx,
                                          (InboundChecksumResponse) response);
                     break;
                 case kXR_read:
-                    LOGGER.trace("responseReceived, channel {}, stream {}, "
+                    LOGGER.debug("responseReceived, channel {}, stream {}, "
                                                  + "requestId = kXR_read.",
                                  id, streamId);
                     doOnReadResponse(ctx, (InboundReadResponse) response);

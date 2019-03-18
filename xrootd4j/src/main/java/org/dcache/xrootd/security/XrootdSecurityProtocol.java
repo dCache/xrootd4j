@@ -141,4 +141,30 @@ public class XrootdSecurityProtocol {
             return _lookup.get(code);
         }
     }
+
+    public static String getClientStep(int step)
+    {
+        switch(step) {
+            case kXGC_none: return "kXGC_none";
+            case kXGC_certreq: return "kXGC_certreq";
+            case kXGC_cert: return "kXGC_cert";
+            case kXGC_sigpxy: return "kXGC_sigpxy";
+            case kXGC_reserved: return "kXGC_reserved";
+            default:
+                return "unrecognized step: " + step;
+        }
+    }
+
+    public static String getServerStep(int step)
+    {
+        switch(step) {
+            case kXGS_none: return "kXGS_none";
+            case kXGS_init: return "kXGS_init";
+            case kXGS_cert: return "kXGS_cert";
+            case kXGS_pxyreq: return "kXGS_pxyreq";
+            case kXGS_reserved: return "kXGS_reserved";
+            default:
+                return "unrecognized step: " + step;
+        }
+    }
 }

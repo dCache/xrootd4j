@@ -64,7 +64,7 @@ public abstract class AbstractClientSourceHandler extends
     {
         ChannelId id = ctx.channel().id();
         XrootdTpcInfo tpcInfo = client.getInfo();
-        LOGGER.trace("login response to {} received, channel {}, stream {}.",
+        LOGGER.debug("login response to {} received, channel {}, stream {}.",
                      tpcInfo.getSrc(),
                      id,
                      client.getStreamId());
@@ -74,7 +74,7 @@ public abstract class AbstractClientSourceHandler extends
                                          tpcInfo.getSrc());
             throw new XrootdException(kXR_error, error);
         } else {
-            LOGGER.trace("login of {} on {}, channel {}, stream {}, complete, "
+            LOGGER.debug("login of {} on {}, channel {}, stream {}, complete, "
                                          + "proceeding to open.",
                          tpcInfo.getLfn(),
                          tpcInfo.getSrc(),
@@ -112,7 +112,7 @@ public abstract class AbstractClientSourceHandler extends
     {
         ChannelId id = ctx.channel().id();
         XrootdTpcInfo tpcInfo = client.getInfo();
-        LOGGER.trace("authentication of {} on {}, channel {}, stream {}, complete,"
+        LOGGER.debug("authentication of {} on {}, channel {}, stream {}, complete,"
                                      + " proceeding to open.",
                      tpcInfo.getLfn(),
                      tpcInfo.getSrc(),
@@ -129,7 +129,7 @@ public abstract class AbstractClientSourceHandler extends
         int status = response.getStatus();
         ChannelId id = ctx.channel().id();
         XrootdTpcInfo tpcInfo = client.getInfo();
-        LOGGER.trace("Close response for {} on {}, channel {}, stream {}, "
+        LOGGER.debug("Close response for {} on {}, channel {}, stream {}, "
                                      + "received with status {}.",
                      tpcInfo.getLfn(),
                      tpcInfo.getSrc(),
@@ -138,7 +138,7 @@ public abstract class AbstractClientSourceHandler extends
                      status);
         switch (status) {
             case kXR_ok:
-                LOGGER.trace("Close of {} on {}, channel {}, stream {}, "
+                LOGGER.debug("Close of {} on {}, channel {}, stream {}, "
                                              + "succeeded, ending session.",
                              tpcInfo.getLfn(),
                              tpcInfo.getSrc(),
@@ -166,7 +166,7 @@ public abstract class AbstractClientSourceHandler extends
         int status = response.getStatus();
         ChannelId id = ctx.channel().id();
         XrootdTpcInfo tpcInfo = client.getInfo();
-        LOGGER.trace("Open response for {} on {} received, channel {}, stream {}, "
+        LOGGER.debug("Open response for {} on {} received, channel {}, stream {}, "
                                      + "fhandle {}, cpsize {}, cptype {}; status {}.",
                      tpcInfo.getLfn(),
                      tpcInfo.getSrc(),
@@ -195,7 +195,7 @@ public abstract class AbstractClientSourceHandler extends
     protected void sendOpenRequest(ChannelHandlerContext ctx)
     {
         XrootdTpcInfo tpcInfo = client.getInfo();
-        LOGGER.trace("sendOpenRequest to {}, channel {}, stream {}, "
+        LOGGER.debug("sendOpenRequest to {}, channel {}, stream {}, "
                                      + "path {}.",
                      tpcInfo.getSrc(),
                      ctx.channel().id(),

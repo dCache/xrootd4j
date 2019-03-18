@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -36,11 +36,28 @@ import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
  */
 public abstract class XrootdBucket
 {
-
     protected final BucketType _type;
 
     public XrootdBucket(BucketType type) {
         _type = type;
+    }
+
+    /**
+     *  This usually will be called only if trace is enabled.
+     *
+     *  We here imitate the XrootD XrdSutBuffer DUMP printout.
+     */
+    public int dump(StringBuilder builder, String step, int number)
+    {
+        builder.append("//                                                     //\n");
+        builder.append("//                    XrootdBucket                     //\n");
+        builder.append("//                                                     //\n");
+        builder.append("//  Name: ").append(this.getClass().getSimpleName()).append("\n");
+        builder.append("//  Step: ").append(step).append("\n");
+        builder.append("//  Buck: ").append(number).append("\n");
+        builder.append("//  Type: ").append(_type.name()).append("\n");
+        builder.append("//  Size: ").append(getSize()).append("\n");
+        return number;
     }
 
     public BucketType getType() {

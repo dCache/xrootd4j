@@ -76,7 +76,7 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
         XrootdTpcInfo tpcInfo = client.getInfo();
         switch (status) {
             case kXR_ok:
-                LOGGER.trace("Authentication to {}, channel {}, stream {}, "
+                LOGGER.debug("Authentication to {}, channel {}, stream {}, "
                                              + "sessionId {} succeeded; "
                                              + "passing to next handler.",
                              tpcInfo.getSrc(),
@@ -86,7 +86,7 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
                 ctx.fireChannelRead(response);
                 break;
             case kXR_authmore:
-                LOGGER.trace("Authentication to {}, channel {}, stream {}, "
+                LOGGER.debug("Authentication to {}, channel {}, stream {}, "
                                              + "sessionId {}, "
                                              + "proceeding to next step.",
                              tpcInfo.getSrc(),
@@ -133,13 +133,13 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
             switch (serverStep) {
                 case kXGS_cert:
                     request = requestHandler.handleCertStep(response, ctx);
-                    LOGGER.trace("sendAuthenticationRequest to {}, channel {}, "
+                    LOGGER.debug("sendAuthenticationRequest to {}, channel {}, "
                                                  + "stream {}, step: cert.",
                                  tpcInfo.getSrc(), id, streamId);
                     break;
                 case kXGS_pxyreq:
                     request = requestHandler.handleSigPxyStep(response, ctx);
-                    LOGGER.trace("sendAuthenticationRequest to {}, channel {}, "
+                    LOGGER.debug("sendAuthenticationRequest to {}, channel {}, "
                                                  + "stream {}, step: sigpxy.",
                                  tpcInfo.getSrc(), id, streamId);
                     break;
@@ -151,7 +151,7 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
             }
         } else {
             request = requestHandler.handleCertReqStep();
-            LOGGER.trace("sendAuthenticationRequest to {}, channel {}, "
+            LOGGER.debug("sendAuthenticationRequest to {}, channel {}, "
                                          + "stream {}, step: cert request.",
                          tpcInfo.getSrc(), id, streamId);
         }

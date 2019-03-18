@@ -84,7 +84,7 @@ public class TpcClientConnectHandler extends
         ChannelId id = ctx.channel().id();
         int streamId = client.getStreamId();
         XrootdTpcInfo tpcInfo = client.getInfo();
-        LOGGER.trace("Protocol response on {}, channel {}, stream {},"
+        LOGGER.debug("Protocol response on {}, channel {}, stream {},"
                                      + " received, signing policy {}; status {}.",
                      tpcInfo.getSrc(),
                      id,
@@ -93,7 +93,7 @@ public class TpcClientConnectHandler extends
                      status);
         if (status == kXR_ok) {
             client.setSigningPolicy(response.getSigningPolicy());
-            LOGGER.trace("Protocol request to {}, channel {}, stream {},"
+            LOGGER.debug("Protocol request to {}, channel {}, stream {},"
                                          + " succeeded; sending login request.",
                          tpcInfo.getSrc(),
                          id,
@@ -117,7 +117,7 @@ public class TpcClientConnectHandler extends
         ChannelId id = ctx.channel().id();
         int streamId = client.getStreamId();
         XrootdTpcInfo tpcInfo = client.getInfo();
-        LOGGER.trace("Login response on {}, channel {}, stream {},"
+        LOGGER.debug("Login response on {}, channel {}, stream {},"
                                      + " received; sessionId {}, status {}.",
                      tpcInfo.getSrc(),
                      id,
@@ -143,7 +143,7 @@ public class TpcClientConnectHandler extends
                     pipeline.addAfter(last, name, handler);
                 }
 
-                LOGGER.trace("Login to {}, channel {}, stream {}, sessionId {}, "
+                LOGGER.debug("Login to {}, channel {}, stream {}, sessionId {}, "
                                              + "adding {} handler to pipeline.",
                              tpcInfo.getSrc(),
                              id,
@@ -154,7 +154,7 @@ public class TpcClientConnectHandler extends
                 last = name;
             }
 
-            LOGGER.trace("Login to {}, channel {}, stream {},"
+            LOGGER.debug("Login to {}, channel {}, stream {},"
                                          + " succeeded; sessionId {}; "
                                          + "passing to next handler.",
                          tpcInfo.getSrc(),
@@ -196,7 +196,7 @@ public class TpcClientConnectHandler extends
     protected void sendLoginRequest(ChannelHandlerContext ctx)
     {
         XrootdTpcInfo tpcInfo = client.getInfo();
-        LOGGER.trace("sendLoginRequest to {}, channel {}, stream {}, "
+        LOGGER.debug("sendLoginRequest to {}, channel {}, stream {}, "
                                      + "pid {}, uname {}.",
                         tpcInfo.getSrc(),
                         ctx.channel().id(),
@@ -215,7 +215,7 @@ public class TpcClientConnectHandler extends
     protected void sendProtocolRequest(ChannelHandlerContext ctx)
     {
         ChannelId id = ctx.channel().id();
-        LOGGER.trace("sendProtocolRequestForClient to {}, channel {}, stream {}.",
+        LOGGER.debug("sendProtocolRequestForClient to {}, channel {}, stream {}.",
                      client.getInfo().getSrc(), id, client.getStreamId());
         client.setExpectedResponse(kXR_protocol);
         ctx.writeAndFlush(new OutboundProtocolRequest(client.getStreamId(),

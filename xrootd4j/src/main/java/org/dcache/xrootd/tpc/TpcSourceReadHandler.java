@@ -71,7 +71,7 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
     {
         int status = response.getStatus();
         XrootdTpcInfo tpcInfo = client.getInfo();
-        LOGGER.trace("Checksum query response for {} on {}, channel {}, stream {} "
+        LOGGER.debug("Checksum query response for {} on {}, channel {}, stream {} "
                                      + "received, status {}.",
                      tpcInfo.getLfn(),
                      tpcInfo.getSrc(),
@@ -99,7 +99,7 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
             int status = response.getStatus();
             XrootdTpcInfo tpcInfo = client.getInfo();
             int bytesRcvd = response.getDlen();
-            LOGGER.trace("Read response received for {} on {}, channel {}, "
+            LOGGER.debug("Read response received for {} on {}, channel {}, "
                                          + "stream {}: status {}, "
                                          + "got {} more bytes.",
                          tpcInfo.getLfn(),
@@ -136,7 +136,7 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
                     return;
                 }
 
-                LOGGER.trace("Read of {} on {}, channel {}, stream {}: "
+                LOGGER.debug("Read of {} on {}, channel {}, stream {}: "
                                              + "wrote {}, "
                                              + "so far {}, expected {}.",
                              tpcInfo.getLfn(),
@@ -149,7 +149,7 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
             }
 
             if (status == kXR_oksofar) {
-                LOGGER.trace("Waiting for more data for {} on {}, "
+                LOGGER.debug("Waiting for more data for {} on {}, "
                                              + "channel {}, stream {}",
                              tpcInfo.getLfn(),
                              tpcInfo.getSrc(),
@@ -163,7 +163,7 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
             } else if (tpcInfo.getCks() != null) {
                 sendChecksumRequest(ctx);
             } else {
-                LOGGER.trace("Read for {} on {}, channel {}, stream {},"
+                LOGGER.debug("Read for {} on {}, channel {}, stream {},"
                                              + " completed without "
                                              + "checksum verification.",
                              tpcInfo.getLfn(),
@@ -203,7 +203,7 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
                                             ChannelHandlerContext ctx)
     {
         client.getWriteHandler().fireDelayedSync(status, error);
-        LOGGER.trace("handleTransferTerminated called fire delayed sync, "
+        LOGGER.debug("handleTransferTerminated called fire delayed sync, "
                                      + "calling client shutdown");
         try {
             client.shutDown(ctx);
@@ -216,7 +216,7 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
     protected void sendReadRequest(ChannelHandlerContext ctx)
     {
         XrootdTpcInfo tpcInfo = client.getInfo();
-        LOGGER.trace("sendReadRequest to {}, channel {}, stream {}, "
+        LOGGER.debug("sendReadRequest to {}, channel {}, stream {}, "
                                      + "fhandle {}, offset {}, chunksize {}.",
                      tpcInfo.getSrc(),
                      ctx.channel().id(),
@@ -238,7 +238,7 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
     protected void sendChecksumRequest(ChannelHandlerContext ctx)
     {
         XrootdTpcInfo tpcInfo = client.getInfo();
-        LOGGER.trace("sendChecksumRequest to {}, channel {}, "
+        LOGGER.debug("sendChecksumRequest to {}, channel {}, "
                                      + "stream {}, fhandle {}.",
                      tpcInfo.getSrc(),
                      ctx.channel().id(),

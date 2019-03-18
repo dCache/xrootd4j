@@ -244,7 +244,7 @@ public class GSIPre49ServerRequestHandler extends GSIServerRequestHandler
                                           "Client did not present correct" +
                                                           "challenge response!");
             }
-            LOGGER.trace("signature of challenge tag ok. Challenge: " +
+            LOGGER.debug("signature of challenge tag ok. Challenge: " +
                                          "{}, rTagString: {}", challenge, rTagString);
 
 

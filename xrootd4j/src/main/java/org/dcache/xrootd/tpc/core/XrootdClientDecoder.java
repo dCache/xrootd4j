@@ -104,27 +104,27 @@ public class XrootdClientDecoder extends ByteToMessageDecoder
         try {
             switch (frame.getUnsignedShort(2)) {
                 case kXR_error:
-                    LOGGER.trace("Decoder {}, channel {}: adding error response.",
+                    LOGGER.debug("Decoder {}, channel {}: adding error response.",
                                 sourceUrn, id);
                     out.add(new InboundErrorResponse(frame));
                     return;
                 case kXR_wait:
-                    LOGGER.trace("Decoder {}, channel {}: adding wait response.",
+                    LOGGER.debug("Decoder {}, channel {}: adding wait response.",
                                  sourceUrn, id);
                     out.add(new InboundWaitResponse(frame, requestId));
                     return;
                 case kXR_waitresp:
-                    LOGGER.trace("Decoder {}, channel {}: adding waitresp response.",
+                    LOGGER.debug("Decoder {}, channel {}: adding waitresp response.",
                                 sourceUrn, id);
                     out.add(new InboundWaitRespResponse(frame, requestId));
                     return;
                 case kXR_redirect:
-                    LOGGER.trace("Decoder {}, channel {}: adding redirect response.",
+                    LOGGER.debug("Decoder {}, channel {}: adding redirect response.",
                                  sourceUrn, id);
                     out.add(new InboundRedirectResponse(frame, requestId));
                     return;
                 case kXR_attn:
-                    LOGGER.trace("Decoder {}, channel {}: adding attn response.",
+                    LOGGER.debug("Decoder {}, channel {}: adding attn response.",
                                  sourceUrn, id);
                     out.add(new InboundAttnResponse(frame, requestId));
                     return;
@@ -132,52 +132,52 @@ public class XrootdClientDecoder extends ByteToMessageDecoder
 
             switch (requestId) {
                 case kXR_handshake:
-                    LOGGER.trace("Decoder {}, channel {}: adding handshake response.",
+                    LOGGER.debug("Decoder {}, channel {}: adding handshake response.",
                                  sourceUrn, id);
                     out.add(new InboundHandshakeResponse(frame));
                     break;
                 case kXR_protocol:
-                    LOGGER.trace("Decoder {}, channel {}: adding protocol response.",
+                    LOGGER.debug("Decoder {}, channel {}: adding protocol response.",
                                 sourceUrn, id);
                     out.add(new InboundProtocolResponse(frame));
                     break;
                 case kXR_login:
-                    LOGGER.trace("Decoder {}, channel {}: adding login response.",
+                    LOGGER.debug("Decoder {}, channel {}: adding login response.",
                                 sourceUrn, id);
                     out.add(new InboundLoginResponse(frame));
                     break;
                 case kXR_auth:
-                    LOGGER.trace("Decoder {}, channel {}: adding authentication response.",
+                    LOGGER.debug("Decoder {}, channel {}: adding authentication response.",
                                 sourceUrn, id);
                     out.add(new InboundAuthenticationResponse(frame));
                     break;
                 case kXR_open:
-                    LOGGER.trace("Decoder {}, channel {}: adding open response.",
+                    LOGGER.debug("Decoder {}, channel {}: adding open response.",
                                 sourceUrn, id);
                     out.add(new InboundOpenReadOnlyResponse(frame));
                     break;
                 case kXR_read:
-                    LOGGER.trace("Decoder {}, channel {}: adding read response.",
+                    LOGGER.debug("Decoder {}, channel {}: adding read response.",
                                 sourceUrn, id);
                     out.add(new InboundReadResponse(frame));
                     break;
                 case kXR_query:
-                    LOGGER.trace("Decoder {}, channel {}: adding query response.",
+                    LOGGER.debug("Decoder {}, channel {}: adding query response.",
                                 sourceUrn, id);
                     out.add(new InboundChecksumResponse(frame));
                     break;
                 case kXR_close:
-                    LOGGER.trace("Decoder {}, channel {}: adding close response.",
+                    LOGGER.debug("Decoder {}, channel {}: adding close response.",
                                 sourceUrn, id);
                     out.add(new InboundCloseResponse(frame));
                     break;
                 case kXR_endsess:
-                    LOGGER.trace("Decoder {}, channel {}: adding endsess response.",
+                    LOGGER.debug("Decoder {}, channel {}: adding endsess response.",
                                 sourceUrn, id);
                     out.add(new InboundEndSessionResponse(frame));
                     break;
                 default:
-                    LOGGER.trace("Decoder {}, channel {}, received incorrect "
+                    LOGGER.debug("Decoder {}, channel {}, received incorrect "
                                                  + "response of request type {}.",
                                  sourceUrn, id, requestId);
                     throw new XrootdException(kXR_error,

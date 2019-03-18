@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -152,7 +152,7 @@ public class DHSession
                                                           DH_HEADER,
                                                           DH_FOOTER));
 
-        LOGGER.trace("Remote endpoint sent: P = {}, G = {}, L = {},",
+        LOGGER.debug("Remote endpoint sent: P = {}, G = {}, L = {},",
                      params.getP(), params.getG(), params.getL());
 
         if (_keyAgreement == null) {

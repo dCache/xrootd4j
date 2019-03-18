@@ -76,7 +76,7 @@ public class UnixClientAuthenticationHandler extends AbstractClientAuthnHandler
         XrootdTpcInfo tpcInfo = client.getInfo();
         switch (status) {
             case kXR_ok:
-                LOGGER.trace("Authentication to {}, channel {}, stream {}, "
+                LOGGER.debug("Authentication to {}, channel {}, stream {}, "
                                              + "sessionId {} succeeded; "
                                              + "passing to next handler.",
                              tpcInfo.getSrc(),

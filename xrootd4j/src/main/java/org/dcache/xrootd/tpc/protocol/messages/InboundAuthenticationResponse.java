@@ -19,14 +19,18 @@
 package org.dcache.xrootd.tpc.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.Map;
 
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.security.RawBucket;
 import org.dcache.xrootd.security.XrootdBucket;
+import org.dcache.xrootd.security.XrootdSecurityProtocol;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
 import static io.netty.buffer.Unpooled.wrappedBuffer;
@@ -40,7 +44,11 @@ import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_
  * <p>Response from third-party source server.</p>
  */
 public class InboundAuthenticationResponse
-                extends AbstractXrootdInboundResponse {
+                extends AbstractXrootdInboundResponse
+{
+    private static final Logger LOGGER =
+                    LoggerFactory.getLogger(InboundAuthenticationResponse.class);
+
     /**
      * Map of the buckets (kind of a serialized datatype with an
      * int32 block of metadata) received from the client.
@@ -81,6 +89,34 @@ public class InboundAuthenticationResponse
         } catch (IOException e) {
             throw new XrootdException(kXR_IOError, e.toString());
         }
+
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace(describe());
+        }
+    }
+
+    public String describe()
+    {
+        StringBuilder builder = new StringBuilder("\n");
+        builder.append("/////////////////////////////////////////////////////////\n");
+        builder.append("//           Inbound Authentication Response\n");
+        builder.append("//\n");
+        builder.append("//  stream:  ").append(streamId).append("\n");
+        builder.append("//  stat:    ").append(stat).append("\n");
+        builder.append("//\n");
+
+        int i = 0;
+
+        Collection<XrootdBucket> buckets = bucketMap.values();
+
+        for (XrootdBucket bucket : buckets) {
+            i = bucket.dump(builder,
+                            XrootdSecurityProtocol.getServerStep(serverStep), ++i);
+        }
+
+        builder.append("/////////////////////////////////////////////////////////\n");
+
+        return builder.toString();
     }
 
     public Map<BucketType, XrootdBucket> getBuckets() {

@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -23,12 +23,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Map;
 
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_certreq;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_reserved;
 
 /**
  * Format of a NestedBucketBuffer:
@@ -69,6 +72,24 @@ public class NestedBucketBuffer extends XrootdBucket {
         _protocol = protocol;
         _step = step;
         _nestedBuckets = nestedBuckets;
+    }
+
+    @Override
+    public int dump(StringBuilder builder, String step, int number)
+    {
+        super.dump(builder, step, number);
+        builder.append("//........................NESTED.........................\n");
+
+        int i = number;
+
+        Collection<XrootdBucket> buckets = _nestedBuckets.values();
+        for (XrootdBucket bucket: buckets) {
+            i = bucket.dump(builder, step, ++i);
+        }
+        builder.append("//\n");
+        builder.append("//......................END NESTED.......................\n");
+
+        return i;
     }
 
     /**
