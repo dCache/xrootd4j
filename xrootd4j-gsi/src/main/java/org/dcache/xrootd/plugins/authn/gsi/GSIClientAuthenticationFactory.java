@@ -23,6 +23,7 @@ import io.netty.channel.ChannelHandler;
 import java.util.Properties;
 
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
+import org.dcache.xrootd.plugins.CredentialStoreClient;
 
 /**
  * <p>Authentication factory that returns GSI security handlers to add to the
@@ -32,9 +33,10 @@ import org.dcache.xrootd.plugins.ChannelHandlerFactory;
  *     a proxy credential from the host cert and key, as required by
  *     the standard (SLAC) implementation of the server.</p>
  */
-public class GSIClientAuthenticationFactory implements ChannelHandlerFactory {
-
-    private final Properties properties;
+public class GSIClientAuthenticationFactory implements ChannelHandlerFactory
+{
+    private final Properties            properties;
+    private       CredentialStoreClient credentialStoreClient;
 
     public GSIClientAuthenticationFactory(Properties properties)
     {
@@ -44,17 +46,7 @@ public class GSIClientAuthenticationFactory implements ChannelHandlerFactory {
     @Override
     public ChannelHandler createHandler()
     {
-        GSICredentialManager credentialManager
-                        = new GSICredentialManager(properties);
-
-        /*
-         *  This is an SPI interface method with no throws signature.
-         *  Non-runtime exceptions on the credential load thus need to be logged.
-         *
-         *  If the credentials fail to load, the issue will soon be discovered
-         *  when GSI TPC fails.
-         */
-        credentialManager.loadClientCredentials();
+        GSICredentialManager credentialManager = new GSICredentialManager(properties);
 
         GSIClientAuthenticationHandler handler =
                         new GSIClientAuthenticationHandler(credentialManager);
@@ -71,5 +63,9 @@ public class GSIClientAuthenticationFactory implements ChannelHandlerFactory {
     public String getName()
     {
         return GSIRequestHandler.PROTOCOL;
+    }
+
+    public void setCredentialStoreClient(CredentialStoreClient credentialStoreClient) {
+        this.credentialStoreClient = credentialStoreClient;
     }
 }

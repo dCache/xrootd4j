@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -21,6 +21,7 @@ package org.dcache.xrootd.tpc;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 
+import java.io.Serializable;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -171,6 +172,12 @@ public class XrootdTpcInfo {
      * <p>Possibly returned by a redirect.</p>
      */
     private String loginToken;
+
+    /**
+     * <p>Delegated proxy object</p>
+     */
+
+    private Serializable delegatedProxy;
 
 
     public XrootdTpcInfo(String key)
@@ -379,6 +386,11 @@ public class XrootdTpcInfo {
         return createdTime;
     }
 
+    public Serializable getDelegatedProxy()
+    {
+        return delegatedProxy;
+    }
+
     public String getExternal()
     {
         return external;
@@ -448,6 +460,11 @@ public class XrootdTpcInfo {
     public void setCks(String cks)
     {
         this.cks = cks;
+    }
+
+    public void setDelegatedProxy(Serializable delegatedProxy)
+    {
+        this.delegatedProxy = delegatedProxy;
     }
 
     public void setDst(String dst)

@@ -24,6 +24,7 @@ import java.util.Properties;
 
 import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
+import org.dcache.xrootd.plugins.CredentialStoreClient;
 import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
 
 /**
@@ -40,7 +41,7 @@ import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
  */
 public class GSIAuthenticationFactory implements AuthenticationFactory
 {
-    private final Properties properties;
+    private final Properties            properties;
 
     public GSIAuthenticationFactory(Properties properties)
     {
@@ -48,11 +49,14 @@ public class GSIAuthenticationFactory implements AuthenticationFactory
     }
 
     @Override
-    public AuthenticationHandler createHandler()
+    public AuthenticationHandler createHandler(CredentialStoreClient credentialStoreClient)
         throws InvalidHandlerConfigurationException
     {
         GSICredentialManager credentialManager
                         = new GSICredentialManager(properties);
+
+        credentialManager.setCredentialStoreClient(credentialStoreClient);
+
         try {
             credentialManager.loadServerCredentials();
         } catch (GeneralSecurityException gssex) {

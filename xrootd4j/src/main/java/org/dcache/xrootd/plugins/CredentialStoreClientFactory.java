@@ -16,26 +16,26 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
  */
-package org.dcache.xrootd.plugins.authn.none;
+package org.dcache.xrootd.plugins;
 
-import org.dcache.xrootd.plugins.AuthenticationFactory;
-import org.dcache.xrootd.plugins.AuthenticationHandler;
-import org.dcache.xrootd.plugins.CredentialStoreClient;
-import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
+import java.util.Properties;
 
 /**
- * Dummy authentication factory that creates an authentication handler which
- * accepts all AuthenticationRequests
+ * A factory class for CredentialStoreClientFactory.
  *
- * @author tzangerl
- *
+ * Implementations of this interface are usually obtained through
+ * Java's ServiceLoader mechanism.
  */
-public class NoAuthenticationFactory implements AuthenticationFactory
+public interface CredentialStoreClientFactory<C extends CredentialStoreClient>
 {
-    @Override
-    public AuthenticationHandler createHandler(CredentialStoreClient credentialStoreClient)
-            throws InvalidHandlerConfigurationException
-    {
-        return new NoAuthenticationHandler();
-    }
+    /**
+     * Creates and returns a new CredentialStoreClient
+     *
+     * @param authPlugin name identifying a particular type of AuthenticationFactory.
+     * @param properties configuration values
+     * @return CredentialStoreClientFactory instance or null if the provider
+     * does not provide a matching AuthenticationFactory
+     */
+    C createClient(String authPlugin, Properties properties)
+                    throws InvalidHandlerConfigurationException;
 }

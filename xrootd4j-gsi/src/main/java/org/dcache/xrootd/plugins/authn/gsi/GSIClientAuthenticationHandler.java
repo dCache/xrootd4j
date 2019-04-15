@@ -26,18 +26,16 @@ import java.util.Optional;
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.plugins.authn.gsi.pre49.GSIPre49ClientRequestHandler;
 import org.dcache.xrootd.tpc.AbstractClientAuthnHandler;
+import org.dcache.xrootd.tpc.XrootdTpcClient;
 import org.dcache.xrootd.tpc.XrootdTpcInfo;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundAuthenticationRequest;
 
 import static io.netty.channel.ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE;
-import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.PROTO_WITH_DELEGATION;
 import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.PROTOCOL;
+import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.PROTO_WITH_DELEGATION;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kGSErrBadOpt;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kGSErrBadProtocol;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGS_cert;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGS_pxyreq;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
 /**
  *  <p>Client-side handler mirroring the server-side GSIAuthenticationHandler.
@@ -54,6 +52,14 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
     {
         super(PROTOCOL);
         this.credentialManager = credentialManager;
+    }
+
+    /*
+     *  Override to set the credential store client on the credential manager.
+     */
+    public void setClient(XrootdTpcClient client)
+    {
+        super.setClient(client);
     }
 
     protected void doOnAuthenticationResponse(ChannelHandlerContext ctx,
@@ -164,10 +170,11 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
     }
 
     private GSIClientRequestHandler createRequestHandler()
-                    throws XrootdException {
+                    throws XrootdException
+    {
         String serverVersion = ((Optional<String>) client.getAuthnContext()
                                                          .get("version"))
-                        .orElse(null);
+                                                         .orElse(null);
 
         if (serverVersion == null) {
             throw new XrootdException(kGSErrBadProtocol,
@@ -191,10 +198,10 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
              *  REVISIT  bump to 49 version when implemented.
              */
             handler = new GSIPre49ClientRequestHandler(credentialManager,
-                                                              client);
+                                                                client);
         } else {
             handler = new GSIPre49ClientRequestHandler(credentialManager,
-                                                              client);
+                                                                client);
         }
 
         return handler;

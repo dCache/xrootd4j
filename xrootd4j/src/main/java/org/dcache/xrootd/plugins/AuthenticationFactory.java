@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -20,6 +20,6 @@ package org.dcache.xrootd.plugins;
 
 public interface AuthenticationFactory
 {
-    public AuthenticationHandler createHandler()
+    AuthenticationHandler createHandler(CredentialStoreClient client)
         throws InvalidHandlerConfigurationException;
 }

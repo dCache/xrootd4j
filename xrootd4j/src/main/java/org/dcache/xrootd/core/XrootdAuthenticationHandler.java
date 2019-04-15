@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
+import org.dcache.xrootd.plugins.CredentialStoreClient;
 import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.EndSessionRequest;
@@ -71,7 +72,7 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
     private final XrootdSessionIdentifier _sessionId = new XrootdSessionIdentifier();
 
     private final AuthenticationFactory _authenticationFactory;
-
+    private final CredentialStoreClient _credentialStoreClient;
     private SigningPolicy _signingPolicy;
 
     private AuthenticationHandler _authenticationHandler;
@@ -81,9 +82,11 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
 
     private XrootdSession _session;
 
-    public XrootdAuthenticationHandler(AuthenticationFactory authenticationFactory)
+    public XrootdAuthenticationHandler(AuthenticationFactory authenticationFactory,
+                                       CredentialStoreClient credentialStoreClient)
     {
         _authenticationFactory = authenticationFactory;
+        _credentialStoreClient = credentialStoreClient;
     }
 
     @Override
@@ -204,6 +207,19 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
         }
     }
 
+    public CredentialStoreClient getCredentialStoreClient()
+    {
+        return _credentialStoreClient;
+    }
+
+    @Override
+    public void handlerRemoved(ChannelHandlerContext ctx)
+    {
+        if (_credentialStoreClient != null) {
+            _credentialStoreClient.close();
+        }
+    }
+
     public void setSigningPolicy(SigningPolicy signingPolicy)
     {
         _signingPolicy = signingPolicy;
@@ -214,7 +230,8 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
         throws XrootdException
     {
         try {
-            _authenticationHandler = _authenticationFactory.createHandler();
+            _authenticationHandler
+                            = _authenticationFactory.createHandler(_credentialStoreClient);
 
             LoginResponse response =
                 new LoginResponse(request, _sessionId,

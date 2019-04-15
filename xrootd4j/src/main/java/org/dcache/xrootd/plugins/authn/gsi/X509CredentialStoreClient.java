@@ -16,26 +16,21 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
  */
-package org.dcache.xrootd.plugins.authn.none;
+package org.dcache.xrootd.plugins.authn.gsi;
 
-import org.dcache.xrootd.plugins.AuthenticationFactory;
-import org.dcache.xrootd.plugins.AuthenticationHandler;
+import java.security.cert.X509Certificate;
+
 import org.dcache.xrootd.plugins.CredentialStoreClient;
-import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
 
 /**
- * Dummy authentication factory that creates an authentication handler which
- * accepts all AuthenticationRequests
+ * Implementation specific to X509 credentials.
  *
- * @author tzangerl
- *
+ * Convenience class.
  */
-public class NoAuthenticationFactory implements AuthenticationFactory
+public abstract class X509CredentialStoreClient
+                implements CredentialStoreClient<SerializableX509Credential,
+                                                 X509Certificate[],
+                                                 String,
+                                                 String>
 {
-    @Override
-    public AuthenticationHandler createHandler(CredentialStoreClient credentialStoreClient)
-            throws InvalidHandlerConfigurationException
-    {
-        return new NoAuthenticationHandler();
-    }
 }

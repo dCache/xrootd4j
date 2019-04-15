@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -18,25 +18,37 @@
  */
 package org.dcache.xrootd.core;
 
+import io.netty.channel.ChannelHandler;
+
 import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
-import io.netty.channel.ChannelHandler;
+import org.dcache.xrootd.plugins.CredentialStoreClient;
 
 public class XrootdAuthenticationHandlerFactory implements ChannelHandlerFactory
 {
-    private final String _name;
-    private final AuthenticationFactory _factory;
+    private final String name;
+    private final AuthenticationFactory authenticationFactory;
 
-    public XrootdAuthenticationHandlerFactory(String name, AuthenticationFactory factory)
+    /*
+     *  Unlike the authentication handler, which requires a separate
+     *  instance per connection, the store client should
+     *  be stateless, with one instance per handler type.
+     */
+    private final CredentialStoreClient credentialStoreClient;
+
+    public XrootdAuthenticationHandlerFactory(String name,
+                                              AuthenticationFactory authenticationFactory,
+                                              CredentialStoreClient credentialStoreClient)
     {
-        _name = name;
-        _factory = factory;
+        this.name = name;
+        this.authenticationFactory = authenticationFactory;
+        this.credentialStoreClient = credentialStoreClient;
     }
 
     @Override
     public String getName()
     {
-        return XrootdAuthenticationHandlerProvider.PREFIX + _name;
+        return XrootdAuthenticationHandlerProvider.PREFIX + name;
     }
 
     @Override
@@ -48,6 +60,7 @@ public class XrootdAuthenticationHandlerFactory implements ChannelHandlerFactory
     @Override
     public ChannelHandler createHandler()
     {
-        return new XrootdAuthenticationHandler(_factory);
+        return new XrootdAuthenticationHandler(authenticationFactory,
+                                               credentialStoreClient);
     }
 }

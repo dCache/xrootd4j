@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -21,16 +21,21 @@ package org.dcache.xrootd.plugins.authn.gsi;
 import com.google.common.base.Throwables;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.StringUtils;
+import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.PEMWriter;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 
 import javax.security.auth.x500.X500Principal;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -46,6 +51,25 @@ public class CertUtil
 {
     private static final Map<X500Principal,String> _hashCache =
         new ConcurrentHashMap<>();
+
+    /**
+     * Rebuild the cert chain by adding the new cert in first position.
+     * @param certificate to prepend
+     * @param chain current
+     * @return new chain
+     */
+    public static List<X509Certificate> prepend(X509Certificate certificate,
+                                                X509Certificate[] chain)
+    {
+        List<X509Certificate> newChain = new ArrayList<>();
+        newChain.add(certificate);
+
+        for (X509Certificate cert : chain) {
+            newChain.add(cert);
+        }
+
+        return newChain;
+    }
 
     /**
      * Decodes PEM by removing the given header and footer, and decodes
@@ -96,6 +120,27 @@ public class CertUtil
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }
+    }
+
+    public static String chainToPEM(Iterable<X509Certificate> certificates)
+    {
+        try {
+            StringWriter output = new StringWriter();
+            PEMWriter writer = new PEMWriter(output);
+            for (X509Certificate certificate : certificates) {
+                writer.writeObject(certificate);
+            }
+            writer.flush();
+            return output.toString();
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    private PKCS10CertificationRequest fromPEM(String data) throws IOException
+    {
+        PEMParser reader = new PEMParser(new StringReader(data));
+        return (PKCS10CertificationRequest)reader.readObject();
     }
 
     /**

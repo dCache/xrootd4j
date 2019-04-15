@@ -40,10 +40,10 @@ import java.util.Map;
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.plugins.authn.gsi.CertUtil;
 import org.dcache.xrootd.plugins.authn.gsi.DHBufferHandler;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucketContainer;
 import org.dcache.xrootd.plugins.authn.gsi.GSICredentialManager;
 import org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler;
 import org.dcache.xrootd.plugins.authn.gsi.GSIServerRequestHandler;
-import org.dcache.xrootd.plugins.authn.gsi.GSIBucketContainer;
 import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.AuthenticationResponse;
@@ -217,12 +217,10 @@ public class GSIPre49ServerRequestHandler extends GSIServerRequestHandler
                                                                    + "from input "
                                                                    + "stream!");
             }
-            X509Certificate proxyCert = proxyCertChain[0];
-            LOGGER.info("The proxy-cert has the subject {} and the issuer {}",
-                        proxyCert.getSubjectDN(),
-                        proxyCert.getIssuerDN());
 
-            credentialManager.getValidator().validate(proxyCertChain);
+            X509Certificate proxyCert = proxyCertChain[0];
+
+            credentialManager.getCertChainValidator().validate(proxyCertChain);
             subject.getPublicCredentials().add(proxyCertChain);
 
             challengeCipher.init(Cipher.DECRYPT_MODE, proxyCert.getPublicKey());

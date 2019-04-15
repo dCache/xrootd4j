@@ -155,7 +155,7 @@ public class GSIPre49ClientRequestHandler extends GSIClientRequestHandler
             }
 
             serverCert = proxyCertChain[0];
-            credentialManager.getValidator().validate(proxyCertChain);
+            credentialManager.getCertChainValidator().validate(proxyCertChain);
             GSICredentialManager.checkIdentity(serverCert, srcHost);
         }
 
@@ -328,6 +328,15 @@ public class GSIPre49ClientRequestHandler extends GSIClientRequestHandler
     public OutboundAuthenticationRequest handleCertReqStep()
                     throws XrootdException
     {
+        /*
+         *  This is an SPI interface method with no throws signature.
+         *  Non-runtime exceptions on the credential load thus need to be logged.
+         *
+         *  If the credentials fail to load, the issue will soon be discovered
+         *  when GSI TPC fails.
+         */
+        credentialManager.loadClientCredentials();
+
         String encryption = ((Optional<String>)client
                         .getAuthnContext()
                         .get("encryption"))

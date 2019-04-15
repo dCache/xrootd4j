@@ -37,7 +37,7 @@ public abstract class GSIServerRequestHandler extends GSIRequestHandler
     protected static Logger LOGGER
                 = LoggerFactory.getLogger(GSIServerRequestHandler.class);
 
-    protected Subject              subject;
+    protected final Subject              subject;
 
     protected GSIServerRequestHandler(Subject subject,
                                       GSICredentialManager credentialManager)

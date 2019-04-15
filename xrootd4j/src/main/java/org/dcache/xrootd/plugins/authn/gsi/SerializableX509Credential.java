@@ -16,26 +16,32 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
  */
-package org.dcache.xrootd.plugins.authn.none;
+package org.dcache.xrootd.plugins.authn.gsi;
 
-import org.dcache.xrootd.plugins.AuthenticationFactory;
-import org.dcache.xrootd.plugins.AuthenticationHandler;
-import org.dcache.xrootd.plugins.CredentialStoreClient;
-import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
+import java.io.Serializable;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
 
-/**
- * Dummy authentication factory that creates an authentication handler which
- * accepts all AuthenticationRequests
- *
- * @author tzangerl
- *
- */
-public class NoAuthenticationFactory implements AuthenticationFactory
+public class SerializableX509Credential implements Serializable
 {
-    @Override
-    public AuthenticationHandler createHandler(CredentialStoreClient credentialStoreClient)
-            throws InvalidHandlerConfigurationException
+    private static final long serialVersionUID = -3090177688719198722L;
+    private final X509Certificate[] certChain;
+    private final PrivateKey        privateKey;
+
+    public SerializableX509Credential(X509Certificate[] certChain,
+                                      PrivateKey privateKey)
     {
-        return new NoAuthenticationHandler();
+        this.certChain = certChain;
+        this.privateKey = privateKey;
+    }
+
+    public X509Certificate[] getCertChain()
+    {
+        return certChain;
+    }
+
+    public PrivateKey getPrivateKey()
+    {
+        return privateKey;
     }
 }
