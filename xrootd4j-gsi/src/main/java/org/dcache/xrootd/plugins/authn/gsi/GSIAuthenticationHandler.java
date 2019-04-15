@@ -19,11 +19,14 @@
 package org.dcache.xrootd.plugins.authn.gsi;
 
 import eu.emi.security.authn.x509.impl.PEMCredential;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.security.auth.Subject;
 
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
+import org.dcache.xrootd.plugins.authn.gsi.post49.GSIPost49ServerRequestHandler;
 import org.dcache.xrootd.plugins.authn.gsi.pre49.GSIPre49ServerRequestHandler;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.OkResponse;
@@ -32,6 +35,7 @@ import org.dcache.xrootd.security.BufferDecrypter;
 
 import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.CRYPTO_MODE;
 import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.PROTOCOL;
+import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.PROTO_WITH_DELEGATION;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
@@ -42,6 +46,9 @@ import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
  */
 public class GSIAuthenticationHandler implements AuthenticationHandler
 {
+    protected static final Logger               LOGGER
+                    = LoggerFactory.getLogger(GSIAuthenticationHandler.class);
+
     /**
      * Container for principals and credentials found during the authentication
      * process.
@@ -69,6 +76,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
     {
         /* check whether the protocol matches */
         if (!PROTOCOL.equalsIgnoreCase(request.getProtocol())) {
+            requestHandler.cancelHandshake();
             throw new XrootdException(kXR_InvalidRequest,
                                       "Specified Protocol " + request.getProtocol() +
                                       " is not the protocol that was negotiated.");
@@ -79,6 +87,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
         }
 
         if (requestHandler.isRequestExpired()) {
+            requestHandler.cancelHandshake();
             throw new XrootdException(kXR_InvalidRequest,
                                       "Client authentication request time expired.");
         }
@@ -91,16 +100,26 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                 break;
             case kXGC_certreq:
                 response = requestHandler.handleCertReqStep(request);
+                LOGGER.debug("authenticate, processed certreq step "
+                                             + "for stream {}, session {}.",
+                             request.getStreamId(), request.getSession());
                 break;
             case kXGC_cert:
                 response = requestHandler.handleCertStep(request);
                 finished = requestHandler.isFinished(request);
+                LOGGER.debug("authenticate, processed cert step "
+                                             + "for stream {}, session {}.",
+                             request.getStreamId(), request.getSession());
                 break;
             case kXGC_sigpxy:
-                response = requestHandler.handlePrxReqStep(request);
+                response = requestHandler.handleSigPxyStep(request);
+                LOGGER.debug("authenticate, processed sigpxy step "
+                                             + "for stream {}, session {}.",
+                             request.getStreamId(), request.getSession());
                 finished = requestHandler.isFinished(request);;
                 break;
             default:
+                requestHandler.cancelHandshake();
                 throw new XrootdException(kXR_InvalidRequest,
                                           "Error during authentication, " +
                                                           "unknown processing step: "
@@ -160,10 +179,24 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                             + "provide GSI protocol version number.");
         }
 
+        GSIServerRequestHandler handler;
+
         /*
-         *  REVISIT:  return Pre49 or 49 according to clientVersion
-         *            when new handler is implemented.
+         *  If the client supports a protocol of 4.9 or later,
+         *  use the corresponding server implementation.
+         *
+         *  Else, use the previous.
          */
-        return new GSIPre49ServerRequestHandler(subject, credentialManager);
+        if (clientVersion >= PROTO_WITH_DELEGATION) {
+            handler = new GSIPost49ServerRequestHandler(subject, credentialManager);
+        } else {
+            handler = new GSIPre49ServerRequestHandler(subject, credentialManager);
+        }
+
+        LOGGER.info("Client protocol version was {}, using {}.",
+                    clientVersion,
+                    handler.getClass().getSimpleName());
+
+        return handler;
     }
 }

@@ -21,9 +21,11 @@ package org.dcache.xrootd.plugins.authn.gsi;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelId;
 
+import java.io.Serializable;
 import java.util.Optional;
 
 import org.dcache.xrootd.core.XrootdException;
+import org.dcache.xrootd.plugins.authn.gsi.post49.GSIPost49ClientRequestHandler;
 import org.dcache.xrootd.plugins.authn.gsi.pre49.GSIPre49ClientRequestHandler;
 import org.dcache.xrootd.tpc.AbstractClientAuthnHandler;
 import org.dcache.xrootd.tpc.XrootdTpcClient;
@@ -144,16 +146,18 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
                                  tpcInfo.getSrc(), id, streamId);
                     break;
                 case kXGS_pxyreq:
-                    request = requestHandler.handleSigPxyStep(response, ctx);
-                    LOGGER.debug("sendAuthenticationRequest to {}, channel {}, "
-                                                 + "stream {}, step: sigpxy.",
-                                 tpcInfo.getSrc(), id, streamId);
-                    break;
+                    /*
+                     *  This is a TPC client only.  It tells the server
+                     *  it does not sign proxy requests.  If this
+                     *  step is received here, we should reject it.
+                     *  Fall through to exception.
+                     */
                 default:
                     throw new XrootdException(kGSErrBadOpt,
-                                              "cannot handle requested" +
-                                                              " authentication step "
-                                                              + serverStep + ".");
+                                              "client does not handle requested " +
+                                                              "authentication step "
+                                                              + getServerStep(serverStep)
+                                                              + ".");
             }
         } else {
             request = requestHandler.handleCertReqStep();
@@ -186,23 +190,39 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
         GSIClientRequestHandler handler;
 
         /*
-         *  If the server supports a protocol of 4.9 or later,
-         *  use the current.  The server is assumed to be backward
-         *  compatible.
+         *  The reason for this check is not so much to compensate for
+         *  a failed attempt to delegate the proxy in the door
+         *  (which should fail the transfer), but the following situation:
          *
-         *  Else, use the previous. Once 4.9 is implemented, the previous
-         *  only needs to be used when the server is in fact pre-4.9.
+         *  Suppose the user is authenticating with an XrootD client which
+         *  does not support delegation, but the source server tells us it
+         *  supports delegation.  The necessary proxy for use by the TPC client
+         *  will be missing, and if we match the source implementation
+         *  we will fail because of it. So if the proxy is missing, we should
+         *  at this point downgrade our version.  The source server should
+         *  be backward compatible.
          */
-        if (versionToMatch >= PROTO_WITH_DELEGATION) {
-            /*
-             *  REVISIT  bump to 49 version when implemented.
-             */
-            handler = new GSIPre49ClientRequestHandler(credentialManager,
-                                                                client);
+        Serializable proxy = client.getInfo().getDelegatedProxy();
+
+        /*
+         *  If the server supports a protocol of 4.9 or later,
+         *  and we have a delegated proxy, use the current version.
+         *
+         *  Else, use the previous.
+         */
+        if (versionToMatch >= PROTO_WITH_DELEGATION && proxy != null) {
+            handler = new GSIPost49ClientRequestHandler(credentialManager,
+                                                        client);
         } else {
             handler = new GSIPre49ClientRequestHandler(credentialManager,
-                                                                client);
+                                                       client);
         }
+
+        LOGGER.info("Server protocol version was {}; "
+                                    + "delegated proxy exists? {}; using {}.",
+                    versionToMatch,
+                    proxy != null,
+                    handler.getClass().getSimpleName());
 
         return handler;
     }

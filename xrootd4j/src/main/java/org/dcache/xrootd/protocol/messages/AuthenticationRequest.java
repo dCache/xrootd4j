@@ -138,8 +138,6 @@ public class AuthenticationRequest extends AbstractXrootdRequest
         int bucketCode = buffer.readInt();
         BucketType bucketType = BucketType.get(bucketCode);
 
-        LOGGER.debug("Deserializing a bucket with code {}", bucketCode);
-
         Map<BucketType, XrootdBucket> buckets =
             new EnumMap<>(BucketType.class);
 
@@ -149,6 +147,9 @@ public class AuthenticationRequest extends AbstractXrootdRequest
             XrootdBucket bucket = XrootdBucket.deserialize(bucketType,
                                                            buffer.slice(buffer.readerIndex(), bucketLength));
             buckets.put(bucketType, bucket);
+
+            LOGGER.debug("Deserialized a bucket with code {}, type {}",
+                         bucketCode, bucketType);
 
             /* proceed to the next bucket */
             buffer.readerIndex(buffer.readerIndex() + bucketLength);

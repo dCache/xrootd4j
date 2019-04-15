@@ -28,13 +28,19 @@ import org.dcache.xrootd.security.XrootdBucket;
  */
 public abstract class GSIBucketContainerBuilder
 {
+    /**
+     * @param buckets null bucket values are allowed
+     * @return the container with all non-null buckets added
+     */
     public static GSIBucketContainer build(XrootdBucket... buckets)
     {
         int responseLength = 0;
         List<XrootdBucket> responseList = new ArrayList<>();
         for (XrootdBucket bucket: buckets) {
-            responseList.add(bucket);
-            responseLength += bucket.getSize();
+            if (bucket != null) {
+                responseList.add(bucket);
+                responseLength += bucket.getSize();
+            }
         }
         return new GSIBucketContainer(responseList, responseLength);
     }

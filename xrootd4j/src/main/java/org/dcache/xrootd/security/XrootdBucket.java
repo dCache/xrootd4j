@@ -108,7 +108,9 @@ public abstract class XrootdBucket
             case kXRS_puk:          // fall through
             case kXRS_cipher_alg:   // fall through
             case kXRS_x509:         // fall through
-            case kXRS_md_alg:
+            case kXRS_x509_req:     // fall through
+            case kXRS_md_alg:       // fall through
+            case kXRS_message:      // fall through
 
                 bucket = StringBucket.deserialize(type, buffer);
                 break;

@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.security.auth.x500.X500Principal;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -51,11 +52,15 @@ import java.security.InvalidKeyException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.PublicKey;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -90,8 +95,26 @@ public class GSICredentialManager
     private static final HostnameToCertificateChecker CERT_CHECKER =
                     new HostnameToCertificateChecker();
 
+    private static final CertificateFactory CERTIFICATE_FACTORY;
+
+    static {
+        try {
+            CERTIFICATE_FACTORY = CertificateFactory.getInstance("X.509",
+                                                                 "BC");
+        } catch (CertificateException e) {
+            throw new RuntimeException("Failed to create X.509 certificate factory: "
+                                                       + e.getMessage(), e);
+        } catch (NoSuchProviderException e) {
+            throw new RuntimeException("Failed to load bouncy castle provider: "
+                                                       + e.getMessage(), e);
+        }
+    }
+
     public static void checkIdentity(X509Certificate certificate, String name)
-                    throws GeneralSecurityException, UnknownHostException {
+                    throws GeneralSecurityException, UnknownHostException
+    {
+        LOGGER.debug("Checking identity of certificate against source {}.", name);
+
         if (certificate.getSubjectDN().getName().contains(name) ||
                         CERT_CHECKER.checkMatching(name, certificate)) {
             return;
@@ -102,8 +125,13 @@ public class GSICredentialManager
         throw new GeneralSecurityException(error);
     }
 
+    public X509Certificate createCertificate(byte[] bytes) throws CertificateException
+    {
+        return (X509Certificate)CERTIFICATE_FACTORY.generateCertificate(new ByteArrayInputStream(bytes));
+    }
+
     /*
-     *  Local credentials, CA certs and voms dir.
+     *  Local credentials and CA certs.
      */
     private final String                 caCertificatePath;
     private final X509CertChainValidator certChainValidator;
@@ -118,9 +146,9 @@ public class GSICredentialManager
     private final boolean                verifyClientCertificate;
     private final String                 proxyPath;
 
-    private long   hostCertRefreshTimestamp = 0;
-    private long   proxyRefreshTimestamp    = 0;
-    private String clientCredIssuerHashes;
+    private long hostCertRefreshTimestamp = 0;
+    private long proxyRefreshTimestamp    = 0;
+    private String issuerHashes;
 
     private PEMCredential  hostCredential;
     private PEMCredential  clientCredential;
@@ -131,7 +159,6 @@ public class GSICredentialManager
      */
     private X509CredentialStoreClient               credentialStoreClient;
     private ProxyRequest<X509Certificate[], String> proxyRequest;
-    private X509Certificate[]                       clientCertChain;
 
     public GSICredentialManager(Properties properties)
     {
@@ -189,21 +216,31 @@ public class GSICredentialManager
         }
     }
 
-    public void checkCaIdentities(String[] caIdentities)
-                    throws XrootdException
+    public void checkCaIdentities(String[] caIdentities) throws XrootdException
     {
-        for (String ca : caIdentities)
-        {
-            if (!isValidCaPath(ca)) {
-                throw new XrootdException(kXR_error, ca
-                                + " is not a valid ca cert path.");
+        List<String> valid = new ArrayList<>();
+
+        for (String ca : caIdentities) {
+            if (isValidCaPath(ca)) {
+                valid.add(ca);
             }
         }
+
+        if (valid.isEmpty()) {
+            throw new XrootdException(kXR_error, "no ca identity is recognized.");
+        }
+
+        LOGGER.debug("The following ca hashes are recognized: {}.", valid);
     }
 
     public synchronized boolean hasValidDelegatedProxy(X509Certificate[] certChain)
                     throws XrootdException
     {
+        /*
+         *  creates a new request if the field is null.
+         */
+        LOGGER.debug("Checking for valid proxy for {}.",
+                     certChain[0].getSubjectDN());
         return credentialStoreClient().fetchCredential(certChain,
                                                        MINIMUM_VALID_FOR,
                                                        MINIMUM_VALID_FOR_UNIT)
@@ -213,21 +250,24 @@ public class GSICredentialManager
     /**
      * Attempts to store the new proxy.
      *
-     * @param proxyCert signed by client.
+     * @param certChain signed by client.
      */
-    public synchronized void finalizeDelegatedProxy(X509Certificate proxyCert)
-                    throws XrootdException
-    {
+    public synchronized void finalizeDelegatedProxy(X509Certificate[] certChain)
+                    throws XrootdException, IOException {
         if (proxyRequest == null) {
             throw new XrootdException(kXR_ServerError, "cannot finalize proxy: "
                             + "proxy request was not sent.");
         }
 
-        String serializedCert
-                        = CertUtil.chainToPEM(CertUtil.prepend(proxyCert,
-                                                               clientCertChain));
+        X509Certificate[] oldChain = proxyRequest.getKey();
+        String serializedCert = CertUtil.chainToPEM(CertUtil.prepend(certChain[0],
+                                                                     oldChain));
 
-        credentialStoreClient().storeCredential(clientCertChain,
+        LOGGER.debug("Storing proxy for {}, id {}.",
+                     oldChain[0].getSubjectDN(),
+                     proxyRequest.getId());
+
+        credentialStoreClient().storeCredential(oldChain,
                                                 proxyRequest.getId(),
                                                 serializedCert);
 
@@ -236,6 +276,34 @@ public class GSICredentialManager
          *  for any given GSI exchange.
          */
         proxyRequest = null;
+    }
+
+    public X509CertChainValidator getCertChainValidator()
+    {
+        return certChainValidator;
+    }
+
+    public PEMCredential getHostCredential() {
+        return hostCredential;
+    }
+
+    public String getIssuerHashes()
+    {
+        return issuerHashes;
+    }
+
+    public X509Credential getProxy()
+    {
+        return proxy;
+    }
+
+    public PublicKey getSenderPublicKey()
+    {
+        if (proxyRequest != null) {
+            return proxyRequest.getKey()[0].getPublicKey();
+        }
+
+        return null;
     }
 
     /**
@@ -247,14 +315,24 @@ public class GSICredentialManager
      * for future processing/finalization.
      *
      * @param certChain from authenticating client.
-     * @return byte array representing the CSR (for inclusion in message to
+     * @return String representing the CSR (for inclusion in message to
      *         client).
      */
-    public synchronized byte[] prepareSerializedProxyRequest(X509Certificate[] certChain)
+    public synchronized String prepareSerializedProxyRequest(X509Certificate[] certChain)
                     throws XrootdException {
-        clientCertChain = certChain;
+        LOGGER.debug("Credential manager requesting proxy request "
+                                     + "(CSR) from store client for {}.",
+                     certChain[0].getSubjectDN());
         proxyRequest = credentialStoreClient().getProxyRequest(certChain);
-        return proxyRequest.getRequest().getBytes();
+        LOGGER.debug("Credential manager got proxy request (CSR) "
+                                     + "from store client for {}.",
+                     certChain[0].getSubjectDN());
+        if (proxyRequest == null) {
+            throw new XrootdException(kXR_ServerError, "fetch of proxy request "
+                            + "(CSR) from delegation service failed");
+        }
+
+        return proxyRequest.getRequest();
     }
 
     /**
@@ -266,7 +344,7 @@ public class GSICredentialManager
      * NOTA BENE:  This method is here only for completeness.  Hopefully,
      * the SLAC server will be smart enough to know not to request
      * a delegated proxy from the TPC client.  When talking to a dCache
-     * door, this should always be the case, as the source server will
+     * door, this should always be the case, as the destination server will
      * have already authenticated the user client and checked for/requested
      * a proxy then, which hopefully would be found in cache on the TPC client
      * call.
@@ -282,6 +360,8 @@ public class GSICredentialManager
         ProxyRequestOptions options = new ProxyRequestOptions(
                         proxy.getCertificateChain(),
                         new PKCS10CertificationRequest(serverCSR));
+        LOGGER.debug("Client, signing proxy request (CSR) with client private key {}.",
+                     proxy.getKey());
         return ProxyGenerator.generate(options, proxy.getKey());
     }
 
@@ -339,7 +419,7 @@ public class GSICredentialManager
 
         }
 
-        clientCredIssuerHashes = generateIssuerHashes();
+        issuerHashes = generateIssuerHashes(proxy);
     }
 
     /**
@@ -364,89 +444,14 @@ public class GSICredentialManager
         }
     }
 
-    public String getCaCertificatePath() {
-        return caCertificatePath;
-    }
-
-    public X509CertChainValidator getCertChainValidator() {
-        return certChainValidator;
-    }
-
-    public long getTrustAnchorRefreshInterval() {
-        return trustAnchorRefreshInterval;
-    }
-
-    public String getHostCertificatePath() {
-        return hostCertificatePath;
-    }
-
-    public String getHostKeyPath() {
-        return hostKeyPath;
-    }
-
-    public long getHostCertRefreshInterval() {
-        return hostCertRefreshInterval;
-    }
-
-    public boolean isVerifyHostCertificate() {
-        return verifyHostCertificate;
-    }
-
-    public String getClientCertificatePath() {
-        return clientCertificatePath;
-    }
-
-    public String getClientCredIssuerHashes()
-    {
-        return clientCredIssuerHashes;
-    }
-
-    public String getClientKeyPath() {
-        return clientKeyPath;
-    }
-
-    public long getProxyRefreshInterval() {
-        return proxyRefreshInterval;
-    }
-
-    public boolean isVerifyClientCertificate() {
-        return verifyClientCertificate;
-    }
-
-    public String getProxyPath() {
-        return proxyPath;
-    }
-
-    public PEMCredential getHostCredential() {
-        return hostCredential;
-    }
-
-    public PEMCredential getClientCredential() {
-        return clientCredential;
-    }
-
-    public X509Credential getProxy()
-    {
-        return proxy;
-    }
-
-    public long getHostCertRefreshTimestamp()
-    {
-        return hostCertRefreshTimestamp;
-    }
-
-    public long getProxyRefreshTimestamp() {
-        return proxyRefreshTimestamp;
-    }
-
-    public void validate(X509Certificate[] proxyCertChain)
-    {
-        certChainValidator.validate(proxyCertChain);
-    }
-
     public void setCredentialStoreClient(CredentialStoreClient credentialStoreClient)
     {
         this.credentialStoreClient = (X509CredentialStoreClient)credentialStoreClient;
+    }
+
+    public void setIssuerHashes(X509Credential credential)
+    {
+        issuerHashes = generateIssuerHashes(credential);
     }
 
     private X509CredentialStoreClient credentialStoreClient() throws XrootdException
@@ -459,12 +464,12 @@ public class GSICredentialManager
         return credentialStoreClient;
     }
 
-    private String generateIssuerHashes()
+    private String generateIssuerHashes(X509Credential credential)
     {
         Set<String> issuers = new HashSet<>();
 
-        for (X509Certificate certificate: proxy.getCertificateChain()) {
-            X500Principal certIssuer = certificate.getIssuerX500Principal();
+        for (X509Certificate cert: credential.getCertificateChain()) {
+            X500Principal certIssuer = cert.getIssuerX500Principal();
             issuers.add(OpensslTruststoreHelper.getOpenSSLCAHash(certIssuer,
                                                                  true));
         }
@@ -476,7 +481,7 @@ public class GSICredentialManager
     {
         return "client cert path: " + clientCertificatePath
                         + ", client key path: " + clientKeyPath
-                        + ", client issuer hashes: " + clientCredIssuerHashes
+                        + ", client issuer hashes: " + issuerHashes
                         + ", proxy path: " + proxyPath;
     }
 

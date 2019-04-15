@@ -39,6 +39,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
 import static org.dcache.xrootd.protocol.messages.AuthenticationRequest.deserializeBuckets;
 import static org.dcache.xrootd.protocol.messages.AuthenticationRequest.deserializeProtocol;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_main;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGS_pxyreq;
 
 /**
  * <p>Response from third-party source server.</p>
@@ -78,14 +79,20 @@ public class InboundAuthenticationResponse
 
         try {
             bucketMap.putAll(deserializeBuckets(buffer));
-            RawBucket mainBucket = (RawBucket) bucketMap.remove(kXRS_main);
-            ByteBuf mainBuffer = wrappedBuffer(mainBucket.getContent());
+
             /*
-             *   protocol and server step are repeated inside this bucket;
-             *   skip.
+             *  if pxyreq, do not deserialize and unpack the main bucket.
              */
-            mainBuffer.readerIndex(8);
-            bucketMap.putAll(deserializeBuckets(mainBuffer));
+            if (serverStep != kXGS_pxyreq) {
+                RawBucket mainBucket = (RawBucket) bucketMap.remove(kXRS_main);
+                ByteBuf mainBuffer = wrappedBuffer(mainBucket.getContent());
+                /*
+                 *   protocol and server step are repeated inside this bucket;
+                 *   skip.
+                 */
+                mainBuffer.readerIndex(8);
+                bucketMap.putAll(deserializeBuckets(mainBuffer));
+            }
         } catch (IOException e) {
             throw new XrootdException(kXR_IOError, e.toString());
         }

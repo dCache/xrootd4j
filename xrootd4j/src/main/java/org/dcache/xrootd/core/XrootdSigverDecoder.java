@@ -146,16 +146,16 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
                                                       + " unsupported version number.");
         }
 
-        if (!request.isSHA256()) {
-            throw new XrootdException(kXR_ArgInvalid,
-                                      "signed hash verification:"
-                                                      + " unsupported crypto hash.");
-        }
-
         if (request.isRSAKey()) {
             throw new XrootdException(kXR_ArgInvalid,
                                       "signed hash verification:"
                                                       + " unsupported use of RSA key.");
+        }
+
+        if (!request.isSHA256()) {
+            throw new XrootdException(kXR_ArgInvalid,
+                                      "signed hash verification:"
+                                                      + " unsupported crypto hash.");
         }
 
         currentSigverRequest = request;
