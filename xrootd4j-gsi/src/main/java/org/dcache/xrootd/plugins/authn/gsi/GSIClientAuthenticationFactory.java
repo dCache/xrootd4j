@@ -23,7 +23,6 @@ import io.netty.channel.ChannelHandler;
 import java.util.Properties;
 
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
-import org.dcache.xrootd.plugins.CredentialStoreClient;
 
 /**
  * <p>Authentication factory that returns GSI security handlers to add to the
@@ -36,7 +35,6 @@ import org.dcache.xrootd.plugins.CredentialStoreClient;
 public class GSIClientAuthenticationFactory implements ChannelHandlerFactory
 {
     private final Properties            properties;
-    private       CredentialStoreClient credentialStoreClient;
 
     public GSIClientAuthenticationFactory(Properties properties)
     {
@@ -63,9 +61,5 @@ public class GSIClientAuthenticationFactory implements ChannelHandlerFactory
     public String getName()
     {
         return GSIRequestHandler.PROTOCOL;
-    }
-
-    public void setCredentialStoreClient(CredentialStoreClient credentialStoreClient) {
-        this.credentialStoreClient = credentialStoreClient;
     }
 }

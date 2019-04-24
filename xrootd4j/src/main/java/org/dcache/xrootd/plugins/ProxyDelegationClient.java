@@ -19,8 +19,6 @@
 package org.dcache.xrootd.plugins;
 
 import java.io.Serializable;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.util.ProxyRequest;
@@ -31,39 +29,24 @@ import org.dcache.xrootd.util.ProxyRequest;
  *
  * @param <C>
  */
-public interface CredentialStoreClient<C extends Serializable,
+public interface ProxyDelegationClient<C extends Serializable,
                                        K extends Serializable,
                                        P extends Serializable,
                                        R extends Serializable>
 {
-    int MINIMUM_VALID_FOR = 30;
-    TimeUnit MINIMUM_VALID_FOR_UNIT = TimeUnit.MINUTES;
-
     /**
      * @param request current request to cancel
      */
     void cancelProxyRequest(ProxyRequest<K,R> request) throws XrootdException;
 
     /**
-     * @param key any object containing the necessary identifying attributes
-     * @param minimumValidity for returned credential
-     * @param unit of time for validity
-     * @return a qualifying credential, if there is one.
-     * @throws XrootdException
-     */
-    Optional<C> fetchCredential(Serializable key,
-                                int minimumValidity,
-                                TimeUnit unit)
-        throws XrootdException;
-
-    /**
-     * @param key object containing the necessary identifying attributes
      * @param id of the stored credential; this is the field of the
      *           ProxyRequest returned by #getProxyRequest.
-     * @param proxy the proxy credential
+     * @param proxyCert the proxy certificate
+     * @return the full proxy credential
      * @throws XrootdException
      */
-    void storeCredential(K key, String id, P proxy)
+    C finalizeProxyCredential(String id, P proxyCert)
         throws XrootdException;
 
     /**

@@ -28,8 +28,8 @@ import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.AuthenticationProvider;
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
 import org.dcache.xrootd.plugins.ChannelHandlerProvider;
-import org.dcache.xrootd.plugins.CredentialStoreClient;
-import org.dcache.xrootd.plugins.CredentialStoreClientFactory;
+import org.dcache.xrootd.plugins.ProxyDelegationClient;
+import org.dcache.xrootd.plugins.ProxyDelegationClientFactory;
 
 public class XrootdAuthenticationHandlerProvider implements ChannelHandlerProvider
 {
@@ -54,7 +54,7 @@ public class XrootdAuthenticationHandlerProvider implements ChannelHandlerProvid
                                                                     properties);
 
             if (authnFactory != null) {
-                CredentialStoreClient client = createClient(name, properties);
+                ProxyDelegationClient client = createClient(name, properties);
                 return new XrootdAuthenticationHandlerFactory(name,
                                                               authnFactory,
                                                               client);
@@ -84,15 +84,15 @@ public class XrootdAuthenticationHandlerProvider implements ChannelHandlerProvid
         return null;
     }
 
-    private CredentialStoreClient createClient(String name, Properties properties)
+    private ProxyDelegationClient createClient(String name, Properties properties)
                     throws Exception
     {
-        ServiceLoader<CredentialStoreClientFactory> factories = (_classLoader == null)
-                        ? ServiceLoader.load(CredentialStoreClientFactory.class)
-                        : ServiceLoader.load(CredentialStoreClientFactory.class, _classLoader);
+        ServiceLoader<ProxyDelegationClientFactory> factories = (_classLoader == null)
+                        ? ServiceLoader.load(ProxyDelegationClientFactory.class)
+                        : ServiceLoader.load(ProxyDelegationClientFactory.class, _classLoader);
 
-        for (CredentialStoreClientFactory factory: factories) {
-            CredentialStoreClient client = factory.createClient(name, properties);
+        for (ProxyDelegationClientFactory factory: factories) {
+            ProxyDelegationClient client = factory.createClient(name, properties);
             if (client != null) {
                 _log.debug("Creating a credential store client for {} using {}.",
                            name, factory.getClass());

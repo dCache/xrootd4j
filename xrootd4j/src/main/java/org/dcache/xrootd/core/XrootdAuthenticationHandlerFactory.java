@@ -22,7 +22,7 @@ import io.netty.channel.ChannelHandler;
 
 import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
-import org.dcache.xrootd.plugins.CredentialStoreClient;
+import org.dcache.xrootd.plugins.ProxyDelegationClient;
 
 public class XrootdAuthenticationHandlerFactory implements ChannelHandlerFactory
 {
@@ -34,15 +34,15 @@ public class XrootdAuthenticationHandlerFactory implements ChannelHandlerFactory
      *  instance per connection, the store client should
      *  be stateless, with one instance per handler type.
      */
-    private final CredentialStoreClient credentialStoreClient;
+    private final ProxyDelegationClient proxyDelegationClient;
 
     public XrootdAuthenticationHandlerFactory(String name,
                                               AuthenticationFactory authenticationFactory,
-                                              CredentialStoreClient credentialStoreClient)
+                                              ProxyDelegationClient proxyDelegationClient)
     {
         this.name = name;
         this.authenticationFactory = authenticationFactory;
-        this.credentialStoreClient = credentialStoreClient;
+        this.proxyDelegationClient = proxyDelegationClient;
     }
 
     @Override
@@ -61,6 +61,6 @@ public class XrootdAuthenticationHandlerFactory implements ChannelHandlerFactory
     public ChannelHandler createHandler()
     {
         return new XrootdAuthenticationHandler(authenticationFactory,
-                                               credentialStoreClient);
+                                               proxyDelegationClient);
     }
 }

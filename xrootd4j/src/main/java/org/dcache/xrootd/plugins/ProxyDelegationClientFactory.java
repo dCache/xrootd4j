@@ -21,19 +21,19 @@ package org.dcache.xrootd.plugins;
 import java.util.Properties;
 
 /**
- * A factory class for CredentialStoreClientFactory.
+ * A factory class for ProxyDelegationClientFactory.
  *
  * Implementations of this interface are usually obtained through
  * Java's ServiceLoader mechanism.
  */
-public interface CredentialStoreClientFactory<C extends CredentialStoreClient>
+public interface ProxyDelegationClientFactory<C extends ProxyDelegationClient>
 {
     /**
-     * Creates and returns a new CredentialStoreClient
+     * Creates and returns a new ProxyDelegationClient
      *
      * @param authPlugin name identifying a particular type of AuthenticationFactory.
      * @param properties configuration values
-     * @return CredentialStoreClientFactory instance or null if the provider
+     * @return ProxyDelegationClientFactory instance or null if the provider
      * does not provide a matching AuthenticationFactory
      */
     C createClient(String authPlugin, Properties properties)

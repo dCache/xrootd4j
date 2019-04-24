@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -18,17 +18,21 @@
  */
 package org.dcache.xrootd.core;
 
-import org.dcache.xrootd.protocol.messages.LoginRequest;
 import io.netty.channel.Channel;
 
 import javax.security.auth.Subject;
 
+import java.io.Serializable;
+
+import org.dcache.xrootd.protocol.messages.LoginRequest;
+
 public class XrootdSession
 {
-    private final Channel _channel;
+    private final Channel                 _channel;
     private final XrootdSessionIdentifier _id;
-    private final LoginRequest _loginRequest;
-    private Subject _subject;
+    private final LoginRequest            _loginRequest;
+    private Subject                       _subject;
+    private Serializable                  _delegatedCredential;
 
     public XrootdSession(XrootdSessionIdentifier id, Channel channel, LoginRequest loginRequest)
     {
@@ -46,9 +50,23 @@ public class XrootdSession
         }
     }
 
+    /*
+     *  If there is a delegated proxy, it is set on the session
+     *  so it can be accessed by subsequent open requests.
+     */
+    public void setDelegatedCredential(Serializable delegatedCredential)
+    {
+        _delegatedCredential = delegatedCredential;
+    }
+
     public void setSubject(Subject subject)
     {
         _subject = subject;
+    }
+
+    public Serializable getDelegatedCredential()
+    {
+        return _delegatedCredential;
     }
 
     public Subject getSubject()

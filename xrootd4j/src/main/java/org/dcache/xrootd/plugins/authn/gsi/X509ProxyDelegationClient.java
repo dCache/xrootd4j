@@ -20,17 +20,17 @@ package org.dcache.xrootd.plugins.authn.gsi;
 
 import java.security.cert.X509Certificate;
 
-import org.dcache.xrootd.plugins.CredentialStoreClient;
+import org.dcache.xrootd.plugins.ProxyDelegationClient;
 
 /**
  * Implementation specific to X509 credentials.
  *
  * Convenience class.
  */
-public abstract class X509CredentialStoreClient
-                implements CredentialStoreClient<SerializableX509Credential,
-                                                 X509Certificate[],
-                                                 String,
-                                                 String>
+public abstract class X509ProxyDelegationClient
+                implements ProxyDelegationClient<SerializableX509Credential,
+                                                                 X509Certificate[],
+                                                                 String,
+                                                                 String>
 {
 }

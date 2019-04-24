@@ -179,8 +179,7 @@ public class GSIPost49ServerRequestHandler extends GSIServerRequestHandler
             /**
              *  Only send a sign request to the client if the client supports it.
              */
-            if (clientCanSignRequest &&
-                            !credentialManager.hasValidDelegatedProxy(certChain)) {
+            if (clientCanSignRequest) {
                 return getSigPxyResponse(certChain, request, mainBucket);
             }
 
@@ -246,7 +245,8 @@ public class GSIPost49ServerRequestHandler extends GSIServerRequestHandler
                 cancelHandshake();
             } else {
                 X509Certificate[] certChain = extractChain(nestedBuckets);
-                credentialManager.finalizeDelegatedProxy(certChain);
+                request.getSession()
+                       .setDelegatedCredential(credentialManager.finalizeDelegatedProxy(certChain));
                 hasProxy = true;
             }
 

@@ -66,19 +66,14 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.dcache.xrootd.core.XrootdException;
-import org.dcache.xrootd.plugins.CredentialStoreClient;
+import org.dcache.xrootd.plugins.ProxyDelegationClient;
 import org.dcache.xrootd.util.ProxyRequest;
 
-import static org.dcache.xrootd.plugins.CredentialStoreClient.MINIMUM_VALID_FOR;
-import static org.dcache.xrootd.plugins.CredentialStoreClient.MINIMUM_VALID_FOR_UNIT;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_error;
 
 /**
  *  <p>Supports credential loading and creation for both server and client.</p>
- *
- *  <p>Also supports calls to credential store client in support of direct
- *     proxy delegation.</p>
  *
  *  <p>Initializes the certificate objects (host certificate, host key,
  *      trusted certificates and CRLs) needed for handlers to perform their tasks.</p>
@@ -86,6 +81,9 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_error;
  *  <p>Thus the certificates and trust anchors can be cached for a configurable
  *      time period. The configuration option controlling this caching is the
  *      same as the one used in the SRM door.</p>
+ *
+ *  <p>Also supports calls to delegation client in support of direct
+ *      proxy delegation.</p>
  */
 public class GSICredentialManager
 {
@@ -157,7 +155,7 @@ public class GSICredentialManager
     /*
      *  For delegated proxy request
      */
-    private X509CredentialStoreClient               credentialStoreClient;
+    private X509ProxyDelegationClient               proxyDelegationClient;
     private ProxyRequest<X509Certificate[], String> proxyRequest;
 
     public GSICredentialManager(Properties properties)
@@ -205,7 +203,7 @@ public class GSICredentialManager
     {
         if (proxyRequest != null && proxyRequest.getId() != null) {
             try {
-                credentialStoreClient.cancelProxyRequest(proxyRequest);
+                proxyDelegationClient.cancelProxyRequest(proxyRequest);
             } catch (XrootdException e) {
                 LOGGER.warn("Problem cancelling proxy delegation request {} {}: {}.",
                             proxyRequest.getKey()[0].getSubjectDN(),
@@ -233,27 +231,14 @@ public class GSICredentialManager
         LOGGER.debug("The following ca hashes are recognized: {}.", valid);
     }
 
-    public synchronized boolean hasValidDelegatedProxy(X509Certificate[] certChain)
-                    throws XrootdException
-    {
-        /*
-         *  creates a new request if the field is null.
-         */
-        LOGGER.debug("Checking for valid proxy for {}.",
-                     certChain[0].getSubjectDN());
-        return credentialStoreClient().fetchCredential(certChain,
-                                                       MINIMUM_VALID_FOR,
-                                                       MINIMUM_VALID_FOR_UNIT)
-                                      .isPresent();
-    }
-
     /**
      * Attempts to store the new proxy.
      *
      * @param certChain signed by client.
      */
-    public synchronized void finalizeDelegatedProxy(X509Certificate[] certChain)
-                    throws XrootdException, IOException {
+    public synchronized SerializableX509Credential
+            finalizeDelegatedProxy(X509Certificate[] certChain)
+                    throws XrootdException {
         if (proxyRequest == null) {
             throw new XrootdException(kXR_ServerError, "cannot finalize proxy: "
                             + "proxy request was not sent.");
@@ -263,19 +248,21 @@ public class GSICredentialManager
         String serializedCert = CertUtil.chainToPEM(CertUtil.prepend(certChain[0],
                                                                      oldChain));
 
-        LOGGER.debug("Storing proxy for {}, id {}.",
+        LOGGER.debug("finalizing proxy credential for {}, id {}.",
                      oldChain[0].getSubjectDN(),
                      proxyRequest.getId());
 
-        credentialStoreClient().storeCredential(oldChain,
-                                                proxyRequest.getId(),
-                                                serializedCert);
+        SerializableX509Credential x509Credential
+            = proxyDelegationClient().finalizeProxyCredential(proxyRequest.getId(),
+                                                              serializedCert);
 
         /*
          *  This call is understood to be the last in a sequence
          *  for any given GSI exchange.
          */
         proxyRequest = null;
+
+        return x509Credential;
     }
 
     public X509CertChainValidator getCertChainValidator()
@@ -321,15 +308,15 @@ public class GSICredentialManager
     public synchronized String prepareSerializedProxyRequest(X509Certificate[] certChain)
                     throws XrootdException {
         LOGGER.debug("Credential manager requesting proxy request "
-                                     + "(CSR) from store client for {}.",
+                                     + "(CSR) from client for {}.",
                      certChain[0].getSubjectDN());
-        proxyRequest = credentialStoreClient().getProxyRequest(certChain);
+        proxyRequest = proxyDelegationClient().getProxyRequest(certChain);
         LOGGER.debug("Credential manager got proxy request (CSR) "
-                                     + "from store client for {}.",
+                                     + "from client for {}.",
                      certChain[0].getSubjectDN());
         if (proxyRequest == null) {
             throw new XrootdException(kXR_ServerError, "fetch of proxy request "
-                            + "(CSR) from delegation service failed");
+                            + "(CSR) failed");
         }
 
         return proxyRequest.getRequest();
@@ -444,9 +431,9 @@ public class GSICredentialManager
         }
     }
 
-    public void setCredentialStoreClient(CredentialStoreClient credentialStoreClient)
+    public void setProxyDelegationClient(ProxyDelegationClient proxyDelegationClient)
     {
-        this.credentialStoreClient = (X509CredentialStoreClient)credentialStoreClient;
+        this.proxyDelegationClient = (X509ProxyDelegationClient)proxyDelegationClient;
     }
 
     public void setIssuerHashes(X509Credential credential)
@@ -454,14 +441,14 @@ public class GSICredentialManager
         issuerHashes = generateIssuerHashes(credential);
     }
 
-    private X509CredentialStoreClient credentialStoreClient() throws XrootdException
+    private X509ProxyDelegationClient proxyDelegationClient() throws XrootdException
     {
-        if (credentialStoreClient == null) {
+        if (proxyDelegationClient == null) {
             throw new XrootdException(kXR_ServerError, "no client to credential "
                             + "store has been provided.");
         }
 
-        return credentialStoreClient;
+        return proxyDelegationClient;
     }
 
     private String generateIssuerHashes(X509Credential credential)

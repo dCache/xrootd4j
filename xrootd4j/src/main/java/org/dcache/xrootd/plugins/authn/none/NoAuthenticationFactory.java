@@ -20,7 +20,7 @@ package org.dcache.xrootd.plugins.authn.none;
 
 import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
-import org.dcache.xrootd.plugins.CredentialStoreClient;
+import org.dcache.xrootd.plugins.ProxyDelegationClient;
 import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
 
 /**
@@ -33,7 +33,7 @@ import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
 public class NoAuthenticationFactory implements AuthenticationFactory
 {
     @Override
-    public AuthenticationHandler createHandler(CredentialStoreClient credentialStoreClient)
+    public AuthenticationHandler createHandler(ProxyDelegationClient proxyDelegationClient)
             throws InvalidHandlerConfigurationException
     {
         return new NoAuthenticationHandler();

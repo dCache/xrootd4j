@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
-import org.dcache.xrootd.plugins.CredentialStoreClient;
+import org.dcache.xrootd.plugins.ProxyDelegationClient;
 import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.EndSessionRequest;
@@ -72,8 +72,8 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
     private final XrootdSessionIdentifier _sessionId = new XrootdSessionIdentifier();
 
     private final AuthenticationFactory _authenticationFactory;
-    private final CredentialStoreClient _credentialStoreClient;
-    private SigningPolicy _signingPolicy;
+    private final ProxyDelegationClient _proxyDelegationClient;
+    private       SigningPolicy         _signingPolicy;
 
     private AuthenticationHandler _authenticationHandler;
 
@@ -83,10 +83,10 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
     private XrootdSession _session;
 
     public XrootdAuthenticationHandler(AuthenticationFactory authenticationFactory,
-                                       CredentialStoreClient credentialStoreClient)
+                                       ProxyDelegationClient proxyDelegationClient)
     {
         _authenticationFactory = authenticationFactory;
-        _credentialStoreClient = credentialStoreClient;
+        _proxyDelegationClient = proxyDelegationClient;
     }
 
     @Override
@@ -207,16 +207,16 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
         }
     }
 
-    public CredentialStoreClient getCredentialStoreClient()
+    public ProxyDelegationClient getCredentialStoreClient()
     {
-        return _credentialStoreClient;
+        return _proxyDelegationClient;
     }
 
     @Override
     public void handlerRemoved(ChannelHandlerContext ctx)
     {
-        if (_credentialStoreClient != null) {
-            _credentialStoreClient.close();
+        if (_proxyDelegationClient != null) {
+            _proxyDelegationClient.close();
         }
     }
 
@@ -231,7 +231,7 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
     {
         try {
             _authenticationHandler
-                            = _authenticationFactory.createHandler(_credentialStoreClient);
+                            = _authenticationFactory.createHandler(_proxyDelegationClient);
 
             LoginResponse response =
                 new LoginResponse(request, _sessionId,
