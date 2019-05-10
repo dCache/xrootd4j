@@ -75,6 +75,7 @@ public abstract class AbstractClientRequestHandler extends
     public void channelRead(ChannelHandlerContext ctx, Object msg)
     {
         if (msg instanceof XrootdInboundResponse) {
+            client.stopTimer();
             responseReceived(ctx, (XrootdInboundResponse) msg);
             return;
         }
