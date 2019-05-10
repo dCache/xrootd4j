@@ -210,6 +210,7 @@ public class TpcClientConnectHandler extends
                                                    tpcInfo.getLoginToken()),
                           ctx.newPromise())
            .addListener(FIRE_EXCEPTION_ON_FAILURE);
+        client.startTimer(ctx);
     }
 
     protected void sendProtocolRequest(ChannelHandlerContext ctx)
@@ -222,5 +223,6 @@ public class TpcClientConnectHandler extends
                                                       PROTOCOL_VERSION),
                           ctx.newPromise())
            .addListener(FIRE_EXCEPTION_ON_FAILURE);
+        client.startTimer(ctx);
     }
 }
