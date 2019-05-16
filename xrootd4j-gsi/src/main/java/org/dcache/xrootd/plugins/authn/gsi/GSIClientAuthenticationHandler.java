@@ -161,6 +161,7 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
         client.setAuthResponse(null);
         ctx.writeAndFlush(request, ctx.newPromise())
            .addListener(FIRE_EXCEPTION_ON_FAILURE);
+        client.startTimer(ctx);
     }
 
     private GSIClientRequestHandler createRequestHandler()
