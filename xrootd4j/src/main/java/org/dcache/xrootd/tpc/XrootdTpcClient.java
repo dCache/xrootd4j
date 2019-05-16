@@ -39,7 +39,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.dcache.xrootd.core.XrootdSessionIdentifier;
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
@@ -69,6 +71,9 @@ public class XrootdTpcClient
 {
     private static final Logger              LOGGER
                     = LoggerFactory.getLogger(XrootdTpcClient.class);
+
+    private static final int DISCONNECT_TIMEOUT_IN_SECONDS = 5;
+    private static final int DEFAULT_RESPONSE_TIMEOUT_IN_SECONDS = 2;
 
     private static int lastId = 1;
 
@@ -140,6 +145,10 @@ public class XrootdTpcClient
     private boolean isRunning;
     private int redirects;
     private long timeOfFirstRedirect;
+
+    private long responseTimeout = DEFAULT_RESPONSE_TIMEOUT_IN_SECONDS;
+
+    private ScheduledFuture timerTask;
 
     public XrootdTpcClient(String userUrn,
                            XrootdTpcInfo info,
@@ -328,12 +337,34 @@ public class XrootdTpcClient
          * It is not predictable whether the server will reply to an
          * endsession request, so this timed delay guarantees shutdown.
          */
-        executorService.schedule(new Runnable() {
-            @Override
-            public void run() {
-                disconnect();
-            }
-        }, 5, TimeUnit.SECONDS);
+        executorService.schedule(() -> disconnect(),
+                                 DISCONNECT_TIMEOUT_IN_SECONDS,
+                                 TimeUnit.SECONDS);
+    }
+
+    public synchronized void startTimer(final ChannelHandlerContext ctx) {
+        /*
+         *  just in case ...
+         */
+        stopTimer();
+        timerTask = executorService.schedule(() ->
+                                             {
+                                                 setError(getTimeoutException());
+                                                 try {
+                                                     shutDown(ctx);
+                                                 } catch (InterruptedException e) {
+                                                     e.printStackTrace();
+                                                 }
+                                             },
+                                             responseTimeout,
+                                             TimeUnit.SECONDS);
+    }
+
+    public synchronized void stopTimer() {
+        if (timerTask != null) {
+            timerTask.cancel(true);
+            timerTask = null;
+        }
     }
 
     public ChannelFuture getChannelFuture()
@@ -598,6 +629,16 @@ public class XrootdTpcClient
                                   .append(new Date(timeOfFirstRedirect))
                                   .append(")")
                                   .toString();
+    }
+
+    public void setResponseTimeout(long responseTimeout) {
+        this.responseTimeout = responseTimeout;
+    }
+
+    private TimeoutException getTimeoutException() {
+        return new TimeoutException("No response from server after "
+                                                    + responseTimeout
+                                                    + " seconds.");
     }
 
     private void injectHandlers(ChannelPipeline pipeline,

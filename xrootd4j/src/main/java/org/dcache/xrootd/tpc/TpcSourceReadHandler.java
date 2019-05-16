@@ -235,6 +235,7 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
                                                   getChunkSize()),
                           ctx.newPromise())
            .addListener(FIRE_EXCEPTION_ON_FAILURE);
+        client.startTimer(ctx);
     }
 
     @Override
@@ -252,6 +253,7 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
                                                       tpcInfo.getLfn()),
                           ctx.newPromise())
            .addListener(FIRE_EXCEPTION_ON_FAILURE);
+        client.startTimer(ctx);
     }
 
     protected abstract void validateChecksum(InboundChecksumResponse response,
