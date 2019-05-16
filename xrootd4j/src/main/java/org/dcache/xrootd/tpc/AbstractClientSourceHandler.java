@@ -206,6 +206,7 @@ public abstract class AbstractClientSourceHandler extends
                                                           client.getFullpath()),
                           ctx.newPromise())
            .addListener(FIRE_EXCEPTION_ON_FAILURE);
+        client.startTimer(ctx);
     }
 
     @Override
