@@ -205,11 +205,7 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
         client.getWriteHandler().fireDelayedSync(status, error);
         LOGGER.debug("handleTransferTerminated called fire delayed sync, "
                                      + "calling client shutdown");
-        try {
-            client.shutDown(ctx);
-        } catch (InterruptedException e) {
-            LOGGER.warn("Client shutdown interrupted.");
-        }
+        client.shutDown(ctx);
     }
 
     @Override

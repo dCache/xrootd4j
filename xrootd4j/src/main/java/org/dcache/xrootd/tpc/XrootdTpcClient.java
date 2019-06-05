@@ -317,7 +317,6 @@ public class XrootdTpcClient
     }
 
     public synchronized void shutDown(ChannelHandlerContext ctx)
-                    throws InterruptedException
     {
         if (!isRunning) {
             return;
@@ -348,11 +347,7 @@ public class XrootdTpcClient
         timerTask = executorService.schedule(() ->
                                              {
                                                  setError(getTimeoutException());
-                                                 try {
-                                                     shutDown(ctx);
-                                                 } catch (InterruptedException e) {
-                                                     e.printStackTrace();
-                                                 }
+                                                 shutDown(ctx);
                                              },
                                              responseTimeout,
                                              TimeUnit.SECONDS);

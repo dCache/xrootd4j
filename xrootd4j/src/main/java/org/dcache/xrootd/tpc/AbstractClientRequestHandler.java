@@ -105,11 +105,7 @@ public abstract class AbstractClientRequestHandler extends
 
         if (client != null) {
             client.setError(t);
-            try {
-                client.shutDown(ctx);
-            } catch (InterruptedException e) {
-                LOGGER.warn("Client shutdown interrupted.");
-            }
+            client.shutDown(ctx);
         }
     }
 
@@ -129,11 +125,7 @@ public abstract class AbstractClientRequestHandler extends
 
         if (client != null) {
             client.setError(new XrootdException(kXR_noResponsesYet, message));
-            try {
-                client.shutDown(ctx);
-            } catch (InterruptedException e) {
-                LOGGER.warn("Client shutdown interrupted.");
-            }
+            client.shutDown(ctx);
         }
 
     }

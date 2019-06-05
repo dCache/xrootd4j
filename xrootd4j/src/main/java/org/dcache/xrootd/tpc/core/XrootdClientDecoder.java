@@ -188,11 +188,7 @@ public class XrootdClientDecoder extends ByteToMessageDecoder
                                          + "Closing channel.",
                          requestId, id, e.getMessage());
             client.setError(e);
-            try {
-                client.shutDown(ctx);
-            } catch (InterruptedException e1) {
-                LOGGER.warn("client shutdown interrupted.");
-            }
+            client.shutDown(ctx);
         }
     }
 }
