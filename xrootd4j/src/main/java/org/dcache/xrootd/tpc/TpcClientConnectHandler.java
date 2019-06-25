@@ -141,17 +141,16 @@ public class TpcClientConnectHandler extends
                 ChannelHandler handler = handlers.get(name);
                 if (handler != null) {
                     pipeline.addAfter(last, name, handler);
-                }
+                    last = name;
 
-                LOGGER.debug("Login to {}, channel {}, stream {}, sessionId {}, "
+                    LOGGER.debug("Login to {}, channel {}, stream {}, sessionId {}, "
                                              + "adding {} handler to pipeline.",
                              tpcInfo.getSrc(),
                              id,
                              streamId,
                              client.getSessionId(),
                              name);
-
-                last = name;
+                }
             }
 
             LOGGER.debug("Login to {}, channel {}, stream {},"
