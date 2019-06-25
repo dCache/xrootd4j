@@ -50,6 +50,8 @@ public class XrootdTpcInfo {
 
     public static final String SRC = "tpc.src";
 
+    public static final String DLG = "tpc.dlg";
+
     public static final String DST = "tpc.dst";
 
     public static final String LOGICAL_NAME = "tpc.lfn";
@@ -61,6 +63,16 @@ public class XrootdTpcInfo {
     public static final String TIME_TO_LIVE = "tpc.ttl";
 
     public static final String SIZE_IN_BYTES = "oss.asize";
+
+    /*
+     * Unused, but these need to be eliminated from
+     * the path if delegation is supported.
+     */
+    public static final String STR = "tpc.str";
+
+    public static final String TPR = "tpc.tpr";
+
+    public static final String SPR = "tpc.spr";
 
     /**
      * <p>Opaque string name-value constant values.</p>
@@ -84,7 +96,11 @@ public class XrootdTpcInfo {
                                       CLIENT,
                                       CHECKSUM,
                                       TIME_TO_LIVE,
-                                      SIZE_IN_BYTES);
+                                      SIZE_IN_BYTES,
+                                      STR,
+                                      DLG,
+                                      TPR,
+                                      SPR);
 
     public enum Status
     {
@@ -282,6 +298,7 @@ public class XrootdTpcInfo {
         info.asize = asize;
         info.cks = cks;
         info.loginToken = response.getToken();
+        info.delegatedProxy = delegatedProxy;
 
         String opaque = response.getOpaque();
 
@@ -530,8 +547,11 @@ public class XrootdTpcInfo {
 
     private void setSourceFromOpaque(Map<String, String> map)
     {
-        this.src = map.get(SRC);
-        if (this.src != null) {
+        src = map.get(DLG);
+        if (src == null) {
+            src = map.get(SRC);
+        }
+        if (src != null) {
             String[] source = this.src.split(":");
             this.srcHost = source[0];
             if (Strings.emptyToNull(source[1]) != null) {

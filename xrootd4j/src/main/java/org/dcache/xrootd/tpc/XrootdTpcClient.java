@@ -18,6 +18,7 @@
  */
 package org.dcache.xrootd.tpc;
 
+import com.google.common.base.Strings;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -73,7 +74,7 @@ public class XrootdTpcClient
                     = LoggerFactory.getLogger(XrootdTpcClient.class);
 
     private static final int DISCONNECT_TIMEOUT_IN_SECONDS = 5;
-    private static final int DEFAULT_RESPONSE_TIMEOUT_IN_SECONDS = 2;
+    private static final int DEFAULT_RESPONSE_TIMEOUT_IN_SECONDS = 30;
 
     private static int lastId = 1;
 
@@ -96,7 +97,6 @@ public class XrootdTpcClient
     private final Map<String, ChannelHandler> authnHandlers;
     private final int                        pid;
     private final String                     uname;
-    private final String                     fullpath;
 
     private final ScheduledExecutorService executorService;
 
@@ -143,7 +143,6 @@ public class XrootdTpcClient
     private boolean isRunning;
     private int redirects;
     private long timeOfFirstRedirect;
-
     private long responseTimeout = DEFAULT_RESPONSE_TIMEOUT_IN_SECONDS;
 
     private ScheduledFuture timerTask;
@@ -177,25 +176,6 @@ public class XrootdTpcClient
          */
         uname = userSplit[0];
         pid = Integer.parseInt(userSplit[1]);
-
-        String external = info.getExternal();
-        if (external == null) {
-            external = "";
-        } else {
-            external = OpaqueStringParser.OPAQUE_PREFIX + external;
-        }
-
-        fullpath = info.getLfn()
-                        + OpaqueStringParser.OPAQUE_STRING_PREFIX
-                        + XrootdTpcInfo.RENDEZVOUS_KEY
-                        + OpaqueStringParser.OPAQUE_SEPARATOR
-                        + info.getKey()
-                        + OpaqueStringParser.OPAQUE_PREFIX
-                        + XrootdTpcInfo.CLIENT
-                        + OpaqueStringParser.OPAQUE_SEPARATOR
-                        + userUrn
-                        + external;
-
         writeOffset = 0L;
         errno = kXR_ok;
         redirects = 0;
@@ -219,6 +199,7 @@ public class XrootdTpcClient
         this.timeOfFirstRedirect = preceding.timeOfFirstRedirect <= 0 ?
                         System.currentTimeMillis() :
                         preceding.timeOfFirstRedirect;
+        this.responseTimeout = preceding.responseTimeout;
     }
 
     public synchronized void connect(final NioEventLoopGroup group,
@@ -417,8 +398,39 @@ public class XrootdTpcClient
 
     public String getFullpath()
     {
-        LOGGER.debug("Client asked for full path: {}.", this);
-        return fullpath;
+        StringBuilder fullPath = new StringBuilder();
+
+        /*
+         *  If delegation is not being used, forward the rendezvous key and
+         *  client info.
+         */
+        String protocol = (String)authnContext.get("protocol");
+        String tpcDlg = (String)authnContext.get("tpcdlg");
+        if ("gsi".equals(protocol) && !"gsi".equalsIgnoreCase(tpcDlg)) {
+            fullPath.append(XrootdTpcInfo.CLIENT)
+                    .append(OpaqueStringParser.OPAQUE_SEPARATOR)
+                    .append(userUrn)
+                    .append(OpaqueStringParser.OPAQUE_PREFIX)
+                    .append(XrootdTpcInfo.RENDEZVOUS_KEY)
+                    .append(OpaqueStringParser.OPAQUE_SEPARATOR)
+                    .append(info.getKey());
+        }
+
+        String external = info.getExternal();
+        if (!Strings.isNullOrEmpty(external)) {
+            if (fullPath.length() > 0) {
+                fullPath.append(OpaqueStringParser.OPAQUE_PREFIX);
+            }
+            fullPath.append(external);
+        }
+
+        if (fullPath.length() > 0) {
+            fullPath.insert(0, OpaqueStringParser.OPAQUE_STRING_PREFIX);
+        }
+
+        fullPath.insert(0, info.getLfn());
+
+        return fullPath.toString();
     }
 
     public XrootdTpcInfo getInfo()
@@ -533,6 +545,10 @@ public class XrootdTpcClient
         this.pval = pval;
     }
 
+    public void setResponseTimeout(long responseTimeout) {
+        this.responseTimeout = responseTimeout;
+    }
+
     public void setSessionId(XrootdSessionIdentifier sessionId)
     {
         this.sessionId = sessionId;
@@ -568,7 +584,7 @@ public class XrootdTpcClient
                                   .append(")(uname ")
                                   .append(uname)
                                   .append(")(fullpath ")
-                                  .append(fullpath)
+                                  .append(getFullpath())
                                   .append(")(expectedRequestId ")
                                   .append(expectedRequestId)
                                   .append(")(pval ")
@@ -599,10 +615,6 @@ public class XrootdTpcClient
                                   .append(new Date(timeOfFirstRedirect))
                                   .append(")")
                                   .toString();
-    }
-
-    public void setResponseTimeout(long responseTimeout) {
-        this.responseTimeout = responseTimeout;
     }
 
     private TimeoutException getTimeoutException() {

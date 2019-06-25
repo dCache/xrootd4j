@@ -63,6 +63,11 @@ public class GSIPost49ClientRequestHandler extends GSIClientRequestHandler
                                          XrootdTpcClient client)
     {
         super(credentialManager, client);
+        /*
+         *  Request handler was chosen because endpoint supports delegation.
+         *  Let the client know this.
+         */
+        client.getAuthnContext().put("tpcdlg", "gsi");
     }
 
     @Override
