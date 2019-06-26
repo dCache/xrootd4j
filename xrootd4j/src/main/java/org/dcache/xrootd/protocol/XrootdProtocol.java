@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -29,6 +29,7 @@ public interface XrootdProtocol {
     public static final byte PROTOCOL_VERSION_MINOR =
         (byte) (PROTOCOL_VERSION & 0x00FF);
     public static final byte CLIENT_PROTOCOL_VERSION = (byte)4;
+    public static final int TPC_VERSION = 1;
 
     public static final byte      CLIENT_REQUEST_LEN = 24;
     public static final byte    CLIENT_HANDSHAKE_LEN = 20;
