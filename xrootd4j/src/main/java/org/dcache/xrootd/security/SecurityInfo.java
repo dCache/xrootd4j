@@ -18,9 +18,8 @@
  */
 package org.dcache.xrootd.security;
 
-import com.google.common.base.Splitter;
-
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -46,11 +45,17 @@ public class SecurityInfo
             data = Collections.emptyMap();
         } else {
             protocol = description.substring(0, comma);
-            String keyValueData = description.substring(comma+1);
-            data = Splitter.on(',')
-                           .omitEmptyStrings()
-                           .withKeyValueSeparator(':')
-                           .split(keyValueData);
+            data = new HashMap<>();
+            String keyValueData = description.substring(comma + 1);
+            String[] kvPairs = keyValueData.split(",");
+            for (String pair: kvPairs) {
+                String[] keyValue = pair.split(":");
+                if (keyValue.length == 2) {
+                    data.put(keyValue[0], keyValue[1]);
+                } else {
+                    data.put(keyValue[0], keyValue[0]);
+                }
+            }
         }
 
         if (protocol.isEmpty()) {
