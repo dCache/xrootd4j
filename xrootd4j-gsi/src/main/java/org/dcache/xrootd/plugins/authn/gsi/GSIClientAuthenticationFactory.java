@@ -27,28 +27,29 @@ import org.dcache.xrootd.plugins.ChannelHandlerFactory;
 /**
  * <p>Authentication factory that returns GSI security handlers to add to the
  *    third-party client channel pipeline.</p>
- *
- * <<p>In addition to loading host cert, key and crl validators, generates
- *     a proxy credential from the host cert and key, as required by
- *     the standard (SLAC) implementation of the server.</p>
  */
 public class GSIClientAuthenticationFactory implements ChannelHandlerFactory
 {
     private final Properties            properties;
+    private final CertChainValidatorProvider validatorProvider;
+    private final CredentialLoader credentialLoader;
 
     public GSIClientAuthenticationFactory(Properties properties)
     {
         this.properties = properties;
+        validatorProvider = new CertChainValidatorProvider(properties);
+        credentialLoader = new CredentialLoader(properties,
+                                                validatorProvider.getCertChainValidator());
     }
 
     @Override
     public ChannelHandler createHandler()
     {
-        GSICredentialManager credentialManager = new GSICredentialManager(properties);
-
-        GSIClientAuthenticationHandler handler =
-                        new GSIClientAuthenticationHandler(credentialManager);
-        return handler;
+        GSICredentialManager credentialManager
+                        = new GSICredentialManager(properties,
+                                                   credentialLoader,
+                                                   validatorProvider.getCertChainValidator());
+        return new GSIClientAuthenticationHandler(credentialManager);
     }
 
     @Override

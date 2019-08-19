@@ -84,12 +84,13 @@ public class GSIPre49ClientRequestHandler extends GSIClientRequestHandler
     @Override
     protected void loadClientCredential()
     {
-        LOGGER.debug("Loading client credential.");
         /*
-         *  If the credentials fail to load, the issue will soon be discovered
+         *  NOP
+         *
+         *  If the credentials failed to load at initialization,
+         *  the issue will soon be discovered
          *  when GSI TPC fails.
          */
-        credentialManager.loadClientCredentials();
     }
 
     @Override

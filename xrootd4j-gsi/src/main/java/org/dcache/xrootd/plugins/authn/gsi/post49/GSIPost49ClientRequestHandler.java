@@ -124,7 +124,7 @@ public class GSIPost49ClientRequestHandler extends GSIClientRequestHandler
                                 = (SerializableX509Credential) serializable;
                 delegatedProxy = new KeyAndCertCredential(proxy.getPrivateKey(),
                                                           proxy.getCertChain());
-                credentialManager.setIssuerHashes(delegatedProxy);
+                credentialManager.setIssuerHashesFromCredential(delegatedProxy);
             } catch (ClassCastException e) {
                 throw new XrootdException(kGSErrError, "delegated proxy was "
                                 + "of wrong type: " + serializable.getClass());

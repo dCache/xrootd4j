@@ -18,55 +18,37 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.util.Properties;
 
 import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
 import org.dcache.xrootd.plugins.ProxyDelegationClient;
-import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
 
 /**
- * Authentication factory that returns GSI security handlers. Initiates the
- * server-side certificate objects (host certificate, host key, trusted
- * certificates and CRLs) needed for the handler to perform its tasks.
- *
- * Thus the certificates and trust anchors can be cached for a configurable
- * time period. The configuration option controlling this caching is the
- * same as the one used in the SRM door.
- *
- * @author tzangerl
- *
+ * Authentication factory that returns GSI security handlers.
  */
 public class GSIAuthenticationFactory implements AuthenticationFactory
 {
     private final Properties            properties;
+    private final CertChainValidatorProvider validatorProvider;
+    private final CredentialLoader credentialLoader;
 
     public GSIAuthenticationFactory(Properties properties)
     {
         this.properties = properties;
+        validatorProvider = new CertChainValidatorProvider(properties);
+        credentialLoader = new CredentialLoader(properties,
+                                                validatorProvider.getCertChainValidator());
     }
 
     @Override
     public AuthenticationHandler createHandler(ProxyDelegationClient proxyDelegationClient)
-        throws InvalidHandlerConfigurationException
     {
         GSICredentialManager credentialManager
-                        = new GSICredentialManager(properties);
-
+                        = new GSICredentialManager(properties,
+                                                   credentialLoader,
+                                                   validatorProvider.getCertChainValidator());
         credentialManager.setProxyDelegationClient(proxyDelegationClient);
-
-        try {
-            credentialManager.loadServerCredentials();
-        } catch (GeneralSecurityException gssex) {
-            String msg = "Could not load certificates/key due to security error";
-            throw new InvalidHandlerConfigurationException(msg, gssex);
-        } catch (IOException ioex) {
-            String msg = "Could not read certificates/key from file-system";
-            throw new InvalidHandlerConfigurationException(msg, ioex);
-        }
-
         return new GSIAuthenticationHandler(credentialManager);
     }
 }
