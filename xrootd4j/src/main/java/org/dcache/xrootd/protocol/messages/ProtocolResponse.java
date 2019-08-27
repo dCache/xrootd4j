@@ -60,8 +60,7 @@ public class ProtocolResponse extends AbstractXrootdResponse<ProtocolRequest>
     private static final byte SECVER = 0;
 
     private final int           flags;
-    private final SigningPolicy signingPolicy;
-
+    private SigningPolicy       signingPolicy;
 
     public ProtocolResponse(ProtocolRequest request,
                             int flags)
@@ -91,7 +90,8 @@ public class ProtocolResponse extends AbstractXrootdResponse<ProtocolRequest>
     @Override
     public int getDataLength()
     {
-        return signingPolicy.isSigningOn() ? 14 : 8;
+        return (request.shouldReturnSecOpts()
+                        && signingPolicy.isSigningOn()) ? 14 : 8;
     }
 
     @Override
