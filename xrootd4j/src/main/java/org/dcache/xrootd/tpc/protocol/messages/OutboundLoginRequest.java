@@ -21,7 +21,7 @@ package org.dcache.xrootd.tpc.protocol.messages;
 import io.netty.buffer.ByteBuf;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
-import static org.dcache.xrootd.protocol.XrootdProtocol.CLIENT_PROTOCOL_VERSION;
+import static org.dcache.xrootd.protocol.XrootdProtocol.CLIENT_CAPVER_VERSION;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_useruser;
 
@@ -55,8 +55,8 @@ public class OutboundLoginRequest extends AbstractXrootdOutboundRequest
         buffer.writeByte(0);
         // ability –– nothing special
         buffer.writeByte(0);
-        // capver –– 00000001 (no async, client v. 1);
-        buffer.writeByte(CLIENT_PROTOCOL_VERSION);
+        // capver –– (no async, client version);
+        buffer.writeByte(CLIENT_CAPVER_VERSION);
         // role = user
         buffer.writeByte(kXR_useruser);
         if (token != null) {

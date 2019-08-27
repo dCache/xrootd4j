@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -32,14 +32,15 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_secreqs;
  *      <tr><td>kXR_char</td><td>streamid[2]</td></tr>
  *      <tr><td>kXR_unt16</td><td>kXR_protocol</td></tr>
  *      <tr><td>kXR_int32</td><td>clientpv</td></tr>
- *      <tr><td>kXR_char</td><td>reserved[11]</td></tr>
  *      <tr><td>kXR_char</td><td>options</td></tr>
+ *      <tr><td>kXR_char</td><td>expect</td></tr>
+ *      <tr><td>kXR_char</td><td>reserved[10]</td></tr>
  *      <tr><td>kXR_int32</td><td>dlen</td></tr>
  *  </table>
  */
 public class OutboundProtocolRequest implements XrootdOutboundRequest
 {
-    private static final byte[] RESERVED = {0,0,0,0,0,0,0,0,0,0,0};
+    private static final byte[] RESERVED = {0,0,0,0,0,0,0,0,0,0};
     private int streamId;
     private int version;
 
@@ -62,8 +63,9 @@ public class OutboundProtocolRequest implements XrootdOutboundRequest
             buffer.writeShort(streamId);
             buffer.writeShort(kXR_protocol);
             buffer.writeInt(version);
-            buffer.writeBytes(RESERVED);
             buffer.writeByte(kXR_secreqs);
+            buffer.writeByte(0);
+            buffer.writeBytes(RESERVED);
             buffer.writeInt(0);
         } catch (Error | RuntimeException t) {
             promise.setFailure(t);
