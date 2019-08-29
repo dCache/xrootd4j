@@ -26,6 +26,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.util.Arrays;
 
 import org.dcache.xrootd.security.BufferDecrypter;
 import org.dcache.xrootd.security.BufferEncrypter;
@@ -60,7 +61,35 @@ public class DHBufferHandler implements BufferEncrypter, BufferDecrypter
                     InvalidAlgorithmParameterException,
                     NoSuchProviderException
     {
-        return session.decrypt(cipherSpec, keySpec, blocksize, encrypted);
+        /*
+         *  REVISIT
+         *
+         *  see https://github.com/xrootd/xrootd/issues/1046
+         *
+         *  It would seem that xrootd v4.10.0+ has decided to extend
+         *  the signature length by the length of the IV buffer (16 bytes)
+         *  used to encrypt it.
+         *
+         *  While justification for this is still unclear, we need to
+         *  ensure that the hash verification continues to work.
+         *
+         *  The SHA256 hash of the message contents is always 32 bytes long,
+         *  so any excess bytes appended to the first 32 can simply be discarded.
+         *
+         *  In any case, it would seem that those extra 16 bytes
+         *  consistently decode to:
+         *
+         *      0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10
+         *      0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10
+         *
+         *  We may end up reverting this when the above GitHub issue is
+         *  resolved.
+         */
+        byte[] full = session.decrypt(cipherSpec, keySpec, blocksize, encrypted);
+        if (full.length > 32) {
+            return Arrays.copyOf(full, 32);
+        }
+        return full;
     }
 
     @Override
@@ -71,6 +100,32 @@ public class DHBufferHandler implements BufferEncrypter, BufferDecrypter
                     InvalidAlgorithmParameterException,
                     NoSuchProviderException
     {
+        /*
+         *  REVISIT
+         *
+         *  see https://github.com/xrootd/xrootd/issues/1046
+         *
+         *  It would seem that xrootd v4.10.0+ has decided to extend
+         *  the signature length by the length of the IV buffer (16 bytes)
+         *  used to encrypt it.
+         *
+         *  While justification for this is still unclear, we need to
+         *  ensure that the hash verification continues to work.
+         *
+         *  We need to append the 16 bytes it is expecting.  As noted above,
+         *  those consistently decode to:
+         *
+         *      0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10
+         *      0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10
+         *
+         *  We may end up reverting this when the above GitHub issue is
+         *  resolved.
+         */
+        int origLen = unencrypted.length;
+        unencrypted = Arrays.copyOf(unencrypted, origLen + 16);
+        for (int i = 0; i < 16; i++) {
+            unencrypted[origLen+i] = (byte)16;
+        }
         return session.encrypt(cipherSpec, keySpec, blocksize, unencrypted);
     }
 }
