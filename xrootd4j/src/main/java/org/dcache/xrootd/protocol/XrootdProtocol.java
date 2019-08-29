@@ -20,16 +20,17 @@ package org.dcache.xrootd.protocol;
 
 public interface XrootdProtocol {
 
-    /*  current supported protocol version: 2.89
+    /*  current supported protocol version: 400
      * Xrootd expects the protocol information binary encoded in an int32
      */
-    public static final int  PROTOCOL_VERSION = 0x289;
+    public static final int  PROTOCOL_VERSION       = 0x00000400;
+    public static final int  PROTOCOL_SIGN_VERSION  = 0x00000310;
     public static final byte PROTOCOL_VERSION_MAJOR =
         (byte) ((PROTOCOL_VERSION & 0xFF00) >> 8);
     public static final byte PROTOCOL_VERSION_MINOR =
         (byte) (PROTOCOL_VERSION & 0x00FF);
-    public static final byte CLIENT_PROTOCOL_VERSION = (byte)4;
-    public static final int TPC_VERSION = 1;
+    public static final byte CLIENT_CAPVER_VERSION  = (byte)4;
+    public static final int  TPC_VERSION            = 1;
 
     public static final byte      CLIENT_REQUEST_LEN = 24;
     public static final byte    CLIENT_HANDSHAKE_LEN = 20;
