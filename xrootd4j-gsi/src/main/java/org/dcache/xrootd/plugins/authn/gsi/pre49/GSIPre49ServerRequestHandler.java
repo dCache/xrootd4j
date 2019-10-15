@@ -37,10 +37,10 @@ import org.dcache.xrootd.security.NestedBucketBuffer;
 import org.dcache.xrootd.security.XrootdBucket;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_IOError;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_puk;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kGSErrError;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kGSErrSerialBuffer;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_cert;
 
 /**
@@ -107,20 +107,20 @@ public class GSIPre49ServerRequestHandler extends GSIServerRequestHandler
         } catch (InvalidKeyException ikex) {
             LOGGER.error("The key negotiated by DH key exchange appears to " +
                                          "be invalid: {}", ikex.getMessage());
-            throw new XrootdException(kXR_InvalidRequest,
+            throw new XrootdException(kXR_DecryptErr,
                                       "Could not decrypt client" +
                                                       "information with negotiated key.");
          } catch (IOException ioex) {
             LOGGER.error("Could not deserialize main nested buffer {}",
                          ioex.getMessage() == null ?
                                          ioex.getClass().getName() : ioex.getMessage());
-            throw new XrootdException(kXR_IOError,
+            throw new XrootdException(kGSErrSerialBuffer,
                                       "Could not decrypt encrypted " +
                                                       "client message.");
         } catch (GeneralSecurityException gssex) {
             LOGGER.error("Error during decrypting/server-side key exchange: {}",
                          gssex.getMessage());
-            throw new XrootdException(kXR_ServerError,
+            throw new XrootdException(kXR_DecryptErr,
                                       "Error in server-side cryptographic " +
                                                       "operations.");
         }
@@ -133,7 +133,7 @@ public class GSIPre49ServerRequestHandler extends GSIServerRequestHandler
         /*
          *  Should not happen.
          */
-        throw new XrootdException(kXR_ServerError,
+        throw new XrootdException(kGSErrError,
                                   "proxy request signing step not supported.");
     }
 

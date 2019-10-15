@@ -325,7 +325,7 @@ public abstract class AbstractClientRequestHandler extends
                     doOnRedirectResponse(ctx,
                                          new InboundRedirectResponse(response));
                 } catch (ParseException e) {
-                    throw new XrootdException(kXR_ServerError,
+                    throw new XrootdException(kXR_InvalidRequest,
                                               "bad redirect data from kXR_asyncdi");
                 }
                 break;
@@ -343,11 +343,11 @@ public abstract class AbstractClientRequestHandler extends
                  *
                  * We do not issue prepare requests.  NR.
                  */
-                throw new XrootdException(kXR_ServerError,
+                throw new XrootdException(kXR_Unsupported,
                                           "tpc client does not support this option: "
                                            + response.getActnum());
             default:
-                throw new XrootdException(kXR_ServerError,
+                throw new XrootdException(kXR_ArgInvalid,
                                           "unrecognized kXR_attn action: "
                                            + response.getActnum());
         }

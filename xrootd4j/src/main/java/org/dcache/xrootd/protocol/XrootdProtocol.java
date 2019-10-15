@@ -75,6 +75,10 @@ public interface XrootdProtocol {
     public static final int   kXR_ChkLenErr      = 3018;
     public static final int   kXR_ChkSumErr      = 3019;
     public static final int   kXR_inProgress     = 3020;
+    public static final int   kXR_overQuota      = 3021;
+    public static final int   kXR_SigVerErr      = 3022;
+    public static final int   kXR_DecryptErr     = 3023;
+    public static final int   kXR_Overloaded     = 3024;
     public static final int   kXR_noErrorYet     = 10000;
     @Deprecated // Kept for compatibility with plugins
     public static final int   kXR_FileLockedr    = 3003;

@@ -42,8 +42,8 @@ import org.dcache.xrootd.protocol.messages.XrootdRequest;
 import org.dcache.xrootd.security.BufferDecrypter;
 import org.dcache.xrootd.security.SigningPolicy;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ArgInvalid;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_error;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_DecryptErr;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_SigVerErr;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_write;
 import static org.dcache.xrootd.protocol.messages.SigverRequest.SIGVER_VERSION;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_nodata;
@@ -135,25 +135,25 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
     private void setSigver(SigverRequest request) throws XrootdException
     {
         if (request.getSeqno() <= lastSeqNo) {
-            throw new XrootdException(kXR_ArgInvalid,
+            throw new XrootdException(kXR_SigVerErr,
                                       "signed hash verification:"
                                                       + " bad sequence number.");
         }
 
         if (request.getVersion() != SIGVER_VERSION) {
-            throw new XrootdException(kXR_ArgInvalid,
+            throw new XrootdException(kXR_SigVerErr,
                                       "signed hash verification:"
                                                       + " unsupported version number.");
         }
 
         if (request.isRSAKey()) {
-            throw new XrootdException(kXR_ArgInvalid,
+            throw new XrootdException(kXR_SigVerErr,
                                       "signed hash verification:"
                                                       + " unsupported use of RSA key.");
         }
 
         if (!request.isSHA256()) {
-            throw new XrootdException(kXR_ArgInvalid,
+            throw new XrootdException(kXR_SigVerErr,
                                       "signed hash verification:"
                                                       + " unsupported crypto hash.");
         }
@@ -175,7 +175,7 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
 
         if (currentSigverRequest == null) {
             if (decryptionHandler != null || forceSigning) {
-                throw new XrootdException(kXR_error,
+                throw new XrootdException(kXR_SigVerErr,
                                           "signed hash verification: "
                                                           + "did not receive preceding "
                                                           + "sigver request.");
@@ -187,13 +187,13 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
         }
 
         if (currentSigverRequest.getStreamId() != streamId) {
-            throw new XrootdException(kXR_ArgInvalid,
+            throw new XrootdException(kXR_SigVerErr,
                                       "signed hash verification:"
                                                       + " stream id mismatch.");
         }
 
         if (currentSigverRequest.getExpectrid() != requestId) {
-            throw new XrootdException(kXR_ArgInvalid,
+            throw new XrootdException(kXR_SigVerErr,
                                       "signed hash verification:"
                                                       + " request id mismatch.");
         }
@@ -211,7 +211,7 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
                             | BadPaddingException
                             | NoSuchProviderException
                             | InvalidKeyException e) {
-                throw new XrootdException(kXR_error, e.toString());
+                throw new XrootdException(kXR_DecryptErr, e.toString());
             }
         } else if (forceSigning) {
             received = currentSigverRequest.getSignature();
@@ -240,7 +240,7 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
             LOGGER.info("compareHashes, different lengths:\n\treceived {}\n\tgenerated {}",
                          printHex(received),
                          printHex(generated));
-            throw new XrootdException(kXR_error, "signed hash verification:"
+            throw new XrootdException(kXR_SigVerErr, "signed hash verification:"
                             + " received hash length does not match generated hash.");
         }
 
@@ -248,7 +248,7 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
             LOGGER.info("compareHashes, do not match:\n\treceived {}\n\tgenerated {}",
                          printHex(received),
                          printHex(generated));
-            throw new XrootdException(kXR_error, "signed hash verification:"
+            throw new XrootdException(kXR_SigVerErr, "signed hash verification:"
                             + " received hash does not match generated hash.");
         }
     }
@@ -266,7 +266,7 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
          */
         if (requestId == kXR_write) {
             if (flags != kXR_nodata) {
-                throw new XrootdException(kXR_error,
+                throw new XrootdException(kXR_SigVerErr,
                                           "signed hash verification:"
                                                           + " kXR_nodata not set, "
                                                           + "cannot verify write request.");
@@ -306,7 +306,7 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             return digest.digest(contents);
         } catch (NoSuchAlgorithmException e) {
-            throw new XrootdException(kXR_error, e.toString());
+            throw new XrootdException(kXR_SigVerErr, e.toString());
         } finally {
             buffer.release();
         }

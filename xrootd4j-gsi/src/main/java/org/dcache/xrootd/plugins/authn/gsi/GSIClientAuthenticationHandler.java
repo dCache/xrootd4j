@@ -105,7 +105,7 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
                 sendAuthenticationRequest(ctx);
                 break;
             default:
-                throw new XrootdException(kXR_ServerError,
+                throw new XrootdException(kGSErrBadOpt,
                                           "wrong status from GSI authentication "
                                                           + "response: "
                                                           + status);

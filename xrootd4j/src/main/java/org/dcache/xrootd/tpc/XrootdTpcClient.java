@@ -34,7 +34,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.channels.ClosedChannelException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -44,6 +43,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.core.XrootdSessionIdentifier;
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
 import org.dcache.xrootd.security.SigningPolicy;
@@ -54,6 +54,7 @@ import org.dcache.xrootd.tpc.protocol.messages.OutboundCloseRequest;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundEndSessionRequest;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundHandshakeRequest;
 import org.dcache.xrootd.util.OpaqueStringParser;
+import org.dcache.xrootd.util.ParseException;
 
 import static io.netty.channel.ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
@@ -507,14 +508,14 @@ public class XrootdTpcClient
     {
         error = t.getMessage();
 
-        if (t instanceof ClosedChannelException) {
-            errno = kXR_ServerError;
+        if (t instanceof XrootdException) {
+            errno = ((XrootdException)t).getError();
         } else if (t instanceof IOException) {
             errno = kXR_IOError;
-        } else if (t instanceof RuntimeException) {
-            errno = kXR_ServerError;
+        } else if (t instanceof ParseException) {
+            errno = kXR_ArgInvalid;
         } else {
-            errno = kXR_error;
+            errno = kXR_ServerError;
         }
 
         writeHandler.fireDelayedSync(errno, error);
