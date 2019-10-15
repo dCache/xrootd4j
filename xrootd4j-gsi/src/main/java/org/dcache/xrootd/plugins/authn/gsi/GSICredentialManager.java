@@ -69,8 +69,7 @@ import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.plugins.ProxyDelegationClient;
 import org.dcache.xrootd.util.ProxyRequest;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_error;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kGSErrError;
 
 /**
  *  <p>Supports credential loading and creation for both server and client.</p>
@@ -225,7 +224,7 @@ public class GSICredentialManager
         }
 
         if (valid.isEmpty()) {
-            throw new XrootdException(kXR_error, "no ca identity is recognized.");
+            throw new XrootdException(kGSErrError, "no ca identity is recognized.");
         }
 
         LOGGER.debug("The following ca hashes are recognized: {}.", valid);
@@ -240,7 +239,7 @@ public class GSICredentialManager
             finalizeDelegatedProxy(X509Certificate[] certChain)
                     throws XrootdException {
         if (proxyRequest == null) {
-            throw new XrootdException(kXR_ServerError, "cannot finalize proxy: "
+            throw new XrootdException(kGSErrError, "cannot finalize proxy: "
                             + "proxy request was not sent.");
         }
 
@@ -315,7 +314,7 @@ public class GSICredentialManager
                                      + "from client for {}.",
                      certChain[0].getSubjectDN());
         if (proxyRequest == null) {
-            throw new XrootdException(kXR_ServerError, "fetch of proxy request "
+            throw new XrootdException(kGSErrError, "fetch of proxy request "
                             + "(CSR) failed");
         }
 
@@ -444,7 +443,7 @@ public class GSICredentialManager
     private X509ProxyDelegationClient proxyDelegationClient() throws XrootdException
     {
         if (proxyDelegationClient == null) {
-            throw new XrootdException(kXR_ServerError, "no client to credential "
+            throw new XrootdException(kGSErrError, "no client to credential "
                             + "store has been provided.");
         }
 

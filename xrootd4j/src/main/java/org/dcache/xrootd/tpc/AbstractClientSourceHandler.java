@@ -72,7 +72,7 @@ public abstract class AbstractClientSourceHandler extends
             String error = String.format("Authentication to %s failed; "
                             + "all protocols have been tried.",
                                          tpcInfo.getSrc());
-            throw new XrootdException(kXR_error, error);
+            throw new XrootdException(kXR_NotAuthorized, error);
         } else {
             LOGGER.debug("login of {} on {}, channel {}, stream {}, complete, "
                                          + "proceeding to open.",
@@ -152,7 +152,7 @@ public abstract class AbstractClientSourceHandler extends
                                              tpcInfo.getLfn(),
                                              tpcInfo.getSrc(),
                                              status);
-                throw new XrootdException(kXR_error, error);
+                throw new XrootdException(kXR_IOError, error);
         }
 
         client.setOpenFile(false);
@@ -187,7 +187,7 @@ public abstract class AbstractClientSourceHandler extends
                                          tpcInfo.getLfn(),
                                          tpcInfo.getSrc(),
                                          status);
-            throw new XrootdException(kXR_error, error);
+            throw new XrootdException(kXR_IOError, error);
         }
     }
 

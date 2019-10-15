@@ -43,8 +43,9 @@ import org.dcache.xrootd.security.StringBucket;
 import org.dcache.xrootd.security.XrootdBucket;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kGSErrError;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kGSErrInit;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGS_cert;
 
 public abstract class GSIServerRequestHandler extends GSIRequestHandler
@@ -105,8 +106,8 @@ public abstract class GSIServerRequestHandler extends GSIRequestHandler
         } catch (GeneralSecurityException gssex) {
             LOGGER.error("Error setting up cryptographic classes: {}",
                          gssex.getMessage());
-            throw new XrootdException(kXR_ServerError,
-                                      "Server probably misconfigured.");
+            throw new XrootdException(kGSErrInit,
+                                      "dCache GSI module probably misconfigured.");
         }
     }
 
@@ -192,24 +193,21 @@ public abstract class GSIServerRequestHandler extends GSIRequestHandler
         } catch (InvalidKeyException ikex) {
             LOGGER.error("Configured host-key could not be used for " +
                                          "signing: {}", ikex.getMessage());
-            throw new XrootdException(kXR_ServerError,
-                                      "Internal error occurred when trying " +
-                                                      "to sign client authentication tag.");
+            throw new XrootdException(kGSErrError,
+                                      "Error when trying to sign client authentication tag.");
         } catch (CertificateEncodingException cee) {
             LOGGER.error("Could not extract contents of server certificate:" +
                                          " {}", cee.getMessage());
-            throw new XrootdException(kXR_ServerError,
-                                      "Internal error occurred when trying " +
-                                                      "to send server certificate.");
+            throw new XrootdException(kGSErrError,
+                                      "Error when trying to send server certificate.");
         } catch (IOException | GeneralSecurityException gssex) {
             LOGGER.error("Problems during signing of client authN tag " +
                                          "(algorithm {}): {}",
                          ASYNC_CIPHER_MODE,
                          gssex.getMessage() == null ?
                                          gssex.getClass().getName() : gssex.getMessage());
-            throw new XrootdException(kXR_ServerError,
-                                      "Internal error occurred when trying " +
-                                                      "to sign client authentication tag.");
+            throw new XrootdException(kGSErrError,
+                                      "Error when trying to sign client authentication tag.");
         }
     }
 

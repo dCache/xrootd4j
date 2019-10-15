@@ -104,7 +104,7 @@ public class TpcClientConnectHandler extends
                             "Protocol request to %s failed with status %d.",
                             tpcInfo.getSrc(),
                             status);
-            throw new XrootdException(kXR_error, error);
+            throw new XrootdException(kXR_InvalidRequest, error);
         }
     }
 
@@ -166,7 +166,7 @@ public class TpcClientConnectHandler extends
             String error = String.format("Login to %s failed: status %d.",
                                          tpcInfo.getSrc(),
                                          status);
-            throw new XrootdException(kXR_error, error);
+            throw new XrootdException(kXR_InvalidRequest, error);
         }
     }
 

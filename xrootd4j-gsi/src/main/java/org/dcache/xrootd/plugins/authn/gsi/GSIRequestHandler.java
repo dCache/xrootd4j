@@ -54,7 +54,7 @@ import org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 import static eu.emi.security.authn.x509.impl.CertificateUtils.Encoding.PEM;
 import static io.netty.buffer.Unpooled.wrappedBuffer;
 import static java.nio.charset.StandardCharsets.US_ASCII;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_DecryptErr;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_error;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
@@ -292,7 +292,7 @@ public abstract class GSIRequestHandler
      */
     protected void finalizeSessionKey(Map<BucketType, XrootdBucket> receivedBuckets,
                                       BucketType bucketType)
-                    throws IOException, GeneralSecurityException
+                    throws IOException, GeneralSecurityException, XrootdException
     {
         LOGGER.debug("Finalizing session key using bucket type {}.",
                      bucketType.name());
@@ -319,9 +319,10 @@ public abstract class GSIRequestHandler
                              dhMessage.getContent());
                 break;
             default:
-                throw new RuntimeException("Unexpected bucketType in "
-                                                           + "finalizeSessionKey: "
-                                                           + bucketType.name());
+                throw new XrootdException(kGSErrCreateBucket, "Unexpected bucketType "
+                                                            + bucketType + " in "
+                                                            + "finalizeSessionKey: "
+                                                            + bucketType.name());
         }
 
         dhSession.finaliseKeyAgreement(dhMessage.getContent());
@@ -532,7 +533,7 @@ public abstract class GSIRequestHandler
                                          "signature of challenge tag has been "
                                          + "proven wrong!!",
                          challenge, rTagString);
-            throw new XrootdException(kXR_InvalidRequest,
+            throw new XrootdException(kGSErrBadRndmTag,
                                       "Sender did not present correct" +
                                                       "challenge response!");
         }
@@ -554,7 +555,7 @@ public abstract class GSIRequestHandler
                     InvalidKeyException
     {
         if (dhSession == null) {
-            throw new XrootdException(kXR_error, "trying to encrypt message "
+            throw new XrootdException(kXR_DecryptErr, "trying to encrypt message "
                             + "without session key.");
         }
 

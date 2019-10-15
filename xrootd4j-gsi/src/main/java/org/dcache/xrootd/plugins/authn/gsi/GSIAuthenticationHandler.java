@@ -120,7 +120,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
                 break;
             default:
                 requestHandler.cancelHandshake();
-                throw new XrootdException(kXR_InvalidRequest,
+                throw new XrootdException(kGSErrBadOpt,
                                           "Error during authentication, " +
                                                           "unknown processing step: "
                                                           + request.getStep());
@@ -175,7 +175,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
              *  This method should be called only on the first exchange,
              *  so the client only needs to send it then (as it does).
              */
-            throw new XrootdException(kXR_InvalidRequest, "Client did not "
+            throw new XrootdException(kGSErrBadProtocol, "Client did not "
                             + "provide GSI protocol version number.");
         }
 
