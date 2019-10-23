@@ -25,7 +25,7 @@ import java.util.Optional;
 
 import org.dcache.xrootd.core.XrootdException;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_error;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ArgMissing;
 
 /**
  * Utility class for holding security requirement information.
@@ -59,7 +59,7 @@ public class SecurityInfo
         }
 
         if (protocol.isEmpty()) {
-            throw new XrootdException(kXR_error, "Missing protocol name");
+            throw new XrootdException(kXR_ArgMissing, "Missing protocol name");
         }
     }
 
@@ -89,7 +89,7 @@ public class SecurityInfo
     {
         String value = data.get(key);
         if (value == null) {
-            throw new XrootdException(kXR_error, "missing '" + key + "' in sec");
+            throw new XrootdException(kXR_ArgMissing, "missing '" + key + "' in sec");
         }
         return value;
     }

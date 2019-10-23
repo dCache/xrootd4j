@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -327,14 +327,14 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
                                      request.getRequestId(),
                                      neededPerm);
         } catch (GeneralSecurityException e) {
-            throw new XrootdException(kXR_ServerError,
+            throw new XrootdException(kXR_NotAuthorized,
                                       "Authorization check failed: " +
                                       e.getMessage());
         } catch (SecurityException e) {
             throw new XrootdException(kXR_NotAuthorized,
                                       "Permission denied: " + e.getMessage());
         } catch (ParseException e) {
-            throw new XrootdException(kXR_NotAuthorized,
+            throw new XrootdException(kXR_InvalidRequest,
                                       "Invalid opaque data: " + e.getMessage() +
                                       " (opaque=" + opaque + ")");
         }

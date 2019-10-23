@@ -55,15 +55,11 @@ import org.dcache.xrootd.security.NestedBucketBuffer;
 import org.dcache.xrootd.security.StringBucket;
 import org.dcache.xrootd.security.UnsignedIntBucket;
 import org.dcache.xrootd.security.XrootdBucket;
-import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
+import org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_IOError;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_DecryptErr;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_cert;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_sigpxy;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGS_pxyreq;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
 /**
  * Implementation of server side of GSI handshake according to XrootD 4.9+.
@@ -189,7 +185,7 @@ public class GSIPost49ServerRequestHandler extends GSIServerRequestHandler
             cancelHandshake();
             LOGGER.error("The key negotiated by DH key exchange appears to " +
                                          "be invalid: {}", ikex.getMessage());
-            throw new XrootdException(kXR_InvalidRequest,
+            throw new XrootdException(kXR_DecryptErr,
                                       "Could not decrypt client" +
                                                       "information with negotiated key.");
         } catch (IOException ioex) {
@@ -197,14 +193,14 @@ public class GSIPost49ServerRequestHandler extends GSIServerRequestHandler
             LOGGER.error("Could not deserialize main nested buffer {}",
                          ioex.getMessage() == null ?
                                          ioex.getClass().getName() : ioex.getMessage());
-            throw new XrootdException(kXR_IOError,
+            throw new XrootdException(kGSErrSerialBuffer,
                                       "Could not decrypt encrypted " +
                                                       "client message.");
         } catch (GeneralSecurityException gssex) {
             cancelHandshake();
             LOGGER.error("Error during decrypting/server-side key exchange: {}",
                          gssex.getMessage());
-            throw new XrootdException(kXR_ServerError,
+            throw new XrootdException(kGSErrError,
                                       "Error in server-side cryptographic " +
                                                       "operations.");
         }
@@ -255,7 +251,7 @@ public class GSIPost49ServerRequestHandler extends GSIServerRequestHandler
             cancelHandshake();
             LOGGER.error("The key negotiated by DH key exchange appears to " +
                                          "be invalid: {}", ikex.getMessage());
-            throw new XrootdException(kXR_InvalidRequest,
+            throw new XrootdException(kXR_DecryptErr,
                                       "Could not decrypt client" +
                                                       "information with negotiated key.");
         } catch (IOException ioex) {
@@ -263,14 +259,14 @@ public class GSIPost49ServerRequestHandler extends GSIServerRequestHandler
             LOGGER.error("Could not deserialize main nested buffer {}",
                          ioex.getMessage() == null ?
                                          ioex.getClass().getName() : ioex.getMessage());
-            throw new XrootdException(kXR_IOError,
+            throw new XrootdException(kGSErrSerialBuffer,
                                       "Could not decrypt encrypted " +
                                                       "client message.");
         } catch (GeneralSecurityException gssex) {
             cancelHandshake();
             LOGGER.error("Error during decrypting/server-side key exchange: {}",
                          gssex.getMessage());
-            throw new XrootdException(kXR_ServerError,
+            throw new XrootdException(kGSErrError,
                                       "Error in server-side cryptographic " +
                                                       "operations.");
         }

@@ -38,7 +38,7 @@ import org.dcache.xrootd.tpc.protocol.messages.AbstractXrootdOutboundRequest;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundSigverRequest;
 import org.dcache.xrootd.tpc.protocol.messages.XrootdOutboundRequest;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_DecryptErr;
 
 /**
  * <p>Checks to see if the protocol security context requires
@@ -121,7 +121,7 @@ public class TpcSigverRequestEncoder extends ChannelOutboundHandlerAdapter
                         BadPaddingException |
                         NoSuchProviderException |
                         IllegalBlockSizeException e) {
-            throw new XrootdException(kXR_ServerError, e.getMessage());
+            throw new XrootdException(kXR_DecryptErr, e.getMessage());
         }
     }
 }
