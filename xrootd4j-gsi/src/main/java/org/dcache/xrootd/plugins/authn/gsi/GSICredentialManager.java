@@ -19,22 +19,11 @@
 package org.dcache.xrootd.plugins.authn.gsi;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
-import eu.emi.security.authn.x509.CrlCheckingMode;
-import eu.emi.security.authn.x509.NamespaceCheckingMode;
-import eu.emi.security.authn.x509.OCSPCheckingMode;
-import eu.emi.security.authn.x509.OCSPParametes;
-import eu.emi.security.authn.x509.ProxySupport;
-import eu.emi.security.authn.x509.RevocationParameters;
 import eu.emi.security.authn.x509.X509CertChainValidator;
 import eu.emi.security.authn.x509.X509Credential;
 import eu.emi.security.authn.x509.helpers.ssl.HostnameToCertificateChecker;
 import eu.emi.security.authn.x509.helpers.trust.OpensslTruststoreHelper;
-import eu.emi.security.authn.x509.impl.OpensslCertChainValidator;
 import eu.emi.security.authn.x509.impl.PEMCredential;
-import eu.emi.security.authn.x509.impl.ValidatorParams;
-import eu.emi.security.authn.x509.proxy.ProxyCertificate;
-import eu.emi.security.authn.x509.proxy.ProxyCertificateOptions;
 import eu.emi.security.authn.x509.proxy.ProxyGenerator;
 import eu.emi.security.authn.x509.proxy.ProxyRequestOptions;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
@@ -49,7 +38,6 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
-import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PublicKey;
@@ -63,7 +51,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.plugins.ProxyDelegationClient;
@@ -73,14 +60,10 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_error;
 
 /**
- *  <p>Supports credential loading and creation for both server and client.</p>
- *
- *  <p>Initializes the certificate objects (host certificate, host key,
- *      trusted certificates and CRLs) needed for handlers to perform their tasks.</p>
- *
- *  <p>Thus the certificates and trust anchors can be cached for a configurable
- *      time period. The configuration option controlling this caching is the
- *      same as the one used in the SRM door.</p>
+ *  <p>The component which provides credential management and related
+ *     support to the request handlers.  Wraps loading and refreshing
+ *     done by the credential loader, and validation of the cert
+ *     chain.</p>
  *
  *  <p>Also supports calls to delegation client in support of direct
  *      proxy delegation.</p>
@@ -123,34 +106,29 @@ public class GSICredentialManager
         throw new GeneralSecurityException(error);
     }
 
+    private static String generateIssuerHashes(X509Credential credential)
+    {
+        Set<String> issuers = new HashSet<>();
+
+        for (X509Certificate cert: credential.getCertificateChain()) {
+            X500Principal certIssuer = cert.getIssuerX500Principal();
+            issuers.add(OpensslTruststoreHelper.getOpenSSLCAHash(certIssuer,
+                                                                 true));
+        }
+
+        return Joiner.on("|").join(issuers);
+    }
+
     public X509Certificate createCertificate(byte[] bytes) throws CertificateException
     {
         return (X509Certificate)CERTIFICATE_FACTORY.generateCertificate(new ByteArrayInputStream(bytes));
     }
 
-    /*
-     *  Local credentials and CA certs.
-     */
-    private final String                 caCertificatePath;
+    private final CredentialLoader credentialLoader;
+    private final String           caCertificatePath;
     private final X509CertChainValidator certChainValidator;
-    private final long                   trustAnchorRefreshInterval;
-    private final String                 hostCertificatePath;
-    private final String                 hostKeyPath;
-    private final long                   hostCertRefreshInterval;
-    private final boolean                verifyHostCertificate;
-    private final String                 clientCertificatePath;
-    private final String                 clientKeyPath;
-    private final long                   proxyRefreshInterval;
-    private final boolean                verifyClientCertificate;
-    private final String                 proxyPath;
 
-    private long hostCertRefreshTimestamp = 0;
-    private long proxyRefreshTimestamp    = 0;
     private String issuerHashes;
-
-    private PEMCredential  hostCredential;
-    private PEMCredential  clientCredential;
-    private X509Credential proxy;
 
     /*
      *  For delegated proxy request
@@ -158,45 +136,13 @@ public class GSICredentialManager
     private X509ProxyDelegationClient               proxyDelegationClient;
     private ProxyRequest<X509Certificate[], String> proxyRequest;
 
-    public GSICredentialManager(Properties properties)
+    public GSICredentialManager(Properties properties,
+                                CredentialLoader credentialLoader,
+                                X509CertChainValidator certChainValidator)
     {
-        caCertificatePath = properties.getProperty("xrootd.gsi.ca.path");
-        trustAnchorRefreshInterval =
-                        TimeUnit.valueOf(properties.getProperty("xrootd.gsi.ca.refresh.unit"))
-                                .toMillis(Integer.parseInt(properties.getProperty("xrootd.gsi.ca.refresh")));
-        NamespaceCheckingMode namespaceMode =
-                        NamespaceCheckingMode.valueOf(properties.getProperty("xrootd.gsi.ca.namespace-mode"));
-        CrlCheckingMode crlCheckingMode =
-                        CrlCheckingMode.valueOf(properties.getProperty("xrootd.gsi.ca.crl-mode"));
-        OCSPCheckingMode ocspCheckingMode =
-                        OCSPCheckingMode.valueOf(properties.getProperty("xrootd.gsi.ca.ocsp-mode"));
-        ValidatorParams validatorParams = new ValidatorParams(
-                        new RevocationParameters(crlCheckingMode, new OCSPParametes(ocspCheckingMode)), ProxySupport.ALLOW);
-        certChainValidator = new OpensslCertChainValidator(caCertificatePath, false, namespaceMode,
-                                                           trustAnchorRefreshInterval, validatorParams, false);
-
-        /**
-         *  Local host
-         */
-        hostKeyPath = properties.getProperty("xrootd.gsi.hostcert.key");
-        hostCertificatePath = properties.getProperty("xrootd.gsi.hostcert.cert");
-        hostCertRefreshInterval =
-                        TimeUnit.valueOf(properties.getProperty("xrootd.gsi.hostcert.refresh.unit"))
-                                .toMillis(Integer.parseInt(properties.getProperty("xrootd.gsi.hostcert.refresh")));
-        verifyHostCertificate =
-                        Boolean.parseBoolean(properties.getProperty("xrootd.gsi.hostcert.verify"));
-
-        /**
-         *  If dCache third-party copy properties are locally defined
-         */
-        clientKeyPath = properties.getProperty("xrootd.gsi.tpc.cred.key");
-        clientCertificatePath = properties.getProperty("xrootd.gsi.tpc.cred.cert");
-        proxyRefreshInterval =
-                        TimeUnit.valueOf(properties.getProperty("xrootd.gsi.tpc.cred.refresh.unit"))
-                                .toMillis(Integer.parseInt(properties.getProperty("xrootd.gsi.tpc.cred.refresh")));
-        verifyClientCertificate =
-                        Boolean.parseBoolean(properties.getProperty("xrootd.gsi.tpc.cred.verify"));
-        proxyPath = properties.getProperty("xrootd.gsi.tpc.proxy.path");
+        this.caCertificatePath = properties.getProperty("xrootd.gsi.ca.path");
+        this.credentialLoader = credentialLoader;
+        this.certChainValidator = certChainValidator;
     }
 
     public synchronized void cancelOutstandingProxyRequest()
@@ -270,18 +216,25 @@ public class GSICredentialManager
         return certChainValidator;
     }
 
-    public PEMCredential getHostCredential() {
-        return hostCredential;
+    public PEMCredential getHostCredential()
+    {
+        return credentialLoader.getHostCredential();
     }
 
     public String getIssuerHashes()
     {
+        if (issuerHashes == null) {
+            X509Credential proxy = getProxy();
+            if (proxy != null) {
+                issuerHashes = generateIssuerHashes(proxy);
+            }
+        }
         return issuerHashes;
     }
 
     public X509Credential getProxy()
     {
-        return proxy;
+        return credentialLoader.getProxy();
     }
 
     public PublicKey getSenderPublicKey()
@@ -345,90 +298,11 @@ public class GSICredentialManager
                     CertificateParsingException, NoSuchProviderException
     {
         ProxyRequestOptions options = new ProxyRequestOptions(
-                        proxy.getCertificateChain(),
+                        credentialLoader.getProxy().getCertificateChain(),
                         new PKCS10CertificationRequest(serverCSR));
         LOGGER.debug("Client, signing proxy request (CSR) with client private key {}.",
-                     proxy.getKey());
-        return ProxyGenerator.generate(options, proxy.getKey());
-    }
-
-    /**
-     * Client-side, will attempt to read in a prefetched proxy from a given
-     * path, or to construct one from the local cert and key, if refresh
-     * has expired.
-     */
-    public synchronized void loadClientCredentials()
-    {
-        try {
-            if (shouldRefreshClientProxyCredential()) {
-                LOGGER.info("Refreshing proxy credential. Current refresh interval: {} ms",
-                            proxyRefreshInterval);
-
-                if (!Strings.isNullOrEmpty(proxyPath)) {
-                    clientCredential = new PEMCredential(proxyPath, (char[]) null);
-                    proxy = clientCredential;
-                } else {
-                    clientCredential = new PEMCredential(clientKeyPath,
-                                                         clientCertificatePath,
-                                                         null);
-                    if (verifyClientCertificate) {
-                        LOGGER.info("Verifying client certificate");
-                        certChainValidator.validate(clientCredential.getCertificateChain());
-                    }
-
-                    /*
-                     *  SLAC server requires an actual proxy, that is,
-                     *  cert chain length > 1.
-                     */
-                    try {
-                        ProxyCertificateOptions options
-                                        = new ProxyCertificateOptions(
-                                        clientCredential.getCertificateChain());
-                        ProxyCertificate proxyCert = ProxyGenerator.generate(
-                                        options,
-                                        clientCredential.getKey());
-                        proxy = proxyCert.getCredential();
-                    } catch (InvalidKeyException | SignatureException | NoSuchAlgorithmException e) {
-                        throw new CertificateException(
-                                        "could not generate host proxy credential.",
-                                        e);
-                    }
-                }
-
-                proxyRefreshTimestamp = System.currentTimeMillis();
-            }
-        } catch (GeneralSecurityException gssex) {
-            LOGGER.error("Could not load certificates/key due to security error; {}: {}.",
-                         getCredentialValues(), gssex.toString());
-        } catch (IOException ioex) {
-            LOGGER.error("Could not read certificates/key from file-system; {}: {}.",
-                         getCredentialValues(), ioex.toString());
-
-        }
-
-        issuerHashes = generateIssuerHashes(proxy);
-    }
-
-    /**
-     * Server-side, will attempt to generate host credential from
-     * local cert and key, if refresh has expired.
-     */
-    public synchronized void loadServerCredentials()
-                    throws CertificateException, KeyStoreException, IOException
-    {
-        if (shouldReloadServerCredentials()) {
-            LOGGER.info("Loading server certificates. Current refresh interval: {} ms",
-                        hostCertRefreshInterval);
-            PEMCredential credential = new PEMCredential(hostKeyPath,
-                                                         hostCertificatePath,
-                                                         null);
-            if (verifyHostCertificate) {
-                LOGGER.info("Verifying host certificate");
-                certChainValidator.validate(credential.getCertificateChain());
-            }
-            hostCredential = credential;
-            hostCertRefreshTimestamp = System.currentTimeMillis();
-        }
+                     credentialLoader.getProxy().getKey());
+        return ProxyGenerator.generate(options, credentialLoader.getProxy().getKey());
     }
 
     public void setProxyDelegationClient(ProxyDelegationClient proxyDelegationClient)
@@ -436,7 +310,7 @@ public class GSICredentialManager
         this.proxyDelegationClient = (X509ProxyDelegationClient)proxyDelegationClient;
     }
 
-    public void setIssuerHashes(X509Credential credential)
+    public void setIssuerHashesFromCredential(X509Credential credential)
     {
         issuerHashes = generateIssuerHashes(credential);
     }
@@ -451,27 +325,6 @@ public class GSICredentialManager
         return proxyDelegationClient;
     }
 
-    private String generateIssuerHashes(X509Credential credential)
-    {
-        Set<String> issuers = new HashSet<>();
-
-        for (X509Certificate cert: credential.getCertificateChain()) {
-            X500Principal certIssuer = cert.getIssuerX500Principal();
-            issuers.add(OpensslTruststoreHelper.getOpenSSLCAHash(certIssuer,
-                                                                 true));
-        }
-
-        return Joiner.on("|").join(issuers);
-    }
-
-    private String getCredentialValues()
-    {
-        return "client cert path: " + clientCertificatePath
-                        + ", client key path: " + clientKeyPath
-                        + ", client issuer hashes: " + issuerHashes
-                        + ", proxy path: " + proxyPath;
-    }
-
     private boolean isValidCaPath(String path)
     {
         path = path.trim();
@@ -481,19 +334,5 @@ public class GSICredentialManager
         }
 
         return new File(caCertificatePath, path).exists();
-    }
-
-    private boolean shouldReloadServerCredentials()
-    {
-        long timeSinceLastServerRefresh = (System.currentTimeMillis() - hostCertRefreshTimestamp);
-        LOGGER.info("Time since last server cert refresh {}", timeSinceLastServerRefresh);
-        return hostCredential == null || timeSinceLastServerRefresh >= hostCertRefreshInterval;
-    }
-
-    private boolean shouldRefreshClientProxyCredential()
-    {
-        long timeSinceLastClientRefresh = (System.currentTimeMillis() - proxyRefreshTimestamp);
-        LOGGER.info("Time since last client cert refresh {}", timeSinceLastClientRefresh);
-        return proxy == null || timeSinceLastClientRefresh >= proxyRefreshInterval;
     }
 }
