@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -509,7 +509,7 @@ public class DataServerHandler extends XrootdRequestHandler
 
         case kXR_Qcksum:
             try {
-                HashCode hash = com.google.common.io.Files.asByteSource(getFile(msg.getArgs())).hash(Hashing.adler32());
+                HashCode hash = com.google.common.io.Files.asByteSource(getFile(msg.getPath())).hash(Hashing.adler32());
                 return new QueryResponse(msg, "ADLER32 " + hash);
             } catch (FileNotFoundException e) {
                 throw new XrootdException(kXR_NotFound, e.getMessage());
