@@ -258,18 +258,10 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
         switch (req.getReqcode()) {
         case kXR_Qcksum:
         case kXR_Qxattr:
-            String args = req.getArgs();
-            int pos = args.indexOf(OPAQUE_DELIMITER);
-            String path;
-            String opaque;
-            if (pos > -1) {
-                path = args.substring(0, pos);
-                opaque = args.substring(pos + 1);
-            } else {
-                path = args;
-                opaque = "";
-            }
-            req.setArgs(authorize(ctx, req, FilePerm.READ, path, opaque));
+            req.setPath(authorize(ctx, req,
+                                  FilePerm.READ,
+                                  req.getPath(),
+                                  req.getOpaque()));
             break;
         }
         ctx.fireChannelRead(req);

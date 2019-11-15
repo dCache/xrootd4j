@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -22,14 +22,24 @@ import com.google.common.base.CharMatcher;
 import io.netty.buffer.ByteBuf;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_query;
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
+/**
+ *  Not every QueryRequest is a path request, so it
+ *  does not extend that class.
+ */
 public class QueryRequest extends AbstractXrootdRequest
 {
     public static final CharMatcher NULL_CHARACTER = CharMatcher.is('\0');
     private final int reqcode;
     private final int fhandle;
-    private String args;
+    private final String args;
+    private final String opaque;
+
+    /*
+     *  Can be altered by authorization plugins.
+     */
+    private String path;
 
     public QueryRequest(ByteBuf buffer)
     {
@@ -42,6 +52,23 @@ public class QueryRequest extends AbstractXrootdRequest
          * however the xrdfs client sends zero terminated paths.
          */
         args = NULL_CHARACTER.trimTrailingFrom(buffer.toString(24, alen, US_ASCII));
+
+        switch (reqcode) {
+            case kXR_Qcksum:
+            case kXR_Qxattr:
+                int pos = args.indexOf(OPAQUE_DELIMITER);
+                if (pos > -1) {
+                    path = args.substring(0, pos);
+                    opaque = args.substring(pos + 1);
+                } else {
+                    path = args;
+                    opaque = "";
+                }
+                break;
+            default:
+                path = null;
+                opaque = null;
+        }
     }
 
     public int getReqcode()
@@ -59,9 +86,19 @@ public class QueryRequest extends AbstractXrootdRequest
         return args;
     }
 
-    public void setArgs(String args)
+    public String getOpaque()
     {
-        this.args = args;
+        return opaque;
+    }
+
+    public String getPath()
+    {
+        return path;
+    }
+
+    public void setPath(String path)
+    {
+        this.path = path;
     }
 
     @Override
