@@ -36,23 +36,20 @@ public class ChecksumInfo
     private final String           path;
     private final Optional<String> type;
 
-    public ChecksumInfo(String args) throws XrootdException
+    public ChecksumInfo(String path, String opaque) throws XrootdException
     {
-        int i = args.indexOf("?");
-        if (i == -1) {
-            path = args;
+        this.path = path;
+        if (opaque == null) {
             type = Optional.empty();
         } else {
-            path = args.substring(0, i);
-            String query = args.substring(i);
             try {
                 Map<String, String> map
-                                = OpaqueStringParser.getOpaqueMap(query);
+                                = OpaqueStringParser.getOpaqueMap(opaque);
                 type = Optional.ofNullable(map.get(KEY));
             } catch (ParseException e) {
                 throw new XrootdException(kXR_InvalidRequest,
                                           "malformed checksum query part: "
-                                                          + query);
+                                                          + opaque);
             }
         }
     }
