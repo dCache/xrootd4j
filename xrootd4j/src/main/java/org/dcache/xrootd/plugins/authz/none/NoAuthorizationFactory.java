@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -17,6 +17,8 @@
  * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.plugins.authz.none;
+
+import io.netty.channel.ChannelHandlerContext;
 
 import org.dcache.xrootd.plugins.AuthorizationFactory;
 import org.dcache.xrootd.plugins.AuthorizationHandler;
@@ -41,7 +43,7 @@ public class NoAuthorizationFactory implements AuthorizationFactory
     }
 
     @Override
-    public AuthorizationHandler createHandler()
+    public AuthorizationHandler createHandler(ChannelHandlerContext ctx)
     {
         return HANDLER;
     }

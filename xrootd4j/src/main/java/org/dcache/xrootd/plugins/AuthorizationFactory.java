@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -18,6 +18,8 @@
  */
 package org.dcache.xrootd.plugins;
 
+import io.netty.channel.ChannelHandlerContext;
+
 public interface AuthorizationFactory
 {
     /**
@@ -35,7 +37,8 @@ public interface AuthorizationFactory
      * Creates a new authorization handler. The authorization handler
      * is only valid for a single request.
      *
+     * @param ctx channel handler context
      * @return the new authorization handler instance
      */
-    AuthorizationHandler createHandler();
+    AuthorizationHandler createHandler(ChannelHandlerContext ctx);
 }

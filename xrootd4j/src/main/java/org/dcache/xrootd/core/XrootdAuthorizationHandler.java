@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -309,8 +309,9 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
             InetSocketAddress destinationAddress = getDestinationAddress();
             InetSocketAddress sourceAddress = getSourceAddress();
 
-            AuthorizationHandler handler =
-                _authorizationFactory.createHandler();
+            AuthorizationHandler handler
+                            = _authorizationFactory.createHandler(ctx);
+
             return handler.authorize(request.getSubject(),
                                      destinationAddress,
                                      sourceAddress,
