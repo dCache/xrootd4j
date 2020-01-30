@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -21,9 +21,9 @@ package org.dcache.xrootd.tpc.protocol.messages;
 import io.netty.buffer.ByteBuf;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
-import static org.dcache.xrootd.protocol.XrootdProtocol.CLIENT_CAPVER_VERSION;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_useruser;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ver004;
 
 /**
  *  <p>The <code>token</code> field represents the rendezvous key given
@@ -55,8 +55,8 @@ public class OutboundLoginRequest extends AbstractXrootdOutboundRequest
         buffer.writeByte(0);
         // ability –– nothing special
         buffer.writeByte(0);
-        // capver –– (no async, client version);
-        buffer.writeByte(CLIENT_CAPVER_VERSION);
+        // capver –– (client capability version);
+        buffer.writeByte(kXR_ver004);
         // role = user
         buffer.writeByte(kXR_useruser);
         if (token != null) {

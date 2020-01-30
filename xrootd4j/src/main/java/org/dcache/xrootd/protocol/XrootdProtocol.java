@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -19,220 +19,18 @@
 package org.dcache.xrootd.protocol;
 
 public interface XrootdProtocol {
-
-    /*  current supported protocol version: 400
-     *  Xrootd expects the protocol information binary encoded in an int32
+    /*
+     *  _______________________________________________________________________
+     *  AUTHZ
+     *
+     *  Access permissions when using xrootd authz.
+     *  A file can have only one type (no combinations);
+     *  the granted rights increase in the order of appereance
+     *  (e.g. delete includes write, which includes read and write-once).
+     *  _______________________________________________________________________
      */
-    public static final int  PROTOCOL_VERSION       = 0x00000400;
-    public static final int  PROTOCOL_SIGN_VERSION  = 0x00000310;
-    public static final byte PROTOCOL_VERSION_MAJOR =
-        (byte) ((PROTOCOL_VERSION & 0xFF00) >> 8);
-    public static final byte PROTOCOL_VERSION_MINOR =
-        (byte) (PROTOCOL_VERSION & 0x00FF);
-    public static final byte CLIENT_CAPVER_VERSION  = (byte)4;
-    public static final int  TPC_VERSION            = 1;
-
-    public static final byte      CLIENT_REQUEST_LEN = 24;
-    public static final byte    CLIENT_HANDSHAKE_LEN = 20;
-    public static final byte     SERVER_RESPONSE_LEN = 8;
-    public static final int            LOAD_BALANCER = 0;
-    public static final int              DATA_SERVER = 1;
-
-    public static final byte[] HANDSHAKE_REQUEST = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 7, (byte) 220};
-    public static final byte[] HANDSHAKE_RESPONSE_LOADBALANCER = {0, 0, 0, 0, 0, 0, 0, 8, 0, 0, PROTOCOL_VERSION_MAJOR, PROTOCOL_VERSION_MINOR , 0, 0, 0, LOAD_BALANCER};
-    public static final byte[] HANDSHAKE_RESPONSE_DATASERVER = {0, 0, 0, 0, 0, 0, 0, 8, 0, 0, PROTOCOL_VERSION_MAJOR, PROTOCOL_VERSION_MINOR, 0, 0, 0, DATA_SERVER};
-
-    // server response codes
-    public static final int   kXR_ok       = 0;
-    public static final int   kXR_oksofar  = 4000;
-    public static final int   kXR_attn     = 4001;
-    public static final int   kXR_authmore = 4002;
-    public static final int   kXR_error    = 4003;
-    public static final int   kXR_redirect = 4004;
-    public static final int   kXR_wait     = 4005;
-    public static final int   kXR_waitresp = 4006;
-    public static final int   kXR_noResponsesYet = 10000;
-
-    // server error codes
-    public static final int   kXR_ArgInvalid     = 3000;
-    public static final int   kXR_ArgMissing     = 3001;
-    public static final int   kXR_ArgTooLong     = 3002;
-    public static final int   kXR_FileLocked     = 3003;
-    public static final int   kXR_FileNotOpen    = 3004;
-    public static final int   kXR_FSError        = 3005;
-    public static final int   kXR_InvalidRequest = 3006;
-    public static final int   kXR_IOError        = 3007;
-    public static final int   kXR_NoMemory       = 3008;
-    public static final int   kXR_NoSpace        = 3009;
-    public static final int   kXR_NotAuthorized  = 3010;
-    public static final int   kXR_NotFound       = 3011;
-    public static final int   kXR_ServerError    = 3012;
-    public static final int   kXR_Unsupported    = 3013;
-    public static final int   kXR_noserver       = 3014;
-    public static final int   kXR_NotFile        = 3015;
-    public static final int   kXR_isDirectory    = 3016;
-    public static final int   kXR_Cancelled      = 3017;
-    public static final int   kXR_ChkLenErr      = 3018;
-    public static final int   kXR_ChkSumErr      = 3019;
-    public static final int   kXR_inProgress     = 3020;
-    public static final int   kXR_overQuota      = 3021;
-    public static final int   kXR_SigVerErr      = 3022;
-    public static final int   kXR_DecryptErr     = 3023;
-    public static final int   kXR_Overloaded     = 3024;
-    public static final int   kXR_noErrorYet     = 10000;
-    @Deprecated // Kept for compatibility with plugins
-    public static final int   kXR_FileLockedr    = 3003;
-
-    // client's request types
-    public static final int   kXR_handshake = 0;
-    public static final int   kXR_auth      = 3000;
-    public static final int   kXR_query     = 3001;
-    public static final int   kXR_chmod     = 3002;
-    public static final int   kXR_close     = 3003;
-    public static final int   kXR_dirlist   = 3004;
-    public static final int   kXR_getfile   = 3005;
-    public static final int   kXR_protocol  = 3006;
-    public static final int   kXR_login     = 3007;
-    public static final int   kXR_mkdir     = 3008;
-    public static final int   kXR_mv        = 3009;
-    public static final int   kXR_open      = 3010;
-    public static final int   kXR_ping      = 3011;
-    public static final int   kXR_putfile   = 3012;
-    public static final int   kXR_read      = 3013;
-    public static final int   kXR_rm        = 3014;
-    public static final int   kXR_rmdir     = 3015;
-    public static final int   kXR_sync      = 3016;
-    public static final int   kXR_stat      = 3017;
-    public static final int   kXR_set       = 3018;
-    public static final int   kXR_write     = 3019;
-    public static final int   kXR_admin     = 3020;
-    public static final int   kXR_prepare   = 3021;
-    public static final int   kXR_statx     = 3022;
-    public static final int   kXR_endsess   = 3023;
-    public static final int   kXR_bind      = 3024;
-    public static final int   kXR_readv     = 3025;
-    public static final int   kXR_verifyw   = 3026;
-    public static final int   kXR_locate    = 3027;
-    public static final int   kXR_truncate  = 3028;
-    public static final int   kXR_sigver    = 3029;
-
-    // open mode for remote files
-    public static final short kXR_ur = 0x100;
-    public static final short kXR_uw = 0x080;
-    public static final short kXR_ux = 0x040;
-    public static final short kXR_gr = 0x020;
-    public static final short kXR_gw = 0x010;
-    public static final short kXR_gx = 0x008;
-    public static final short kXR_or = 0x004;
-    public static final short kXR_ow = 0x002;
-    public static final short kXR_ox = 0x001;
-
-    // open request options
-    public static final short kXR_compress  = 0x0001;
-    public static final short kXR_delete    = 0x0002;
-    public static final short kXR_force     = 0x0004;
-    public static final short kXR_new       = 0x0008;
-    public static final short kXR_open_read = 0x0010;
-    public static final short kXR_open_updt = 0x0020;
-    public static final short kXR_async     = 0x0040;
-    public static final short kXR_refresh   = 0x0080;
-    public static final short kXR_mkpath    = 0x0100;
-    public static final short kXR_open_apnd = 0x0200;
-    public static final short kXR_retstat   = 0x0400;
-    public static final short kXR_replica   = 0x0800;
-    public static final short kXR_posc      = 0x1000;
-    public static final short kXR_nowait    = 0x2000;
-    public static final short kXR_seqio     = 0x4000;
-
-    // stat response flags
-    public static final int kXR_file     = 0x00;
-    public static final int kXR_xset     = 0x01;
-    public static final int kXR_isDir    = 0x02;
-    public static final int kXR_other    = 0x04;
-    public static final int kXR_offline  = 0x08;
-    public static final int kXR_readable = 0x10;
-    public static final int kXR_writable = 0x20;
-    public static final int kXR_poscpend = 0x40;
-
-    @Deprecated // Kept for compatibility with plugins
-    public static final int kXR_opscpend = 0x40;
-
-    // attn response codes
-    public static final int kXR_asyncab         = 5000;
-    public static final int kXR_asyncdi         = 5001;
-    public static final int kXR_asyncms         = 5002;
-    public static final int kXR_asyncrd         = 5003;
-    public static final int kXR_asyncwt         = 5004;
-    public static final int kXR_asyncav         = 5005;
-    public static final int kXR_asynunav        = 5006;
-    public static final int kXR_asyncgo         = 5007;
-    public static final int kXR_asynresp        = 5008;
-
-    // prepare request options
-    public static final int kXR_cancel = 0x01;
-    public static final int kXR_notify = 0x02;
-    public static final int kXR_noerrs = 0x04;
-    public static final int kXR_stage  = 0x08;
-    public static final int kXR_wmode  = 0x10;
-    public static final int kXR_coloc  = 0x20;
-    public static final int kXR_fresh  = 0x40;
-
-    // verification options
-    public static final int kXR_nocrc = 0;
-    public static final int kXR_crc32 = 1;
-
-    // protocol request options
-    public static final byte kXR_secreqs  = 1;
-
-    // query types
-    public static final int kXR_QStats = 1;
-    public static final int kXR_QPrep  = 2;
-    public static final int kXR_Qcksum = 3;
-    public static final int kXR_Qxattr = 4;
-    public static final int kXR_Qspace = 5;
-    public static final int kXR_Qckscan= 6;
-    public static final int kXR_Qconfig= 7;
-    public static final int kXR_Qvisa  = 8;
-    public static final int kXR_Qopaque=16;
-    public static final int kXR_Qopaquf=32;
-
-    // dirlist options
-    public static final int kXR_online = 1;
-    public static final int kXR_dstat  = 2;
-
-    // mkdir options
-    public static final int kXR_mknone    = 0;
-    public static final int kXR_mkdirpath = 1;
-
-    // login cap version
-    public static final int kXR_lcvnone   = 0;
-    public static final int kXR_vermask   = 63;
-    public static final int kXR_asyncap   = 128;
-
-    // login version
-    public static final int kXR_ver000 = 0; // old clients predating history
-    public static final int kXR_ver001 = 1; // generally implemented 2005 prot.
-    public static final int kXR_ver002 = 2; // recognizes asyncresp
-
-    // stat options
-    public static final int kXR_vfs = 1;
-
-    // logon types
-    public static final byte kXR_useruser = 0;
-    public static final byte kXR_useradmin = 1;
-
-    public static final int DEFAULT_PORT = 1094;
-
-    public static final int SESSION_ID_SIZE = 16;
-
-    public static final byte OPAQUE_DELIMITER = (byte) 0x3f;
-
-    /* All possible access permissions when using xrootd authZ
-     * these are the possbile permission level, one file can have only one type
-     * (no combinations) the granted rights increase in the order of appereance
-     * (e.g. delete includes write, which includes read and write-once)
-     */
-    public static enum FilePerm {
+    enum FilePerm
+    {
         READ ("read"),
         WRITE_ONCE ("write-once"),
         WRITE ("write"),
@@ -247,6 +45,394 @@ public interface XrootdProtocol {
         public String xmlText() { return _xmlText; }
     }
 
-    /* passing information from the door to the pool */
-    public static final String UUID_PREFIX = "org.dcache.uuid";
+    /**
+     *  _______________________________________________________________________
+     *  XROOTD4J INTERNALS
+     *  _______________________________________________________________________
+     */
+    int     DEFAULT_PORT                = 1094;
+    byte    CLIENT_REQUEST_LEN          = 24;
+    byte    CLIENT_HANDSHAKE_LEN        = 20;
+    byte    SERVER_RESPONSE_LEN         = 8;
+    int     SESSION_ID_SIZE             = 16;
+    byte    OPAQUE_DELIMITER            = (byte) 0x3f;
+
+    /*
+     *  Passed from door to pool to identify transfer.
+     */
+    String  UUID_PREFIX                 = "org.dcache.uuid";
+
+    /**
+     *  _______________________________________________________________________
+     *  VERSIONING
+     *
+     *  Protocol version is represented as three base10 digits x.y.z with x
+     *  having no upper limit (i.e. n.9.9 + 1 -> n+1.0.0).
+     *
+     *  PROTOCOL_SIGN_VERSION defines the protocol version where request
+     *  signing became available.
+     *  _______________________________________________________________________
+     */
+    int     PROTOCOL_VERSION            = 0x00000400;
+    int     PROTOCOL_SIGN_VERSION       = 0x00000310;
+    byte    PROTOCOL_VERSION_MAJOR      = (byte) ((PROTOCOL_VERSION & 0xFF00) >> 8);
+    byte    PROTOCOL_VERSION_MINOR      = (byte) (PROTOCOL_VERSION & 0x00FF);
+    int     TPC_VERSION                 = 1;
+
+    /**
+     *  _______________________________________________________________________
+     *  KINDS OF SERVERS
+     *  _______________________________________________________________________
+     */
+    int     LOAD_BALANCER               = 0;
+    int     DATA_SERVER                 = 1;
+
+    /**
+     *  _______________________________________________________________________
+     *  HANDSHAKE
+     *  _______________________________________________________________________
+     */
+    byte[]  HANDSHAKE_REQUEST =
+                    {
+                                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                    0, 0, 0, 4, 0, 0, 7, (byte) 220
+                    };
+
+    byte[]  HANDSHAKE_RESPONSE_LOADBALANCER =
+                    {
+                                    0, 0, 0, 0, 0, 0, 0, 8, 0, 0,
+                                    PROTOCOL_VERSION_MAJOR,
+                                    PROTOCOL_VERSION_MINOR,
+                                    0, 0, 0, LOAD_BALANCER
+                    };
+
+    byte[]  HANDSHAKE_RESPONSE_DATASERVER =
+                    {
+                                    0, 0, 0, 0, 0, 0, 0, 8, 0, 0,
+                                    PROTOCOL_VERSION_MAJOR,
+                                    PROTOCOL_VERSION_MINOR,
+                                    0, 0, 0, DATA_SERVER
+                    };
+
+    /**
+     *  _______________________________________________________________________
+     *  SERVER TYPE
+     *
+     *  Flag values in the kXR_protocol response.
+     *  Defined for protocol version 2.9.7 or higher.
+     *
+     *  (see further below for other PROTOCOL RESPONSE flags)
+     *  _______________________________________________________________________
+     */
+    int     kXR_isManager               = 0x00000002;
+    int     kXR_isServer                = 0x00000001;
+    int     kXR_attrMeta                = 0x00000100;
+    int     kXR_attrProxy               = 0x00000200;
+    int     kXR_attrSuper               = 0x00000400;
+
+    /**
+     *  _______________________________________________________________________
+     *  CLIENT REQUEST TYPES
+     *  _______________________________________________________________________
+     */
+    int     kXR_handshake               = 0;
+    int     kXR_auth                    = 3000;
+    int     kXR_query                   = 3001;
+    int     kXR_chmod                   = 3002;
+    int     kXR_close                   = 3003;
+    int     kXR_dirlist                 = 3004;
+    int     kXR_getfile                 = 3005;
+    int     kXR_protocol                = 3006;
+    int     kXR_login                   = 3007;
+    int     kXR_mkdir                   = 3008;
+    int     kXR_mv                      = 3009;
+    int     kXR_open                    = 3010;
+    int     kXR_ping                    = 3011;
+    int     kXR_putfile                 = 3012;
+    int     kXR_read                    = 3013;
+    int     kXR_rm                      = 3014;
+    int     kXR_rmdir                   = 3015;
+    int     kXR_sync                    = 3016;
+    int     kXR_stat                    = 3017;
+    int     kXR_set                     = 3018;
+    int     kXR_write                   = 3019;
+    int     kXR_admin                   = 3020;
+    int     kXR_prepare                 = 3021;
+    int     kXR_statx                   = 3022;
+    int     kXR_endsess                 = 3023;
+    int     kXR_bind                    = 3024;
+    int     kXR_readv                   = 3025;
+    int     kXR_verifyw                 = 3026;
+    int     kXR_locate                  = 3027;
+    int     kXR_truncate                = 3028;
+    int     kXR_sigver                  = 3029;
+    int     kXR_decrypt                 = 3030;
+    int     kXR_writev                  = 3031;
+    int     kXR_REQFENCE                = 3032;
+
+    /**
+     *  _______________________________________________________________________
+     *  OPEN MODE FOR A REMOTE FILE
+     *  _______________________________________________________________________
+     */
+    int     kXR_ur                      = 0x100;
+    int     kXR_uw                      = 0x080;
+    int     kXR_ux                      = 0x040;
+    int     kXR_gr                      = 0x020;
+    int     kXR_gw                      = 0x010;
+    int     kXR_gx                      = 0x008;
+    int     kXR_or                      = 0x004;
+    int     kXR_ow                      = 0x002;
+    int     kXR_ox                      = 0x001;
+
+    /**
+     *  _______________________________________________________________________
+     *  MKDIR OPTIONS
+     *  _______________________________________________________________________
+     */
+    int     kXR_mknone                  = 0;
+    int     kXR_mkdirpath               = 1;
+
+    /**
+     *  _______________________________________________________________________
+     *  LOGIN CAPABILITY
+     *  _______________________________________________________________________
+     */
+    int     kXR_nothing                 =   0;
+    int     kXR_fullurl                 =   1;
+    int     kXR_multipr                 =   3;
+    int     kXR_readrdok                =   4;
+    int     kXR_hasipv64                =   8;
+    int     kXR_onlyprv4                =  16;
+    int     kXR_onlyprv6                =  32;
+    int     kXR_lclfile                 =  64;
+
+    /**
+     *  _______________________________________________________________________
+     *  LOGIN CAPABILITY VERSION
+     *  _______________________________________________________________________
+     */
+    int     kXR_lcvnone                 = 0;
+    int     kXR_vermask                 = 63;
+    int     kXR_asyncap                 = 128;
+
+    /**
+     *  _______________________________________________________________________
+     *  a single number that goes into capver as the version
+     *  _______________________________________________________________________
+     */
+    int     kXR_ver000                  = 0; // Old clients predating history
+    int     kXR_ver001                  = 1; // Generally implemented 2005 protocol
+    int     kXR_ver002                  = 2; // Same as 1 but adds asyncresp recognition
+    int     kXR_ver003                  = 3; // The 2011-2012 rewritten client
+    int     kXR_ver004                  = 4; // The 2016 sign-capable client
+
+    /**
+     *  _______________________________________________________________________
+     *  STAT REQUEST OPTIONS
+     *  _______________________________________________________________________
+     */
+    int     kXR_vfs                     = 1;
+
+    /**
+     *  _______________________________________________________________________
+     *  STAT RESPONSE FLAGS
+     *  _______________________________________________________________________
+     */
+    int     kXR_file                    = 0x00;
+    int     kXR_xset                    = 0x01;
+    int     kXR_isDir                   = 0x02;
+    int     kXR_other                   = 0x04;
+    int     kXR_offline                 = 0x08;
+    int     kXR_readable                = 0x10;
+    int     kXR_writable                = 0x20;
+    int     kXR_poscpend                = 0x40;
+    int     kXR_bkpexist                = 0x80;
+
+    /**
+     *  _______________________________________________________________________
+     *  DIR LIST REQUEST OPTIONS
+     *  _______________________________________________________________________
+     */
+    int     kXR_online                  = 1;
+    int     kXR_dstat                   = 2;
+
+    /**
+     *  _______________________________________________________________________
+     *  OPEN REQUEST OPTIONS
+     *  _______________________________________________________________________
+     */
+    int     kXR_compress                = 0x0001;
+    int     kXR_delete                  = 0x0002;
+    int     kXR_force                   = 0x0004;
+    int     kXR_new                     = 0x0008;
+    int     kXR_open_read               = 0x0010;
+    int     kXR_open_updt               = 0x0020;
+    int     kXR_async                   = 0x0040;
+    int     kXR_refresh                 = 0x0080;
+    int     kXR_mkpath                  = 0x0100;
+    int     kXR_open_apnd               = 0x0200;
+    int     kXR_retstat                 = 0x0400;
+    int     kXR_replica                 = 0x0800;
+    int     kXR_posc                    = 0x1000;
+    int     kXR_nowait                  = 0x2000;
+    int     kXR_seqio                   = 0x4000;
+    int     kXR_open_wrto               = 0x8000;
+
+    @Deprecated // Kept for compatibility with plugins
+    int     kXR_opscpend                = 0x0040;
+
+    /**
+     *  _______________________________________________________________________
+     *  PROTOCOL REQUEST FLAGS
+     *  _______________________________________________________________________
+     */
+    byte    kXR_secreqs                 = 0x01;
+    byte    kXR_ableTLS                 = 0x02;
+    byte    kXR_wantTLS                 = 0x04;
+
+    /**
+     *  _______________________________________________________________________
+     *  PROTOCOL REQUEST EXPECT
+     *  _______________________________________________________________________
+     */
+    byte    kXR_expMask                 = 0x0f;  // to isolate expect encoding
+    byte    kXR_ExpNone                 = 0x00;  // No expectations
+    byte    kXR_ExpBind                 = 0x01;  // expect a kXR_bine request
+    byte    kXR_ExpGPF                  = 0x02;  // expect a kXR_gpfile request
+    byte    kXR_ExpLogin                = 0x03;  // expect a kXR_login request
+    byte    kXR_ExpTPC                  = 0x04;  // expect a third-party copy
+
+    /**
+     *  _______________________________________________________________________
+     *  PROTOCOL RESPONSE FLAGS
+     *  _______________________________________________________________________
+     */
+    int     kXR_anongpf                 = 0x00800000; // Allows anonymous kXR_gpfile
+    int     kXR_supgpf                  = 0x00400000; // Supports kXR_pgread & kXR_pgwrite
+    int     kXR_suppgrw                 = 0x00200000; // Supports kXR_gpfile
+    int     kXR_supposc                 = 0x00100000; // Supports kXR_posc open option
+    int     kXR_haveTLS                 = 0x80000000; // Supports TLS connections
+    int     kXR_gotoTLS                 = 0x40000000; // Connection will transition to TLS
+    int     kXR_tlsAny                  = 0x1f000000; // to isolate tls requirement flags
+    int     kXR_tlsData                 = 0x01000000; // All data requires a TLS connection
+    int     kXR_tlsGPF                  = 0x02000000; // kXR_gpfile requires TLS
+    int     kXR_tlsLogin                = 0x04000000; // kXR_login requires a TLS connection
+    int     kXR_tlsSess                 = 0x08000000; // Connection transition to TLS after login
+    int     kXR_tlsTPC                  = 0x10000000; // TPC requests require a TLS connection
+
+    /**
+     *  _______________________________________________________________________
+     *  QUERY REQUEST TYPES
+     *  _______________________________________________________________________
+     */
+    int     kXR_QStats                  = 1;
+    int     kXR_QPrep                   = 2;
+    int     kXR_Qcksum                  = 3;
+    int     kXR_Qxattr                  = 4;
+    int     kXR_Qspace                  = 5;
+    int     kXR_Qckscan                 = 6;
+    int     kXR_Qconfig                 = 7;
+    int     kXR_Qvisa                   = 8;
+    int     kXR_Qopaque                 = 16;
+    int     kXR_Qopaquf                 = 32;
+    int     kXR_Qopaqug                 = 64;
+
+    /**
+     *  _______________________________________________________________________
+     *  VERIFICATION TYPES
+     *  _______________________________________________________________________
+     */
+    int     kXR_nocrc                   = 0;
+    int     kXR_crc32                   = 1;
+
+    /**
+     *  _______________________________________________________________________
+     *  LOGON TYPES
+     *  _______________________________________________________________________
+     */
+    byte    kXR_useruser                = 0;
+    byte    kXR_useradmin               = 1;
+
+    /**
+     *  _______________________________________________________________________
+     *  PREPARE REQUEST OPTIONS (kXR_QPrep)
+     *  _______________________________________________________________________
+     */
+    int     kXR_cancel                  = 0x01;
+    int     kXR_notify                  = 0x02;
+    int     kXR_noerrs                  = 0x04;
+    int     kXR_stage                   = 0x08;
+    int     kXR_wmode                   = 0x10;
+    int     kXR_coloc                   = 0x20;
+    int     kXR_fresh                   = 0x40;
+    int     kXR_usetcp                  = 0x80;
+    int     kXR_evict                   = 0x0001;  // optionsX: file no longer useful
+
+    /**
+     *  _______________________________________________________________________
+     *  SERVER RESPONSE TYPES
+     *  _______________________________________________________________________
+     */
+    int     kXR_ok                      = 0;
+    int     kXR_oksofar                 = 4000;
+    int     kXR_attn                    = 4001;
+    int     kXR_authmore                = 4002;
+    int     kXR_error                   = 4003;
+    int     kXR_redirect                = 4004;
+    int     kXR_wait                    = 4005;
+    int     kXR_waitresp                = 4006;
+    int     kXR_noResponsesYet          = 10000;
+
+    /**
+     *  _______________________________________________________________________
+     *  SERVER ATTN CODES
+     *  _______________________________________________________________________
+     */
+    int     kXR_asyncab                 = 5000;
+    int     kXR_asyncdi                 = 5001;
+    int     kXR_asyncms                 = 5002;
+    int     kXR_asyncrd                 = 5003;
+    int     kXR_asyncwt                 = 5004;
+    int     kXR_asyncav                 = 5005;
+    int     kXR_asynunav                = 5006;
+    int     kXR_asyncgo                 = 5007;
+    int     kXR_asynresp                = 5008;
+
+    /**
+     *  _______________________________________________________________________
+     *  SERVER ERROR CODES
+     *  _______________________________________________________________________
+     */
+    int     kXR_ArgInvalid              = 3000;
+    int     kXR_ArgMissing              = 3001;
+    int     kXR_ArgTooLong              = 3002;
+    int     kXR_FileLocked              = 3003;
+    int     kXR_FileNotOpen             = 3004;
+    int     kXR_FSError                 = 3005;
+    int     kXR_InvalidRequest          = 3006;
+    int     kXR_IOError                 = 3007;
+    int     kXR_NoMemory                = 3008;
+    int     kXR_NoSpace                 = 3009;
+    int     kXR_NotAuthorized           = 3010;
+    int     kXR_NotFound                = 3011;
+    int     kXR_ServerError             = 3012;
+    int     kXR_Unsupported             = 3013;
+    int     kXR_noserver                = 3014;
+    int     kXR_NotFile                 = 3015;
+    int     kXR_isDirectory             = 3016;
+    int     kXR_Cancelled               = 3017;
+    int     kXR_ChkLenErr               = 3018;
+    int     kXR_ChkSumErr               = 3019;
+    int     kXR_inProgress              = 3020;
+    int     kXR_overQuota               = 3021;
+    int     kXR_SigVerErr               = 3022;
+    int     kXR_DecryptErr              = 3023;
+    int     kXR_Overloaded              = 3024;
+    int     kXR_ERRFENCE                = 3025;
+    int     kXR_noErrorYet              = 10000;
+
+    @Deprecated // Kept for compatibility with plugins
+    int     kXR_FileLockedr             = 3003;
+
 }
