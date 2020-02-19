@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -552,10 +552,17 @@ public class XrootdTpcInfo {
             src = map.get(SRC);
         }
         if (src != null) {
-            String[] source = this.src.split(":");
-            this.srcHost = source[0];
+            /*
+             *  there may be a uname prefix, so remove it
+             */
+            int at = src.indexOf("@");
+            if (at >= 0) {
+                src = src.substring(at + 1);
+            }
+            String[] source = src.split(":");
+            srcHost = source[0];
             if (Strings.emptyToNull(source[1]) != null) {
-                this.srcPort = Integer.parseInt(source[1]);
+                srcPort = Integer.parseInt(source[1]);
             }
         }
     }
