@@ -29,6 +29,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.tpc.protocol.messages.InboundRedirectResponse;
 import org.dcache.xrootd.util.OpaqueStringParser;
 import org.dcache.xrootd.util.ParseException;
@@ -561,8 +562,10 @@ public class XrootdTpcInfo {
             }
             String[] source = src.split(":");
             srcHost = source[0];
-            if (Strings.emptyToNull(source[1]) != null) {
+            if (source.length > 1 && Strings.emptyToNull(source[1]) != null) {
                 srcPort = Integer.parseInt(source[1]);
+            } else {
+                srcPort = XrootdProtocol.DEFAULT_PORT;
             }
         }
     }
