@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -32,8 +32,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
-import org.dcache.xrootd.plugins.ProxyDelegationClient;
 import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
+import org.dcache.xrootd.plugins.ProxyDelegationClient;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.EndSessionRequest;
 import org.dcache.xrootd.protocol.messages.ErrorResponse;
@@ -44,6 +44,7 @@ import org.dcache.xrootd.protocol.messages.XrootdRequest;
 import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.security.BufferDecrypter;
 import org.dcache.xrootd.security.SigningPolicy;
+import org.dcache.xrootd.util.UserNameUtils;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
@@ -116,9 +117,11 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
                     if (_isInProgress.compareAndSet(false, true)) {
                         try {
                             _state = State.NO_LOGIN;
-                            _session = new XrootdSession(_sessionId, ctx.channel(), (LoginRequest) request);
+                            LoginRequest loginRequest = (LoginRequest) request;
+                            loginRequest.setUserName(UserNameUtils.checkUsernameValid(loginRequest.getUserName()));
+                            _session = new XrootdSession(_sessionId, ctx.channel(), loginRequest);
                             request.setSession(_session);
-                            doOnLogin(ctx, (LoginRequest) request);
+                            doOnLogin(ctx, loginRequest);
                             _sessions.put(_sessionId, _session);
                         } finally {
                             _isInProgress.set(false);
@@ -234,8 +237,8 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
                             = _authenticationFactory.createHandler(_proxyDelegationClient);
 
             LoginResponse response =
-                new LoginResponse(request, _sessionId,
-                                  _authenticationHandler.getProtocol());
+                            new LoginResponse(request, _sessionId,
+                                              _authenticationHandler.getProtocol());
 
             if (_authenticationHandler.isCompleted()) {
                 authenticated(context, _authenticationHandler.getSubject());
