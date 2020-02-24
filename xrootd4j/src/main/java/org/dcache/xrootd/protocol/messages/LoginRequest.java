@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -26,11 +26,12 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_useradmin;
 
 public class LoginRequest extends AbstractXrootdRequest
 {
-    private final String username;
     private final short role;
     private final short capver;
     private final int pid;
     private final String token;
+
+    private String username;
 
     public LoginRequest(ByteBuf buffer)
     {
@@ -55,6 +56,11 @@ public class LoginRequest extends AbstractXrootdRequest
     public String getUserName()
     {
         return username;
+    }
+
+    public void setUserName(String username)
+    {
+        this.username = username;
     }
 
     public boolean supportsAsyn()

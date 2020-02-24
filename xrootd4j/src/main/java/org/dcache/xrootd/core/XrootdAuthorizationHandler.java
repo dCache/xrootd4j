@@ -328,8 +328,7 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
                                       "Permission denied: " + e.getMessage());
         } catch (ParseException e) {
             throw new XrootdException(kXR_InvalidRequest,
-                                      "Invalid opaque data: " + e.getMessage() +
-                                      " (opaque=" + opaque + ")");
+                                      "Invalid opaque data: " + e.getMessage());
         }
     }
 }
