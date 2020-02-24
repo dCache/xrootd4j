@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -23,6 +23,8 @@ import com.google.common.base.Joiner;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.dcache.xrootd.core.XrootdException;
 
 /**
  * According to the xrootd specification, an opaque string has the following
@@ -88,6 +90,12 @@ public class OpaqueStringParser {
         if (opaque == null || opaque.isEmpty()) {
             return Collections.emptyMap();
         } else {
+            try {
+                opaque = UserNameUtils.checkAllUsernamesValid(opaque);
+            } catch (XrootdException e) {
+                throw new ParseException(e.getMessage());
+            }
+
             Map<String,String> map = new HashMap<>();
 
             String [] prefixBlocks = opaque.split("\\?");
