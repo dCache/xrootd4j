@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -220,7 +221,30 @@ public class XrootdTpcClient
              }
          });
 
-        channelFuture = b.connect(info.getSrcHost(), info.getSrcPort()).sync();
+        try {
+            channelFuture = b.connect(info.getSrcHost(),
+                                      info.getSrcPort()).sync();
+        } catch (Exception t) {
+            /*
+             *  For some reason, doing the following:
+             *
+             *     channelFuture.addListener((f) -> {
+             *         if (!f.isSuccess()) {
+             *            setError(f.cause());
+             *         }
+             *     });
+             *
+             *  does not allow us to intercept the error early enough
+             *  to process it for a bit more information.
+             *
+             *  So we have to resort to catching Exception.
+             */
+            setError(t);
+            if (t instanceof RuntimeException) {
+                throw (RuntimeException)t;
+            }
+            return;
+        }
 
         isRunning = true;
 
@@ -515,6 +539,9 @@ public class XrootdTpcClient
 
         if (t instanceof XrootdException) {
             errno = ((XrootdException)t).getError();
+        } else if (t instanceof UnknownHostException) {
+            error = "Invalid address: " + error;
+            errno = kXR_FSError;
         } else if (t instanceof IOException) {
             errno = kXR_IOError;
         } else if (t instanceof ParseException) {
@@ -525,6 +552,7 @@ public class XrootdTpcClient
 
         writeHandler.fireDelayedSync(errno, error);
     }
+
 
     public void setExpectedResponse(int expectedRequestId)
     {
