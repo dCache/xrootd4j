@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -209,14 +209,17 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
          *  If the server supports a protocol of 4.9 or later,
          *  and we have a delegated proxy, use the current version.
          *
-         *  Else, use the previous.
+         *  Else, if allowed, use the previous.
          */
         if (versionToMatch >= PROTO_WITH_DELEGATION && proxy != null) {
             handler = new GSIPost49ClientRequestHandler(credentialManager,
                                                         client);
-        } else {
+        } else if (!credentialManager.isDelegationOnly()) {
             handler = new GSIPre49ClientRequestHandler(credentialManager,
                                                        client);
+        } else {
+            throw new XrootdException(kGSErrError, "proxy delegation required "
+                            + "but not available.");
         }
 
         LOGGER.info("Server protocol version was {}; "

@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -59,6 +59,7 @@ public class CredentialLoader
     private final String                 clientKeyPath;
     private final long                   proxyRefreshInterval;
     private final boolean                verifyClientCertificate;
+    private final boolean                delegationOnly;
     private final String                 proxyPath;
 
     private long   hostCertRefreshTimestamp = 0;
@@ -95,6 +96,7 @@ public class CredentialLoader
         verifyClientCertificate =
                         Boolean.parseBoolean(properties.getProperty("xrootd.gsi.tpc.cred.verify"));
         proxyPath = properties.getProperty("xrootd.gsi.tpc.proxy.path");
+        delegationOnly = Boolean.parseBoolean(properties.getProperty("xrootd.gsi.tpc.delegation-only"));
     }
 
     public PEMCredential getHostCredential()
@@ -106,6 +108,11 @@ public class CredentialLoader
     public X509Credential getProxy() {
         loadClientCredentials();
         return proxy;
+    }
+
+    public boolean isDelegationOnly()
+    {
+        return delegationOnly;
     }
 
     /**
