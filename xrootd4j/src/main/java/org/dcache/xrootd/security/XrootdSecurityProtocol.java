@@ -164,6 +164,7 @@ public interface XrootdSecurityProtocol
      *  SECURITY OPTIONS
      *  _______________________________________________________________________
      */
+    byte    kXR_sec0Data                = 0x01;
     byte    kXR_secOFrce                = 0x02;     // apply signing requirements even if no encryption
 
     /**

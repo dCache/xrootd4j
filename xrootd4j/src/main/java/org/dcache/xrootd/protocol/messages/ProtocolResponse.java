@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -22,6 +22,9 @@ import io.netty.buffer.ByteBuf;
 
 import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.security.SigningPolicy;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.PROTOCOL_SIGN_VERSION;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_secreqs;
 
 /**
  * <p>According to protocol, has the following packet structure:</p>
@@ -90,8 +93,15 @@ public class ProtocolResponse extends AbstractXrootdResponse<ProtocolRequest>
     @Override
     public int getDataLength()
     {
-        return (request.shouldReturnSecOpts()
+        return (shouldReturnSecOpts()
                         && signingPolicy.isSigningOn()) ? 14 : 8;
+    }
+
+    @Override
+    public String toString()
+    {
+        return String.format("protocol-response[%d][%s]",
+                             flags, signingPolicy);
     }
 
     @Override
@@ -107,10 +117,9 @@ public class ProtocolResponse extends AbstractXrootdResponse<ProtocolRequest>
         }
     }
 
-    @Override
-    public String toString()
+    private boolean shouldReturnSecOpts()
     {
-        return String.format("protocol-response[%d][%s]",
-                             flags, signingPolicy);
+        return request.getVersion() >= PROTOCOL_SIGN_VERSION
+                        && (request.getOption() & kXR_secreqs) == kXR_secreqs;
     }
 }

@@ -44,6 +44,7 @@ import org.dcache.xrootd.protocol.messages.XrootdRequest;
 import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.security.BufferDecrypter;
 import org.dcache.xrootd.security.SigningPolicy;
+import org.dcache.xrootd.security.TLSSessionInfo;
 import org.dcache.xrootd.util.UserNameUtils;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
@@ -74,6 +75,7 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
 
     private final AuthenticationFactory _authenticationFactory;
     private final ProxyDelegationClient _proxyDelegationClient;
+    private       TLSSessionInfo        _tlsSessionInfo;
     private       SigningPolicy         _signingPolicy;
 
     private AuthenticationHandler _authenticationHandler;
@@ -169,8 +171,14 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
                     ReferenceCountUtil.release(request);
                 }
                 break;
-
             case kXR_bind:
+                request.setSession(_session);
+                if (_tlsSessionInfo != null && _tlsSessionInfo.serverUsesTls()) {
+                    boolean isStarted = _tlsSessionInfo.serverTransitionedToTLS(kXR_bind, ctx);
+                    _log.debug("kXR_bind, server has now transitioned to tls? {}.", isStarted);
+                }
+                super.channelRead(ctx, msg);
+                break;
             case kXR_protocol:
                 request.setSession(_session);
                 super.channelRead(ctx, msg);
@@ -201,7 +209,8 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
                 new ErrorResponse<>(request, e.getError(), e.getMessage());
             ctx.writeAndFlush(error);
         } catch (RuntimeException e) {
-            _log.error("xrootd server error while processing " + msg + " (please report this to support@dcache.org)", e);
+            _log.error("xrootd server error while processing " + msg
+                                       + " (please report this to support@dcache.org)", e);
             ErrorResponse error =
                 new ErrorResponse<>(request, kXR_ServerError,
                                     String.format("Internal server error (%s)",
@@ -226,6 +235,29 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
     public void setSigningPolicy(SigningPolicy signingPolicy)
     {
         _signingPolicy = signingPolicy;
+    }
+
+    public void setTlsSessionInfo(TLSSessionInfo tlsSessionInfo)
+    {
+        _tlsSessionInfo = tlsSessionInfo;
+    }
+
+    /**
+     * Called at the end of successful login/authentication.
+     *
+     * Subclasses may override this method to add additional
+     * processing and internal mapping of the Subject.
+     *
+     * If the subclass throws XrootdException then the login is
+     * aborted.
+     *
+     * @param context the Netty context
+     * @param subject the subject that logged in
+     */
+    protected Subject login(ChannelHandlerContext context, Subject subject)
+                    throws XrootdException
+    {
+        return subject;
     }
 
     private void doOnLogin(ChannelHandlerContext context,
@@ -288,8 +320,12 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
     {
         _session.setSubject(login(context, subject));
         _state = State.AUTH;
-
-        if (_signingPolicy.isSigningOn()) {
+        if (_tlsSessionInfo != null && _tlsSessionInfo.serverUsesTls()) {
+            boolean isStarted = _tlsSessionInfo.serverTransitionedToTLS(kXR_auth,
+                                                                         context);
+            _log.debug("kXR_auth, server has now transitioned to tls? {}.",
+                       isStarted);
+        } else if (_signingPolicy.isSigningOn()) {
             /*
              * Add the sigver decoder to the pipeline and remove the original
              * message decoder.
@@ -304,23 +340,5 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
         }
 
         _authenticationHandler = null;
-    }
-
-    /**
-     * Called at the end of successful login/authentication.
-     *
-     * Subclasses may override this method to add additional
-     * processing and internal mapping of the Subject.
-     *
-     * If the subclass throws XrootdException then the login is
-     * aborted.
-     *
-     * @param context the Netty context
-     * @param subject the subject that logged in
-     */
-    protected Subject login(ChannelHandlerContext context, Subject subject)
-        throws XrootdException
-    {
-        return subject;
     }
 }

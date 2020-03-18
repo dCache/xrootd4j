@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -24,6 +24,7 @@ import io.netty.channel.ChannelId;
 import java.util.concurrent.TimeUnit;
 
 import org.dcache.xrootd.core.XrootdException;
+import org.dcache.xrootd.security.TLSSessionInfo;
 import org.dcache.xrootd.tpc.protocol.messages.AbstractXrootdInboundResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAttnResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
@@ -194,6 +195,18 @@ public abstract class AbstractClientSourceHandler extends
     @Override
     protected void sendOpenRequest(ChannelHandlerContext ctx)
     {
+        TLSSessionInfo tlsSessionInfo = client.getTlsSessionInfo();
+        if (tlsSessionInfo != null) {
+            try {
+                boolean isStarted = tlsSessionInfo.clientTransitionedToTLS(kXR_open,
+                                                                            ctx);
+                LOGGER.debug("kXR_open, transitioning client to TLS? {}.",
+                             isStarted);
+            } catch (XrootdException e) {
+                exceptionCaught(ctx, e);
+            }
+        }
+
         XrootdTpcInfo tpcInfo = client.getInfo();
         LOGGER.debug("sendOpenRequest to {}, channel {}, stream {}, "
                                      + "path {}.",

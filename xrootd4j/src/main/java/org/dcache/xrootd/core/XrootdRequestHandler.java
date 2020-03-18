@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -25,6 +25,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.haproxy.HAProxyMessage;
 import io.netty.handler.codec.haproxy.HAProxyProxiedProtocol;
+import io.netty.handler.ssl.SslHandshakeCompletionEvent;
 import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -126,6 +127,19 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
         }
     }
 
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception
+    {
+        if (evt instanceof SslHandshakeCompletionEvent) {
+            if (!((SslHandshakeCompletionEvent) evt).isSuccess()) {
+                Throwable t = ((SslHandshakeCompletionEvent) evt).cause();
+                _log.error("TLS handshake failed: {}.",
+                          t == null ? "no cause reported" : t.toString());
+            }
+        } else {
+            super.userEventTriggered(ctx, evt);
+        }
+    }
+
     protected void requestReceived(ChannelHandlerContext ctx, XrootdRequest req)
     {
         try {
@@ -174,6 +188,7 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
             case kXR_protocol:
                 response =
                     doOnProtocolRequest(ctx, (ProtocolRequest) req);
+                _log.debug("PROTOCOL RESPONSE TO CLIENT {}.", response);
                 break;
             case kXR_rm:
                 response =

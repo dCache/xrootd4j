@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -20,9 +20,7 @@ package org.dcache.xrootd.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.PROTOCOL_SIGN_VERSION;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_secreqs;
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 /**
  * <p>The kXR_protocol request has the following packet structure:</p>
@@ -41,17 +39,28 @@ public class ProtocolRequest extends AbstractXrootdRequest
 {
     private final int version;
     private final int option;
+    private final int expect;
 
     public ProtocolRequest(ByteBuf buffer)
     {
         super(buffer, kXR_protocol);
         version = buffer.getInt(4);
-        option = buffer.getByte(8);
+        option = buffer.getUnsignedByte(8);
+        expect = buffer.getUnsignedByte(9);
     }
 
-    public boolean shouldReturnSecOpts()
+    public int getVersion()
     {
-        return version >= PROTOCOL_SIGN_VERSION
-                        && (option & kXR_secreqs) == kXR_secreqs;
+        return version;
+    }
+
+    public int getOption()
+    {
+        return option;
+    }
+
+    public int getExpect()
+    {
+        return expect;
     }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -37,6 +37,7 @@ import org.dcache.xrootd.security.NestedBucketBuffer;
 import org.dcache.xrootd.security.RawBucket;
 import org.dcache.xrootd.security.SigningPolicy;
 import org.dcache.xrootd.security.StringBucket;
+import org.dcache.xrootd.security.TLSSessionInfo;
 import org.dcache.xrootd.security.UnsignedIntBucket;
 import org.dcache.xrootd.security.XrootdBucket;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
@@ -193,11 +194,12 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
     protected Optional<TpcSigverRequestEncoder> getSigverEncoder(XrootdTpcClient client)
     {
         SigningPolicy signingPolicy = client.getSigningPolicy();
+        TLSSessionInfo tlsSessionInfo = client.getTlsSessionInfo();
         LOGGER.debug("Getting (optional) signed hash verification encoder, "
-                                     + "signing is on? {}.",
-                     signingPolicy.isSigningOn());
+                                     + "signing is on? {}; tls ? {}.",
+                     signingPolicy.isSigningOn(), tlsSessionInfo.getClientTls());
         TpcSigverRequestEncoder sigverRequestEncoder = null;
-        if (signingPolicy.isSigningOn()) {
+        if (!tlsSessionInfo.clientUsesTls() && signingPolicy.isSigningOn()) {
             sigverRequestEncoder = new TpcSigverRequestEncoder(bufferHandler,
                                                                signingPolicy);
         }
@@ -276,6 +278,10 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
 
             Optional<TpcSigverRequestEncoder> encoder = getSigverEncoder(client);
             if (encoder.isPresent()) {
+                /*
+                 * Insert sigver encoder into pipeline.  Added after the encoder,
+                 * but for outbound processing, it gets called before the encoder.
+                 */
                 ctx.pipeline()
                    .addAfter("encoder", "sigverEncoder", encoder.get());
             }

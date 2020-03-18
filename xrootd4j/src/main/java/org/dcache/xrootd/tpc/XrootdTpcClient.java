@@ -30,6 +30,8 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +50,7 @@ import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.core.XrootdSessionIdentifier;
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
 import org.dcache.xrootd.security.SigningPolicy;
+import org.dcache.xrootd.security.TLSSessionInfo;
 import org.dcache.xrootd.tpc.core.XrootdClientDecoder;
 import org.dcache.xrootd.tpc.core.XrootdClientEncoder;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
@@ -120,6 +123,11 @@ public class XrootdTpcClient
      *  Hash signing configuration
      */
     private SigningPolicy signingPolicy;
+
+    /*
+     *  Whether to use startTLS.
+     */
+    private TLSSessionInfo tlsSessionInfo;
 
     /*
      * Open
@@ -488,6 +496,11 @@ public class XrootdTpcClient
         return streamId;
     }
 
+    public TLSSessionInfo getTlsSessionInfo()
+    {
+        return tlsSessionInfo;
+    }
+
     public String getUname()
     {
         return uname;
@@ -588,6 +601,11 @@ public class XrootdTpcClient
         this.signingPolicy = signingPolicy;
     }
 
+    public void setTlsSessionInfo(TLSSessionInfo tlsSessionInfo)
+    {
+        this.tlsSessionInfo = tlsSessionInfo;
+    }
+
     public void setWriteOffset(long writeOffset)
     {
         this.writeOffset = writeOffset;
@@ -624,6 +642,9 @@ public class XrootdTpcClient
                                   .append(sessionId)
                                   .append(")")
                                   .append(signingPolicy)
+                                  .append(")(tls ")
+                                  .append(tlsSessionInfo != null ?
+                                          tlsSessionInfo.getClientTls() : "NONE")
                                   .append("(cpsize ")
                                   .append(cpsize)
                                   .append(")(cptype ")
@@ -656,8 +677,16 @@ public class XrootdTpcClient
                                 List<ChannelHandlerFactory> plugins,
                                 TpcSourceReadHandler readHandler)
     {
+        if (LOGGER.isTraceEnabled()) {
+            pipeline.addLast("logger", new LoggingHandler(XrootdTpcClient.class,
+                                                             LogLevel.TRACE));
+        } else if (LOGGER.isDebugEnabled()) {
+            pipeline.addLast("logger", new LoggingHandler(XrootdTpcClient.class));
+        }
+
         pipeline.addLast("decoder", new XrootdClientDecoder(this));
         pipeline.addLast("encoder", new XrootdClientEncoder(this));
+
         AbstractClientRequestHandler handler = new TpcClientConnectHandler();
         handler.setClient(this);
         pipeline.addLast("connect", handler);
@@ -679,6 +708,12 @@ public class XrootdTpcClient
 
     private void sendHandshakeRequest(ChannelHandlerContext ctx)
     {
+        /*
+         *  Create the client's tls session.
+         *  It will be configured when the protocol response is received.
+         */
+        tlsSessionInfo.createClientSession(getInfo());
+
         LOGGER.debug("sendHandshakeRequest to {}, channel {}, stream {}.",
                      info.getSrc(), ctx.channel().id(), streamId);
         ctx.writeAndFlush(new OutboundHandshakeRequest(),

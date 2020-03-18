@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -53,12 +53,42 @@ import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_secNone;
 public class InboundProtocolResponse extends AbstractXrootdInboundResponse
 {
     private SigningPolicy signingPolicy;
+    private int pval;
+    private int flags;
 
     public InboundProtocolResponse(ByteBuf buffer) throws XrootdException
     {
         super(buffer);
-        int len = buffer.getInt(4);
 
+        int len = buffer.getInt(4);
+        pval = buffer.getInt(8);
+        flags = buffer.getInt(12);
+        setSigningPolicy(len, buffer);
+    }
+
+    @Override
+    public int getRequestId()
+    {
+        return kXR_protocol;
+    }
+
+    public SigningPolicy getSigningPolicy()
+    {
+        return signingPolicy;
+    }
+
+    public int getFlags()
+    {
+        return flags;
+    }
+
+    public int getPval()
+    {
+        return pval;
+    }
+
+    private void setSigningPolicy(int len, ByteBuf buffer)
+    {
         byte secopt = (byte)0;
         int seclvl = kXR_secNone;
         Map<Integer, Integer> overrides = new HashMap<>();
@@ -75,16 +105,5 @@ public class InboundProtocolResponse extends AbstractXrootdInboundResponse
         }
 
         signingPolicy = new SigningPolicy(seclvl, secopt, overrides);
-    }
-
-    public SigningPolicy getSigningPolicy()
-    {
-        return signingPolicy;
-    }
-
-    @Override
-    public int getRequestId()
-    {
-        return kXR_protocol;
     }
 }

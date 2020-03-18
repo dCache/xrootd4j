@@ -65,6 +65,11 @@ public class XrootdTpcInfo {
 
     public static final String SIZE_IN_BYTES = "oss.asize";
 
+    /**
+     * This is provisional.  REVISIT when protocol finalized
+     */
+    public static final String TLS = "tpc.tls";
+
     /*
      * Unused, but these need to be eliminated from
      * the path if delegation is supported.
@@ -101,7 +106,8 @@ public class XrootdTpcInfo {
                                       STR,
                                       DLG,
                                       TPR,
-                                      SPR);
+                                      SPR,
+                                      TLS);
 
     public enum Status
     {
@@ -181,6 +187,11 @@ public class XrootdTpcInfo {
     private long startTime;
 
     /**
+     * <p>Whether the trigger client has requested TLS on the tpc transfer</p>
+     */
+    private Boolean tls;
+
+    /**
      * <p>External (non xrootd-tpc) opaque key-values.</p>
      */
     private String external;
@@ -215,6 +226,7 @@ public class XrootdTpcInfo {
         this.dst = opaque.get(DST);
         setSourceFromOpaque(opaque);
         this.cks = opaque.get(CHECKSUM);
+        setTlsFromOpaque(opaque);
         String asize = opaque.get(SIZE_IN_BYTES);
         if (asize != null) {
             this.asize = Long.parseLong(asize);
@@ -250,6 +262,10 @@ public class XrootdTpcInfo {
 
         if (this.cks == null) {
             this.cks = opaque.get(CHECKSUM);
+        }
+
+        if (this.tls == null) {
+            setTlsFromOpaque(opaque);
         }
 
         String value = opaque.get("tpc.ttl");
@@ -298,6 +314,7 @@ public class XrootdTpcInfo {
         info.lfn = lfn;
         info.asize = asize;
         info.cks = cks;
+        info.tls = tls;
         info.loginToken = response.getToken();
         info.delegatedProxy = delegatedProxy;
 
@@ -321,6 +338,11 @@ public class XrootdTpcInfo {
         info.status = Status.READY;
 
         return info;
+    }
+
+    public boolean isTls()
+    {
+        return tls;
     }
 
     public synchronized Status verify(String dst, String slfn, String org)
@@ -373,6 +395,8 @@ public class XrootdTpcInfo {
                                   .append(asize)
                                   .append(")(fhandle ")
                                   .append(fd)
+                                  .append(")(tls ")
+                                  .append(tls)
                                   .append(")(status ")
                                   .append(status)
                                   .append(")(token ")
@@ -568,5 +592,11 @@ public class XrootdTpcInfo {
                 srcPort = XrootdProtocol.DEFAULT_PORT;
             }
         }
+    }
+
+    private void setTlsFromOpaque(Map<String, String> map)
+    {
+        String tlsString = map.get(TLS);
+        this.tls = "1".equals(tlsString);
     }
 }

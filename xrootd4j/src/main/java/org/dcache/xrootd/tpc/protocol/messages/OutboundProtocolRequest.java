@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -22,8 +22,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_secreqs;
+import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 /**
  * <p>The kXR_protocol request has the following packet structure:</p>
@@ -43,11 +42,18 @@ public class OutboundProtocolRequest implements XrootdOutboundRequest
     private static final byte[] RESERVED = {0,0,0,0,0,0,0,0,0,0};
     private int streamId;
     private int version;
+    private int options;
+    private int expect;
 
-    public OutboundProtocolRequest(int streamId, int version)
+    public OutboundProtocolRequest(int streamId,
+                                   int version,
+                                   int options,
+                                   int expect)
     {
         this.streamId = streamId;
         this.version = version;
+        this.options = options;
+        this.expect = expect;
     }
 
     @Override
@@ -63,8 +69,8 @@ public class OutboundProtocolRequest implements XrootdOutboundRequest
             buffer.writeShort(streamId);
             buffer.writeShort(kXR_protocol);
             buffer.writeInt(version);
-            buffer.writeByte(kXR_secreqs);
-            buffer.writeByte(0);
+            buffer.writeByte(options);
+            buffer.writeByte(expect);
             buffer.writeBytes(RESERVED);
             buffer.writeInt(0);
         } catch (Error | RuntimeException t) {

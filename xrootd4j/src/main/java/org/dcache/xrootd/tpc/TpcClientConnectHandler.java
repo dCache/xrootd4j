@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.security.SecurityInfo;
+import org.dcache.xrootd.security.TLSSessionInfo;
 import org.dcache.xrootd.tpc.protocol.messages.AbstractXrootdInboundResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAttnResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundHandshakeResponse;
@@ -84,12 +85,15 @@ public class TpcClientConnectHandler extends
         ChannelId id = ctx.channel().id();
         int streamId = client.getStreamId();
         XrootdTpcInfo tpcInfo = client.getInfo();
+        TLSSessionInfo tlsSessionInfo = client.getTlsSessionInfo();
+        tlsSessionInfo.setSourceServerFlags(response.getFlags());
         LOGGER.debug("Protocol response on {}, channel {}, stream {},"
-                                     + " received, signing policy {}; status {}.",
+                      + " received, signing policy {}; tls {}; status {}.",
                      tpcInfo.getSrc(),
                      id,
                      streamId,
                      response.getSigningPolicy(),
+                     tlsSessionInfo.getClientTls(),
                      status);
         if (status == kXR_ok) {
             client.setSigningPolicy(response.getSigningPolicy());
@@ -194,14 +198,25 @@ public class TpcClientConnectHandler extends
     @Override
     protected void sendLoginRequest(ChannelHandlerContext ctx)
     {
+        TLSSessionInfo tlsSessionInfo = client.getTlsSessionInfo();
+        try {
+            boolean isStarted = tlsSessionInfo.clientTransitionedToTLS(kXR_login,
+                                                                        ctx);
+            LOGGER.debug("kXR_login, transitioning client to TLS? {}.",
+                         isStarted);
+        } catch (XrootdException e) {
+            exceptionCaught(ctx, e);
+            return;
+        }
+
         XrootdTpcInfo tpcInfo = client.getInfo();
         LOGGER.debug("sendLoginRequest to {}, channel {}, stream {}, "
                                      + "pid {}, uname {}.",
-                        tpcInfo.getSrc(),
-                        ctx.channel().id(),
-                        client.getStreamId(),
-                        client.getPid(),
-                        client.getUname());
+                     tpcInfo.getSrc(),
+                     ctx.channel().id(),
+                     client.getStreamId(),
+                     client.getPid(),
+                     client.getUname());
         client.setExpectedResponse(kXR_login);
         ctx.writeAndFlush(new OutboundLoginRequest(client.getStreamId(),
                                                    client.getPid(),
@@ -218,8 +233,11 @@ public class TpcClientConnectHandler extends
         LOGGER.debug("sendProtocolRequestForClient to {}, channel {}, stream {}.",
                      client.getInfo().getSrc(), id, client.getStreamId());
         client.setExpectedResponse(kXR_protocol);
+        int[] flags = client.getTlsSessionInfo().getClientFlags();
         ctx.writeAndFlush(new OutboundProtocolRequest(client.getStreamId(),
-                                                      PROTOCOL_VERSION),
+                                                      flags[0],
+                                                      flags[1],
+                                                      flags[2]),
                           ctx.newPromise())
            .addListener(FIRE_EXCEPTION_ON_FAILURE);
         client.startTimer(ctx);
