@@ -73,19 +73,39 @@ public interface XrootdProtocol {
      *  signing became available.
      *  _______________________________________________________________________
      */
-    int     PROTOCOL_VERSION            = 0x00000400;
+    int     PROTOCOL_VERSION            = 0x00000500;
     int     PROTOCOL_SIGN_VERSION       = 0x00000310;
+    int     PROTOCOL_TLS_VERSION        = 0x00000500;
     byte    PROTOCOL_VERSION_MAJOR      = (byte) ((PROTOCOL_VERSION & 0xFF00) >> 8);
     byte    PROTOCOL_VERSION_MINOR      = (byte) (PROTOCOL_VERSION & 0x00FF);
     int     TPC_VERSION                 = 1;
 
+
     /**
      *  _______________________________________________________________________
-     *  KINDS OF SERVERS
+     *  SERVER TYPE
+     *
+     *  Flag values in the kXR_protocol response.
+     *  Defined for protocol version 2.9.7 or higher.
+     *
+     *  (see further below for other PROTOCOL RESPONSE flags)
      *  _______________________________________________________________________
      */
-    int     LOAD_BALANCER               = 0;
-    int     DATA_SERVER                 = 1;
+    int     kXR_LBalServer              = 0x00000000;
+    int     kXR_DataServer              = 0x00000001;
+    int     kXR_isManager               = 0x00000002;
+    int     kXR_isServer                = 0x00000001;
+    int     kXR_attrMeta                = 0x00000100;
+    int     kXR_attrProxy               = 0x00000200;
+    int     kXR_attrSuper               = 0x00000400;
+
+    /**
+     *  _______________________________________________________________________
+     *  KINDS OF SERVERS -- for backward compatibility
+     *  _______________________________________________________________________
+     */
+    int     LOAD_BALANCER               = kXR_LBalServer;
+    int     DATA_SERVER                 = kXR_DataServer;
 
     /**
      *  _______________________________________________________________________
@@ -116,22 +136,6 @@ public interface XrootdProtocol {
 
     /**
      *  _______________________________________________________________________
-     *  SERVER TYPE
-     *
-     *  Flag values in the kXR_protocol response.
-     *  Defined for protocol version 2.9.7 or higher.
-     *
-     *  (see further below for other PROTOCOL RESPONSE flags)
-     *  _______________________________________________________________________
-     */
-    int     kXR_isManager               = 0x00000002;
-    int     kXR_isServer                = 0x00000001;
-    int     kXR_attrMeta                = 0x00000100;
-    int     kXR_attrProxy               = 0x00000200;
-    int     kXR_attrSuper               = 0x00000400;
-
-    /**
-     *  _______________________________________________________________________
      *  CLIENT REQUEST TYPES
      *  _______________________________________________________________________
      */
@@ -141,14 +145,14 @@ public interface XrootdProtocol {
     int     kXR_chmod                   = 3002;
     int     kXR_close                   = 3003;
     int     kXR_dirlist                 = 3004;
-    int     kXR_getfile                 = 3005;
+    int     kXR_gpfile                  = 3005; // was kXR_getfile
     int     kXR_protocol                = 3006;
     int     kXR_login                   = 3007;
     int     kXR_mkdir                   = 3008;
     int     kXR_mv                      = 3009;
     int     kXR_open                    = 3010;
     int     kXR_ping                    = 3011;
-    int     kXR_putfile                 = 3012;
+    int     kXR_chkpoint                = 3012; // was kXR_putfile
     int     kXR_read                    = 3013;
     int     kXR_rm                      = 3014;
     int     kXR_rmdir                   = 3015;
@@ -156,17 +160,17 @@ public interface XrootdProtocol {
     int     kXR_stat                    = 3017;
     int     kXR_set                     = 3018;
     int     kXR_write                   = 3019;
-    int     kXR_admin                   = 3020;
+    int     kXR_fattr                   = 3020; // was kXR_admin
     int     kXR_prepare                 = 3021;
     int     kXR_statx                   = 3022;
     int     kXR_endsess                 = 3023;
     int     kXR_bind                    = 3024;
     int     kXR_readv                   = 3025;
-    int     kXR_verifyw                 = 3026;
+    int     kXR_pgwrite                 = 3026; // was kXR_verifyw
     int     kXR_locate                  = 3027;
     int     kXR_truncate                = 3028;
     int     kXR_sigver                  = 3029;
-    int     kXR_decrypt                 = 3030;
+    int     kXR_pgread                  = 3030; // was kXR_decrypt
     int     kXR_writev                  = 3031;
     int     kXR_REQFENCE                = 3032;
 
@@ -226,6 +230,7 @@ public interface XrootdProtocol {
     int     kXR_ver002                  = 2; // Same as 1 but adds asyncresp recognition
     int     kXR_ver003                  = 3; // The 2011-2012 rewritten client
     int     kXR_ver004                  = 4; // The 2016 sign-capable client
+    int     kXR_ver005                  = 5; // The 2019 TLS-capable    client
 
     /**
      *  _______________________________________________________________________
@@ -269,13 +274,14 @@ public interface XrootdProtocol {
     int     kXR_open_read               = 0x0010;
     int     kXR_open_updt               = 0x0020;
     int     kXR_async                   = 0x0040;
-    int     kXR_refresh                 = 0x0080;
+    int     kXR_refresh                 = 0x0080;  // also locate
     int     kXR_mkpath                  = 0x0100;
+    int     kXR_prefname                = 0x0100;  // only locate
     int     kXR_open_apnd               = 0x0200;
     int     kXR_retstat                 = 0x0400;
     int     kXR_replica                 = 0x0800;
     int     kXR_posc                    = 0x1000;
-    int     kXR_nowait                  = 0x2000;
+    int     kXR_nowait                  = 0x2000;  // also locate
     int     kXR_seqio                   = 0x4000;
     int     kXR_open_wrto               = 0x8000;
 
@@ -356,7 +362,7 @@ public interface XrootdProtocol {
 
     /**
      *  _______________________________________________________________________
-     *  PREPARE REQUEST OPTIONS (kXR_QPrep)
+     *  PREPARE REQUEST OPTIONS
      *  _______________________________________________________________________
      */
     int     kXR_cancel                  = 0x01;
@@ -389,15 +395,16 @@ public interface XrootdProtocol {
      *  SERVER ATTN CODES
      *  _______________________________________________________________________
      */
-    int     kXR_asyncab                 = 5000;
-    int     kXR_asyncdi                 = 5001;
+    int     kXR_asyncab                 = 5000;  // No longer supported
+    int     kXR_asyncdi                 = 5001;  // No longer supported
     int     kXR_asyncms                 = 5002;
-    int     kXR_asyncrd                 = 5003;
-    int     kXR_asyncwt                 = 5004;
-    int     kXR_asyncav                 = 5005;
-    int     kXR_asynunav                = 5006;
-    int     kXR_asyncgo                 = 5007;
+    int     kXR_asyncrd                 = 5003;  // No longer supported
+    int     kXR_asyncwt                 = 5004;  // No longer supported
+    int     kXR_asyncav                 = 5005;  // No longer supported
+    int     kXR_asynunav                = 5006;  // No longer supported
+    int     kXR_asyncgo                 = 5007;  // No longer supported
     int     kXR_asynresp                = 5008;
+    int     kXR_asyninfo                = 5009;
 
     /**
      *  _______________________________________________________________________
@@ -429,7 +436,12 @@ public interface XrootdProtocol {
     int     kXR_SigVerErr               = 3022;
     int     kXR_DecryptErr              = 3023;
     int     kXR_Overloaded              = 3024;
-    int     kXR_ERRFENCE                = 3025;
+    int     kXR_fsReadOnly              = 3025;
+    int     kXR_BadPayload              = 3026;
+    int     kXR_AttrNotFound            = 3027;
+    int     kXR_TLSRequired             = 3028;
+    int     kXR_noReplicas              = 3029;
+    int     kXR_ERRFENCE                = 3030;
     int     kXR_noErrorYet              = 10000;
 
     @Deprecated // Kept for compatibility with plugins
