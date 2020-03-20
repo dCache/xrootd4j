@@ -50,7 +50,7 @@
     <connection>scm:git:git://github.com/dCache/xrootd4j.git</connection>
     <developerConnection>scm:git:git@github.com:dCache/xrootd4j.git</developerConnection>
     <url>http://github.com/dCache/xrootd4j</url>
-    <tag>HEAD</tag>
+    <tag>4.0</tag>
   </scm>
 
   <repositories>
