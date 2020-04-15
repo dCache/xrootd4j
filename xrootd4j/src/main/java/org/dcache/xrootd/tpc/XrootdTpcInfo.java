@@ -65,19 +65,15 @@ public class XrootdTpcInfo {
 
     public static final String SIZE_IN_BYTES = "oss.asize";
 
-    /**
-     * This is provisional.  REVISIT when protocol finalized
-     */
-    public static final String TLS = "tpc.tls";
-
-    /*
-     * Unused, but these need to be eliminated from
-     * the path if delegation is supported.
-     */
     public static final String STR = "tpc.str";
 
     public static final String TPR = "tpc.tpr";
 
+    /**
+     *  This protocol should be used in conjunction with
+     *  server-side settings to determine whether the
+     *  TPC client should use TLS (= 'xroots').
+     */
     public static final String SPR = "tpc.spr";
 
     /**
@@ -106,8 +102,7 @@ public class XrootdTpcInfo {
                                       STR,
                                       DLG,
                                       TPR,
-                                      SPR,
-                                      TLS);
+                                      SPR);
 
     public enum Status
     {
@@ -596,7 +591,7 @@ public class XrootdTpcInfo {
 
     private void setTlsFromOpaque(Map<String, String> map)
     {
-        String tlsString = map.get(TLS);
-        this.tls = "1".equals(tlsString);
+        String tlsString = map.get(SPR);
+        tls = "xroots".equals(tlsString);
     }
 }

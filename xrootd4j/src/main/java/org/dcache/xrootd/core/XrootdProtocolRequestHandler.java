@@ -22,6 +22,8 @@ import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
+
 import org.dcache.xrootd.protocol.messages.ProtocolRequest;
 import org.dcache.xrootd.protocol.messages.ProtocolResponse;
 import org.dcache.xrootd.protocol.messages.XrootdResponse;
@@ -29,6 +31,7 @@ import org.dcache.xrootd.security.SigningPolicy;
 import org.dcache.xrootd.security.TLSSessionInfo;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_TLSRequired;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
 
 public class XrootdProtocolRequestHandler extends XrootdRequestHandler
@@ -81,5 +84,56 @@ public class XrootdProtocolRequestHandler extends XrootdRequestHandler
                                     tlsSessionInfo.getLocalServerProtocolFlags()
                                                   .getFlags(),
                                     signingPolicy);
+    }
+
+    /**
+     * This is a supplementary check to make sure that non-TLS-capable
+     * clients (i.e., pre-v5) are not allowed to connect if they intend
+     * to do TPC and the "requiresTLSForTPC" is set on the destination server.
+     * <p/>
+     *
+     * We also check here to make sure that the client has connected to
+     * the destination server with 'xroots' if the destination server
+     * requires TLS for TPC.
+     *
+     * @throws XrootdException
+     */
+    protected void enforceClientTlsIfDestinationRequiresItForTpc(Map<String, String> opaque)
+                    throws XrootdException
+    {
+        if (!opaque.containsKey("tpc.org") && !opaque.containsKey("tpc.src")) {
+            LOGGER.debug("server is not TPC destination; no TLS TPC check.");
+            return;
+        }
+
+        String spr = opaque.get("tpc.spr");
+        String tpr = opaque.get("tpc.tpr");
+
+        LOGGER.debug("server requires tls for tpc {}; "
+                                   + "incoming client is TLS capable {}; "
+                                   + "tpc.spr {}, tpc.tpr {}.",
+                   tlsSessionInfo.getLocalServerProtocolFlags()
+                                 .requiresTLSForTPC(),
+                   tlsSessionInfo.isIncomingClientTLSCapable(),
+                   spr, tpr);
+        /*
+         *  Fail if destination server requires TLS for TPC and either
+         *  (a) the client is not TLS capable, or
+         *  (b) the client has not connected to the destination using xroots.
+         *
+         *  The latter check is to make sure that any bearer tokens passed
+         *  to the destination are protected for TPC as well.
+         */
+        if (tlsSessionInfo.getLocalServerProtocolFlags().requiresTLSForTPC()) {
+            if (!tlsSessionInfo.isIncomingClientTLSCapable()) {
+                throw new XrootdException(kXR_TLSRequired,
+                                          "Server accepts only secure connections for TPC.");
+            }
+
+            if (!"xroots".equals(tpr)) {
+                throw new XrootdException(kXR_TLSRequired,
+                                          "Wrong protocol expressed for TPC destination.");
+            }
+        }
     }
 }
