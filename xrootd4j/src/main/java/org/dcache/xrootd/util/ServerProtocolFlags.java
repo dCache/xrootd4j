@@ -42,7 +42,8 @@ import static org.dcache.xrootd.util.ServerProtocolFlags.TlsMode.STRICT;
  */
 public class ServerProtocolFlags
 {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ServerProtocolFlags.class);
+    private static final Logger LOGGER
+                    = LoggerFactory.getLogger(ServerProtocolFlags.class);
 
     public enum TlsMode
     {
@@ -57,15 +58,23 @@ public class ServerProtocolFlags
     {
     }
 
+    /**
+     * Constructor used in conjunction with flags from remote (source)
+     * server.
+     *
+     * @param flags received with protocol response.
+     */
     public ServerProtocolFlags(int flags)
     {
         this.flags = flags;
-        mode = STRICT;
         if (!requiresTLSForData() &&
                         !requiresTLSForGPF() &&
                         !requiresTLSForLogin() &&
-                        !requiresTLSForSession()) {
+                        !requiresTLSForSession() &&
+                        !requiresTLSForTPC()) {
             mode = OFF;
+        } else {
+            mode = STRICT;
         }
     }
 
@@ -157,29 +166,36 @@ public class ServerProtocolFlags
 
     public boolean requiresTLSForData()
     {
-        boolean response = mode != OFF && (flags & kXR_tlsData) == kXR_tlsData;
+        boolean response = (flags & kXR_tlsData) == kXR_tlsData;
         LOGGER.trace("requiresTLSForData ? {}.", response);
         return response;
     }
 
     public boolean requiresTLSForGPF()
     {
-        boolean response = mode != OFF && (flags & kXR_tlsGPF) == kXR_tlsGPF;
+        boolean response = (flags & kXR_tlsGPF) == kXR_tlsGPF;
         LOGGER.trace("requiresTLSForLogin ? {}.", response);
         return response;
     }
 
     public boolean requiresTLSForLogin()
     {
-        boolean response = mode != OFF && (flags & kXR_tlsLogin) == kXR_tlsLogin;
+        boolean response = (flags & kXR_tlsLogin) == kXR_tlsLogin;
         LOGGER.trace("requiresTLSForLogin ? {}.", response);
         return response;
     }
 
     public boolean requiresTLSForSession()
     {
-        boolean response = mode != OFF && (flags & kXR_tlsSess) == kXR_tlsSess;
+        boolean response = (flags & kXR_tlsSess) == kXR_tlsSess;
         LOGGER.trace("requiresTLSForSession ? {}.", response);
+        return response;
+    }
+
+    public boolean requiresTLSForTPC()
+    {
+        boolean response = (flags & kXR_tlsTPC) == kXR_tlsTPC;
+        LOGGER.trace("requiresTLSForTPC ? {}.", response);
         return response;
     }
 
@@ -299,6 +315,16 @@ public class ServerProtocolFlags
         }
     }
 
+    public void setRequiresTLSForTPC(boolean value)
+    {
+        LOGGER.trace("setRequiresTLSForSession {}.", value);
+        if (value) {
+            flags |= kXR_tlsTPC;
+        } else {
+            flags &= (~kXR_tlsTPC);
+        }
+    }
+
     public void setServerRole(boolean value)
     {
         LOGGER.trace("setServerRole {}.", value);
@@ -401,22 +427,24 @@ public class ServerProtocolFlags
                                         + "tlsGPF %s, "
                                         + "tlsLogin %s, "
                                         + "tlsSession %s, "
+                                        + "tlsTPC %s, "
                                         + "goToTLS %s, "
                                         + "anonGPF %s)",
-                        mode,
-                        getFlags(),
-                        hasManagerRole(),
-                        hasMetaServerRole(),
-                        hasProxyServerRole(),
-                        hasServerRole(),
-                        hasSupervisorRole(),
-                        isDataServer(),
-                        isLoadBalancingServer(),
-                        requiresTLSForData(),
-                        requiresTLSForGPF(),
-                        requiresTLSForLogin(),
-                        requiresTLSForSession(),
-                        goToTLS(),
-                        allowsAnonymousGPFile());
+                             mode,
+                             getFlags(),
+                             hasManagerRole(),
+                             hasMetaServerRole(),
+                             hasProxyServerRole(),
+                             hasServerRole(),
+                             hasSupervisorRole(),
+                             isDataServer(),
+                             isLoadBalancingServer(),
+                             requiresTLSForData(),
+                             requiresTLSForGPF(),
+                             requiresTLSForLogin(),
+                             requiresTLSForSession(),
+                             requiresTLSForTPC(),
+                             goToTLS(),
+                             allowsAnonymousGPFile());
     }
 }

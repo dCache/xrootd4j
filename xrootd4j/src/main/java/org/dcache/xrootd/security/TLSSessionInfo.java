@@ -33,9 +33,7 @@ import org.dcache.xrootd.util.ServerProtocolFlags;
 import org.dcache.xrootd.util.ServerProtocolFlags.TlsMode;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import static org.dcache.xrootd.security.TLSSessionInfo.TlsActivation.DATA;
-import static org.dcache.xrootd.security.TLSSessionInfo.TlsActivation.LOGIN;
-import static org.dcache.xrootd.security.TLSSessionInfo.TlsActivation.NONE;
+import static org.dcache.xrootd.security.TLSSessionInfo.TlsActivation.*;
 import static org.dcache.xrootd.util.ServerProtocolFlags.TlsMode.OFF;
 
 /**
@@ -52,7 +50,7 @@ public class TLSSessionInfo
                                           Future<Channel> future)
     {
         if (future.isSuccess()) {
-            LOGGER.trace("{}: TLS handshake completed.", origin);
+            LOGGER.debug("{}: TLS handshake completed.", origin);
         } else {
             LOGGER.warn("{}: TLS handshake failed: {}.", origin,
                         String.valueOf(future.cause()));
@@ -81,17 +79,16 @@ public class TLSSessionInfo
         }
     }
 
-    /**
-     *  NOTE:  As of the present, the xrootd server implementation
-     *  does not make use of the kXR_tlsTPC flag.  It has been
-     *  eliminated from consideration here.
-     */
     enum TlsActivation
     {
-        NONE, LOGIN, SESSION, DATA, GPF;
+        NONE, LOGIN, SESSION, DATA, GPF, TPC;
 
         public static TlsActivation valueOf(ServerProtocolFlags flags)
         {
+            if (flags.getMode() == OFF) {
+                return NONE;
+            }
+
             if (flags.requiresTLSForLogin()) {
                 return LOGIN;
             } else if (flags.requiresTLSForData()) {
@@ -100,6 +97,8 @@ public class TLSSessionInfo
                 return GPF;
             } else if (flags.requiresTLSForSession()) {
                 return SESSION;
+            } else if (flags.requiresTLSForTPC()) {
+                return TPC;
             } else {
                 return NONE;
             }
@@ -155,6 +154,8 @@ public class TLSSessionInfo
             this.version = version;
             this.options = options;
             this.expect = expect;
+            LOGGER.debug("Client version {}, options {}, expect {}.",
+                        version, options, expect);
         }
 
         /**
@@ -189,32 +190,52 @@ public class TLSSessionInfo
             ClientTls clientTls = ClientTls.getMode(version, options);
 
             if (clientTls == ClientTls.NONE) {
-                LOGGER.trace("Client NOT TLS capable.");
+                LOGGER.debug("Client NOT TLS capable.");
+
+                /*
+                 *  Two cases of failure for non-capable clients.
+                 *
+                 *  (1) the source server mode is strict, not optional;
+                 *
+                 *  (2) this is the destination server,
+                 *      TLS is required for TPC and the client intends
+                 *      to do TPC.
+                 *
+                 *  The latter check cannot be done here, because
+                 *      we do not know the protocol used to connect
+                 *      to the source yet (an opaque data element
+                 *      passed on the first path query).
+                 */
                 if (serverFlags.getMode() == TlsMode.STRICT) {
-                    throw new XrootdException(kXR_NotAuthorized,
-                                              "Server accepts only secure connections.");
+                    throw new XrootdException(kXR_TLSRequired,
+                                              "Server accepts only secure "
+                                                    + "connections.");
                 }
+
                 serverFlags.setMode(OFF);
-                LOGGER.trace("setLocalTlsActivation, activation is now {}.",
-                             NONE);
+                LOGGER.debug("TLS is OFF.");
                 return;
             }
 
             if (serverFlags.getMode() == OFF) {
-                LOGGER.trace("TLS is OFF.");
-                LOGGER.trace("setLocalTlsActivation, activation is now {}.",
-                             NONE);
+                LOGGER.debug("TLS is OFF.");
+                if (clientTls == ClientTls.REQUIRES) {
+                    throw new XrootdException(kXR_TLSRequired,
+                                              "Server is not able to "
+                                                              + "accept secure "
+                                                              + "connections.");
+                }
                 return;
             }
 
-            /**
+            /*
              *  In the case of kXR_wantTLS, promote to login.
              */
             if (clientTls == ClientTls.REQUIRES) {
-                LOGGER.trace("Client kXR_wantTLS.");
+                LOGGER.debug("Client kXR_wantTLS.");
                 serverFlags.setRequiresTLSForLogin(true);
                 serverFlags.setGoToTLS(true);
-                LOGGER.trace("setLocalTlsActivation, activation is now {}.",
+                LOGGER.debug("setLocalTlsActivation, activation is now {}.",
                              LOGIN);
                 return;
             }
@@ -224,18 +245,24 @@ public class TLSSessionInfo
             }
 
             if (serverFlags.requiresTLSForData()) {
-                if ((expect &= kXR_ExpBind) == kXR_ExpBind) {
-                    LOGGER.trace("Client kXR_ExpBind.");
+                if ((expect & kXR_ExpBind) == kXR_ExpBind) {
+                    LOGGER.debug("Client kXR_ExpBind.");
                     serverFlags.setGoToTLS(true);
                 }
             }
 
             if (serverFlags.requiresTLSForGPF()) {
-                if ((expect &= kXR_ExpGPF) == kXR_ExpGPF) {
-                    LOGGER.trace("Client kXR_ExpGPF.");
+                if ((expect & kXR_ExpGPF) == kXR_ExpGPF) {
+                    LOGGER.debug("Client kXR_ExpGPF.");
                     serverFlags.setGoToTLS(true);
                 }
             }
+
+            /*
+             *  It is up to the code which processes open to make sure
+             *  that both tpc.spr and tpc.tpr conform to the requirements
+             *  of the destination server on TPC.
+             */
         }
 
         protected boolean transitionedToTLS(int request, ChannelHandlerContext ctx)
@@ -248,7 +275,15 @@ public class TLSSessionInfo
             TlsActivation tlsActivation
                             = TlsActivation.valueOf(serverFlags);
 
-            if (tlsActivation == NONE) {
+            LOGGER.debug("transitionedToTLS, server tlsActivation: {}.",
+                         tlsActivation);
+
+            /*
+             *  TPC is not strong enough to warrant activation.
+             *  It merely serves as a blocker for non-capable clients
+             *  (they should not be able to do TPC if this flag is set).
+             */
+            if (tlsActivation == NONE || tlsActivation == TPC) {
                 return false;
             }
 
@@ -281,7 +316,7 @@ public class TLSSessionInfo
                 sslHandler.engine().setNeedClientAuth(false);
                 sslHandler.engine().setWantClientAuth(false);
                 ctx.pipeline().addFirst(sslHandler);
-                LOGGER.trace("PIPELINE addFirst:  SSLHandler need auth {}, "
+                LOGGER.debug("PIPELINE addFirst:  SSLHandler need auth {}, "
                                              + "want auth {}, "
                                              + "client mode {}.",
                              sslHandler.engine().getNeedClientAuth(),
@@ -307,8 +342,10 @@ public class TLSSessionInfo
     {
         /**
          *  The TPC client only sets kXR_wantTLS when the client has
-         *  expressed the equivalent of "--tpc tls".  Otherwise,
-         *  if the current server mode is not OFF, it will advertise
+         *  expressed 'xroots' as the source server protocol (= tpc.spr)
+         *  or the server requires TLS.
+         *
+         *  Otherwise, if the current server mode is not OFF, it will advertise
          *  itself as "kXR_ableTLS".
          */
         protected final boolean requiresTLS;
@@ -325,7 +362,7 @@ public class TLSSessionInfo
             /*
              *   Our tpc client will always do a login first.
              */
-            expect = kXR_ExpLogin;
+            expect = kXR_ExpLogin | kXR_ExpTPC;
 
             switch (serverSession.serverFlags.getMode()) {
                 case OFF:
@@ -353,15 +390,36 @@ public class TLSSessionInfo
         protected boolean transitionedToTLS(int request, ChannelHandlerContext ctx)
                         throws XrootdException
         {
-            if (ctx.pipeline().get(SslHandler.class) != null) {
-                return false;
-            }
-
+            /*
+             *  REVISIT
+             *
+             *  Currently this is different from version 5 xrootd servers,
+             *  where TLS can be OFF but the TPC client nevertheless
+             *  supports TLS.
+             */
             if (!serverSession.serverFlags.supportsTLS()) {
                 return false;
             }
 
+            /*
+             *  Initialized on preceding server response.
+             */
+            if (ctx.pipeline().get(SslHandler.class) != null) {
+                return false;
+            }
+
+            /*
+             *  We check this again here, because we may be speaking
+             *  to a pre-version 5 server, which will not send any
+             *  TLS flags at all.
+             */
             if (!serverFlags.supportsTLS()) {
+                if (requiresTLS) {
+                    throw new XrootdException(kXR_TLSRequired,
+                                              "Source is not able to "
+                                                + "accept secure connections.");
+                }
+
                 return false;
             }
 
@@ -388,7 +446,12 @@ public class TLSSessionInfo
                         activate = tlsActivation  == DATA;
                         break;
                     default:
-                        activate = tlsActivation != NONE;
+                        /*
+                         *  Xrootd does not consider 'TPC' on the
+                         *  source server sufficient to trigger TLS.
+                         */
+                        activate = !(tlsActivation == TPC
+                                        || tlsActivation == NONE);
                         break;
                 }
             }
@@ -397,13 +460,14 @@ public class TLSSessionInfo
                 sslHandler = (SslHandler)clientSslHandlerFactory.createHandler();
                 sslHandler.engine().setUseClientMode(true);
                 ctx.pipeline().addFirst(sslHandler);
-                LOGGER.trace("PIPELINE addFirst:  SSLHandler need auth {}, "
+                LOGGER.debug("PIPELINE addFirst:  SSLHandler need auth {}, "
                                              + "want auth, {}, "
                                              + "client mode {}.",
                              sslHandler.engine().getNeedClientAuth(),
                              sslHandler.engine().getWantClientAuth(),
                              sslHandler.engine().getUseClientMode());
                 sslHandler.handshakeFuture().addListener(this);
+                LOGGER.info("TPC client initiating SSL handshake");
             }
 
             return activate;
@@ -467,7 +531,9 @@ public class TLSSessionInfo
                                            ChannelHandlerContext ctx)
                     throws XrootdException
     {
-        return tpcClientSession.transitionedToTLS(request, ctx);
+        boolean response = tpcClientSession.transitionedToTLS(request, ctx);
+        LOGGER.debug("client transitioned to TLS ? {}.", response);
+        return response;
     }
 
     public boolean clientUsesTls()
@@ -475,7 +541,7 @@ public class TLSSessionInfo
         ClientTls clientTls = ClientTls.getMode(tpcClientSession.version,
                                                 tpcClientSession.options);
         boolean response = (clientTls != ClientTls.NONE);
-        LOGGER.trace("client uses TLS ? {}.", response);
+        LOGGER.debug("client uses TLS ? {}.", response);
         return response;
     }
 
@@ -483,6 +549,15 @@ public class TLSSessionInfo
     {
         tpcClientSession = new ClientTlsSession(info);
         tpcClientSession.configure();
+    }
+
+    public boolean isIncomingClientTLSCapable()
+    {
+        ClientTls clientTls = ClientTls.getMode(serverSession.version,
+                                                serverSession.options);
+        boolean response = clientTls != ClientTls.NONE;
+        LOGGER.debug("isClientTLSCapable ? {}.", response);
+        return response;
     }
 
     /**
@@ -526,14 +601,16 @@ public class TLSSessionInfo
                                            ChannelHandlerContext ctx)
                     throws XrootdException
     {
-        return serverSession.transitionedToTLS(request, ctx);
+        boolean response = serverSession.transitionedToTLS(request, ctx);
+        LOGGER.debug("server transitioned to TLS ? {}.", response);
+        return response;
     }
 
     public boolean serverUsesTls()
     {
         boolean response = TlsActivation.valueOf(serverSession.serverFlags)
                         != NONE;
-        LOGGER.trace("server uses TLS ? {}.", response);
+        LOGGER.debug("server uses TLS ? {}.", response);
         return response;
     }
 
