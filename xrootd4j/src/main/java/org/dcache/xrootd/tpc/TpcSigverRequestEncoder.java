@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -98,7 +98,7 @@ public class TpcSigverRequestEncoder extends ChannelOutboundHandlerAdapter
         AbstractXrootdOutboundRequest abstractRequest
                         = (AbstractXrootdOutboundRequest) request;
 
-        if (!signingLevel.requiresSigning(abstractRequest.getRequestId())) {
+        if (!signingLevel.requiresSigning(abstractRequest)) {
             return null;
         }
 
