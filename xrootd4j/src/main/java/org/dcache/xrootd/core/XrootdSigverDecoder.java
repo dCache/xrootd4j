@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -113,7 +113,7 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
 
             int requestId = request.getRequestId();
 
-            if (signingPolicy.requiresSigning(requestId)) {
+            if (signingPolicy.requiresSigning(request)) {
                 verifySignedHash(request.getStreamId(),
                                  requestId,
                                  frame,
