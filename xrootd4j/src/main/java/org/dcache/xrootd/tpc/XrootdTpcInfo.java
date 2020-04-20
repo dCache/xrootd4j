@@ -1,9 +1,5 @@
 /**
-<<<<<<< HEAD
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
-=======
  * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
->>>>>>> 184c28c... xrootd4j: handle tpc.src URI correctly
  *
  * This file is part of xrootd4j.
  *
