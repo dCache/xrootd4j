@@ -152,7 +152,6 @@ public class SigningPolicy
                     signingLevel = kXR_secCompatible;
                 }
                 break;
-            case kXR_auth:
             case kXR_chmod:
             case kXR_mv:
             case kXR_rmdir:
