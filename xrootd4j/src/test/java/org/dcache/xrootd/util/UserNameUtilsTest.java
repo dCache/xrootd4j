@@ -53,8 +53,8 @@ public class UserNameUtilsTest
 
     private static final String NON_COMPLIANT_CLIENT = "i&v4.29931@foobar.org";
     private static final String NON_COMPLIANT_SRC = "alrossi7&@foobar.org";
-    private static final String NON_COMPLIANT_PID = "foo.29a31@foobar.org";
     private static final String NON_COMPLIANT_PID_2 = "foo.bar.29931@foobar.org";
+    private static final String EXTENDED_PID        = "foo.29042:10@foobar.org";
 
     private static final String COMPLIANT_TPC_SRC = "arossi2020@foobar.org";
     private static final String COMPLIANT_TPC_DLG = "arossi2020@foobar.org";
@@ -105,6 +105,13 @@ public class UserNameUtilsTest
         UserNameUtils.checkUsernameValid("A_l_rossi1955-06-01"));
     }
 
+    @Test
+    public void shouldNotFailIfClientContainsExtendedPid() throws Exception
+    {
+        givenOpaqueStringWithClientName(EXTENDED_PID);
+        whenStringIsParsed();
+    }
+
     @Test( expected=XrootdException.class)
     public void shouldNotAcceptUserNameThatBeginsWithNumber() throws Exception
     {
@@ -150,13 +157,6 @@ public class UserNameUtilsTest
     public void shouldFailIfSrcContainsNonCompliantUsername() throws Exception
     {
         givenOpaqueStringWithSrcName(NON_COMPLIANT_SRC);
-        whenStringIsParsed();
-    }
-
-    @Test( expected=ParseException.class)
-    public void shouldFailIfClientContainsNonCompliantPid() throws Exception
-    {
-        givenOpaqueStringWithClientName(NON_COMPLIANT_PID);
         whenStringIsParsed();
     }
 
