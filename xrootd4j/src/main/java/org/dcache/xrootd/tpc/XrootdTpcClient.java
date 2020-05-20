@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -78,6 +79,18 @@ public class XrootdTpcClient
     private static final int DEFAULT_RESPONSE_TIMEOUT_IN_SECONDS = 2;
 
     private static int lastId = 1;
+
+    /**
+     * The pid is used for monitoring purposes on the xrootd end.
+     * In order to imitate xrootd, which execs the TPC client,
+     * we just generate a random five-digit number here.
+     *
+     * @return "pid" for the TPC client
+     */
+    private static synchronized int getClientPid()
+    {
+        return ThreadLocalRandom.current().nextInt(99999);
+    }
 
     /**
      *  Stream value of 0 is reserved for initial handshakes.
@@ -171,14 +184,14 @@ public class XrootdTpcClient
         String[] userSplit = user.split("[.]");
 
         /*
-         *  Reuse the original uname and pid
+         *  Reuse the original uname
          *  when sending to the source server.
          *
          *  Thus the source will see the client contact as uname.pid@clienthost
          *  and the dCache pool contact as uname.pid@poolhost.
          */
         uname = userSplit[0];
-        pid = Integer.parseInt(userSplit[1]);
+        pid = getClientPid();
 
         String external = info.getExternal();
         if (external == null) {
