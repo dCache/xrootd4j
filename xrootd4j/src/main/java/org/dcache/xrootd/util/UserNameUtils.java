@@ -94,16 +94,13 @@ public class UserNameUtils
             if (unamepid.length > 2) {
                 throw new XrootdException(kXR_ArgInvalid, "Bad user name.");
             }
+            /*
+             *  POSIX-validate only the part of the name up to a period.
+             */
             from = to + unamepid[0].length();
             String valid = checkUsernameValid(unamepid[0]);
             builder.append(valid);
             if (unamepid.length == 2) {
-                try {
-                    Long.parseLong(unamepid[1]);
-                } catch (NumberFormatException e) {
-                    throw new XrootdException(kXR_ArgInvalid,
-                                              "Bad pid following user name.");
-                }
                 builder.append(".").append(unamepid[1]);
                 from = from + unamepid[1].length() + 1;
             }
