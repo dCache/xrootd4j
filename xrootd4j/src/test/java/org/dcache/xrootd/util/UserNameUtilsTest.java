@@ -24,8 +24,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import org.dcache.xrootd.core.XrootdException;
-
 import static org.dcache.xrootd.util.OpaqueStringParser.OPAQUE_STRING_PREFIX;
 import static org.junit.Assert.assertEquals;
 
@@ -53,8 +51,8 @@ public class UserNameUtilsTest
 
     private static final String NON_COMPLIANT_CLIENT = "i&v4.29931@foobar.org";
     private static final String NON_COMPLIANT_SRC = "alrossi7&@foobar.org";
-    private static final String NON_COMPLIANT_PID_2 = "foo.bar.29931@foobar.org";
-    private static final String EXTENDED_PID        = "foo.29042:10@foobar.org";
+    private static final String COMPLIANT_PID_2   = "foo.bar.29931@foobar.org";
+    private static final String EXTENDED_PID      = "foo.29042:10@foobar.org";
 
     private static final String COMPLIANT_TPC_SRC = "arossi2020@foobar.org";
     private static final String COMPLIANT_TPC_DLG = "arossi2020@foobar.org";
@@ -83,10 +81,12 @@ public class UserNameUtilsTest
                    UserNameUtils.checkUsernameValid(""));
     }
 
-    @Test( expected=XrootdException.class)
+    @Test
     public void shouldNotAcceptNullUserName() throws Exception
     {
-        UserNameUtils.checkUsernameValid(null);
+        assertEquals("Should have replaced user name",
+                     UserNameUtils.XROOTD_MAGIC_NAME,
+                        UserNameUtils.checkUsernameValid(null));
     }
 
     @Test
@@ -106,26 +106,38 @@ public class UserNameUtilsTest
     }
 
     @Test
+    public void shouldReplaceNonCompliantUserNameWithPeriod() throws Exception
+    {
+        assertEquals("Should have replaced user name.",
+                     UserNameUtils.XROOTD_MAGIC_NAME,
+                     UserNameUtils.checkUsernameValid("a_l_rossi1955-06-01.c"));
+    }
+
+    @Test
     public void shouldNotFailIfClientContainsExtendedPid() throws Exception
     {
         givenOpaqueStringWithClientName(EXTENDED_PID);
         whenStringIsParsed();
     }
 
-    @Test( expected=XrootdException.class)
-    public void shouldNotAcceptUserNameThatBeginsWithNumber() throws Exception
+    @Test
+    public void shouldReplaceUserNameThatBeginsWithNumber() throws Exception
     {
-        UserNameUtils.checkUsernameValid("7a_l_rossi1955-06-01");
+        assertEquals("Should have replaced user name.",
+                     UserNameUtils.XROOTD_MAGIC_NAME,
+                     UserNameUtils.checkUsernameValid("7a_l_rossi1955-06-01"));
     }
 
-    @Test( expected=XrootdException.class)
-    public void shouldNotAcceptUserNameThatContainsUpperCaseLetter() throws Exception
+    @Test
+    public void shouldReplaceUserNameThatContainsUpperCaseLetter() throws Exception
     {
-        UserNameUtils.checkUsernameValid("a_l_Rossi?1955-06-01");
+        assertEquals("Should have replaced user name.",
+                     UserNameUtils.XROOTD_MAGIC_NAME,
+                     UserNameUtils.checkUsernameValid("a_l_Rossi?1955-06-01"));
     }
 
-    @Test( expected=XrootdException.class)
-    public void shouldNotAcceptUserNameThatContainsSpecialCharacters() throws Exception
+    @Test
+    public void shouldReplaceUserNameThatContainsSpecialCharacters() throws Exception
     {
         UserNameUtils.checkUsernameValid("7a_l_rossi?1955-06-01");
     }
@@ -146,24 +158,23 @@ public class UserNameUtilsTest
         assertThatCompliantNamesAreUnchanged();
     }
 
-    @Test( expected=ParseException.class)
-    public void shouldFailIfClientContainsNonCompliantUsername() throws Exception
+    @Test
+    public void shouldNotFailIfClientContainsNonCompliantUsername() throws Exception
     {
         givenOpaqueStringWithClientName(NON_COMPLIANT_CLIENT);
         whenStringIsParsed();
     }
 
-    @Test( expected=ParseException.class)
-    public void shouldFailIfSrcContainsNonCompliantUsername() throws Exception
+    @Test
+    public void shouldNotFailIfSrcContainsNonCompliantUsername() throws Exception
     {
         givenOpaqueStringWithSrcName(NON_COMPLIANT_SRC);
         whenStringIsParsed();
     }
 
-    @Test( expected=ParseException.class)
-    public void shouldFailIfClientContainsDoublePeriod() throws Exception
+    public void shouldNotFailIfClientContainsDoublePeriod() throws Exception
     {
-        givenOpaqueStringWithClientName(NON_COMPLIANT_PID_2);
+        givenOpaqueStringWithClientName(COMPLIANT_PID_2);
         whenStringIsParsed();
     }
 
