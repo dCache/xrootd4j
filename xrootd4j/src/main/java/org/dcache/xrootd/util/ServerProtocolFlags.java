@@ -174,7 +174,14 @@ public class ServerProtocolFlags
     public boolean requiresTLSForGPF()
     {
         boolean response = (flags & kXR_tlsGPF) == kXR_tlsGPF;
-        LOGGER.trace("requiresTLSForLogin ? {}.", response);
+        LOGGER.trace("requiresTLSForGPF ? {}.", response);
+        return response;
+    }
+
+    public boolean requiresTLSForGPFA()
+    {
+        boolean response = (flags & kXR_tlsGPFA) == kXR_tlsGPFA;
+        LOGGER.trace("requiresTLSForGPFA ? {}.", response);
         return response;
     }
 
@@ -295,6 +302,16 @@ public class ServerProtocolFlags
         }
     }
 
+    public void setRequiresTLSForGPFA(boolean value)
+    {
+        LOGGER.trace("setRequiresTLSForGPFA {}.", value);
+        if (value) {
+            flags |= kXR_tlsGPFA;
+        } else {
+            flags &= (~kXR_tlsGPFA);
+        }
+    }
+
     public void setRequiresTLSForLogin(boolean value)
     {
         LOGGER.trace("setRequiresTLSForLogin {}.", value);
@@ -317,7 +334,7 @@ public class ServerProtocolFlags
 
     public void setRequiresTLSForTPC(boolean value)
     {
-        LOGGER.trace("setRequiresTLSForSession {}.", value);
+        LOGGER.trace("setRequiresTLSForTPC {}.", value);
         if (value) {
             flags |= kXR_tlsTPC;
         } else {
