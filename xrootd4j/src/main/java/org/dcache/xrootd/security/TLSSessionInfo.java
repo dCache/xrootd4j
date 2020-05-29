@@ -240,22 +240,78 @@ public class TLSSessionInfo
                 return;
             }
 
-            if (serverFlags.requiresTLSForLogin()) {
-                serverFlags.setGoToTLS(true);
-            }
+            switch (expect)
+            {
+                case kXR_ExpNone:
+                    LOGGER.debug("setLocalTlsActivation, no expect flags.");
+                    /*
+                     *  In the case of absent expect flags, the client
+                     *  will have to send a second protocol request
+                     *  announcing what it intends to do, more than
+                     *  likely with kXR_wantTLS set if the server
+                     *  has sent back the "tlsLogin" requirement.
+                     *
+                     *  In that case, this method will be called again.
+                     */
+                    break;
+                case kXR_ExpBind:
+                    if (serverFlags.requiresTLSForData()) {
+                        LOGGER.debug("setLocalTlsActivation, requires TLS for "
+                                                     + "data, client kXR_ExpBind.");
+                        serverFlags.setGoToTLS(true);
+                    }
+                    break;
+                case kXR_ExpGPF:
+                    if (serverFlags.requiresTLSForLogin()) {
+                        LOGGER.debug("setLocalTlsActivation, requires TLS for "
+                                                     + "login, client kXR_ExpGPF.");
+                        serverFlags.setGoToTLS(true);
+                    }
+                    break;
+                case kXR_ExpGPFA:
+                    if (serverFlags.requiresTLSForGPFA()) {
+                        LOGGER.debug("setLocalTlsActivation, requires TLS for "
+                                                     + "GPFA, client kXR_ExpGPFA.");
+                        serverFlags.setGoToTLS(true);
+                    }
+                    break;
+                case kXR_ExpLogin:
+                    if (serverFlags.requiresTLSForLogin()) {
+                        LOGGER.debug("setLocalTlsActivation, requires TLS for "
+                                                     + "login, client kXR_ExpLogin.");
+                        serverFlags.setGoToTLS(true);
+                    }
+                    break;
+                case kXR_ExpTPC:
+                    if (serverFlags.requiresTLSForLogin()) {
+                        LOGGER.debug("setLocalTlsActivation, requires TLS for "
+                                                     + "login, client kXR_ExpTPC.");
+                        serverFlags.setGoToTLS(true);
+                        break;
+                    }
 
-            if (serverFlags.requiresTLSForData()) {
-                if ((expect & kXR_ExpBind) == kXR_ExpBind) {
-                    LOGGER.debug("Client kXR_ExpBind.");
-                    serverFlags.setGoToTLS(true);
-                }
-            }
-
-            if (serverFlags.requiresTLSForGPF()) {
-                if ((expect & kXR_ExpGPF) == kXR_ExpGPF) {
-                    LOGGER.debug("Client kXR_ExpGPF.");
-                    serverFlags.setGoToTLS(true);
-                }
+                    /*
+                     *  The xrootd protocol specifies that if the client is
+                     *  telling us it intends to orchestrate TPC (this is the
+                     *  destination server) and TLS is required by this
+                     *  server for TPC, we should tell the client
+                     *  that session is set even if it is globally off).
+                     *
+                     *  Note that sending the session flag here means
+                     *  that the client does not need to send another
+                     *  protocol request, but simply transition at the
+                     *  appropriate time, so the side-effect on the
+                     *  serverFlags instance should not cause problems.
+                     */
+                    if (serverFlags.requiresTLSForTPC()) {
+                        serverFlags.setRequiresTLSForSession(true);
+                        LOGGER.debug("setLocalTlsActivation, requires TLS for "
+                                                     + "TPC, client kXR_ExpTPC; "
+                                                     + "setting TLS for session "
+                                                     + "to true.");
+                    }
+                    break;
+                default:
             }
 
             /*
@@ -360,9 +416,12 @@ public class TLSSessionInfo
             version = PROTOCOL_VERSION;
 
             /*
-             *   Our tpc client will always do a login first.
+             *   Our tpc client always notifies it will login.
+             *   This way we will avoid the necessity of
+             *   a second protocol request should the
+             *   source require TLS at login.
              */
-            expect = kXR_ExpLogin | kXR_ExpTPC;
+            expect = kXR_ExpLogin;
 
             switch (serverSession.serverFlags.getMode()) {
                 case OFF:

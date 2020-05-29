@@ -306,6 +306,7 @@ public interface XrootdProtocol {
     byte    kXR_ExpNone                 = 0x00;  // No expectations
     byte    kXR_ExpBind                 = 0x01;  // expect a kXR_bine request
     byte    kXR_ExpGPF                  = 0x02;  // expect a kXR_gpfile request
+    byte    kXR_ExpGPFA                 = 0x20;  // expect an anonymous kXR_gpfile request
     byte    kXR_ExpLogin                = 0x03;  // expect a kXR_login request
     byte    kXR_ExpTPC                  = 0x04;  // expect a third-party copy
 
@@ -323,6 +324,7 @@ public interface XrootdProtocol {
     int     kXR_tlsAny                  = 0x1f000000; // to isolate tls requirement flags
     int     kXR_tlsData                 = 0x01000000; // All data requires a TLS connection
     int     kXR_tlsGPF                  = 0x02000000; // kXR_gpfile requires TLS
+    int     kXR_tlsGPFA                 = 0x20000000; // anonymous kXR_gpfile requires TLS
     int     kXR_tlsLogin                = 0x04000000; // kXR_login requires a TLS connection
     int     kXR_tlsSess                 = 0x08000000; // Connection transition to TLS after login
     int     kXR_tlsTPC                  = 0x10000000; // TPC requests require a TLS connection
