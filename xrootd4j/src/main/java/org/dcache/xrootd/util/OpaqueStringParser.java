@@ -24,8 +24,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.dcache.xrootd.core.XrootdException;
-
 /**
  * According to the xrootd specification, an opaque string has the following
  * format
@@ -90,11 +88,7 @@ public class OpaqueStringParser {
         if (opaque == null || opaque.isEmpty()) {
             return Collections.emptyMap();
         } else {
-            try {
-                opaque = UserNameUtils.checkAllUsernamesValid(opaque);
-            } catch (XrootdException e) {
-                throw new ParseException(e.getMessage());
-            }
+            opaque = UserNameUtils.checkAllUsernamesValid(opaque);
 
             Map<String,String> map = new HashMap<>();
 

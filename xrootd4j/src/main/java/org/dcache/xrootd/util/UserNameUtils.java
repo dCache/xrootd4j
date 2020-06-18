@@ -1,3 +1,4 @@
+
 /**
  * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
@@ -23,8 +24,6 @@ import java.util.regex.Pattern;
 
 import org.dcache.xrootd.core.XrootdException;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ArgInvalid;
-
 /**
  *  It is possible to confuse the OpaqueStringParser by introducing
  *  Posix Non-Compliant UserNames.  This utility guards against
@@ -32,8 +31,9 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ArgInvalid;
  */
 public class UserNameUtils
 {
+    public static final String XROOTD_MAGIC_NAME = "_anon_";
+
     private static final String XROOTD_UNKNOWN_NAME = "????";
-    private static final String XROOTD_MAGIC_NAME = "_anon_";
     private static final Pattern POSIX_COMPLIANT_UNAME
                     = Pattern.compile("^[a-z_][a-z0-9_-]*[$]?$",
                                       Pattern.CASE_INSENSITIVE);
@@ -50,7 +50,6 @@ public class UserNameUtils
      * @throws XrootdException if the name is invalid.
      */
     public static String checkUsernameValid(String username)
-                    throws XrootdException
     {
         if (XROOTD_UNKNOWN_NAME.equals(username)) {
             return XROOTD_MAGIC_NAME;
@@ -59,7 +58,7 @@ public class UserNameUtils
         if (username == null
                         || (!username.isEmpty()
                         && !POSIX_COMPLIANT_UNAME.matcher(username).matches())) {
-            throw new XrootdException(kXR_ArgInvalid, "Bad user name.");
+            return XROOTD_MAGIC_NAME;
         }
 
         return username;
@@ -77,7 +76,6 @@ public class UserNameUtils
      * @throws XrootdException if any name found in the string is invalid.
      */
     public static String checkAllUsernamesValid(String string)
-                    throws XrootdException
     {
         StringBuilder builder = new StringBuilder();
         int from = 0;
@@ -91,21 +89,20 @@ public class UserNameUtils
             to = string.indexOf(group, from);
             builder.append(string.substring(from, to));
             String[] unamepid = group.split("[.]");
-            if (unamepid.length > 2) {
-                throw new XrootdException(kXR_ArgInvalid, "Bad user name.");
-            }
-            from = to + unamepid[0].length();
-            String valid = checkUsernameValid(unamepid[0]);
-            builder.append(valid);
-            if (unamepid.length == 2) {
-                try {
-                    Long.parseLong(unamepid[1]);
-                } catch (NumberFormatException e) {
-                    throw new XrootdException(kXR_ArgInvalid,
-                                              "Bad pid following user name.");
+
+            /*
+             *  POSIX-validate only the parts of the name up to the last period.
+             */
+            if (unamepid.length == 1) {
+                from = to + unamepid[0].length();
+                builder.append(checkUsernameValid(unamepid[0]));
+            } else {
+                for (int i = 0; i < unamepid.length - 1; ++i) {
+                    from = to + unamepid[i].length();
+                    builder.append(checkUsernameValid(unamepid[i])).append(".");
                 }
-                builder.append(".").append(unamepid[1]);
-                from = from + unamepid[1].length() + 1;
+                builder.append(unamepid[unamepid.length-1]);
+                from = from + unamepid[unamepid.length-1].length() + 1;
             }
         }
 
