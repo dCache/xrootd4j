@@ -24,10 +24,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -35,6 +38,8 @@ import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.tpc.protocol.messages.InboundRedirectResponse;
 import org.dcache.xrootd.util.OpaqueStringParser;
 import org.dcache.xrootd.util.ParseException;
+
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * <p>Metadata established via interaction between user client, source and
@@ -231,11 +236,6 @@ public class XrootdTpcInfo
     private long startTime;
 
     /**
-     * <p>Whether the trigger client has requested TLS on the tpc transfer</p>
-     */
-    private Boolean tls;
-
-    /**
      * <p>External (non xrootd-tpc) opaque key-values.</p>
      */
     private String external;
@@ -252,6 +252,11 @@ public class XrootdTpcInfo
 
     private ServerRole serverRole;
     private ClientRole clientRole;
+
+    /**
+     * The protocol to use when fetching the file, if specified by the client.
+     */
+    private Optional<String> sourceProtocol = Optional.empty();
 
     public XrootdTpcInfo(String key)
     {
@@ -273,12 +278,12 @@ public class XrootdTpcInfo
         setSourceFromOpaque(opaque);
         this.cks = opaque.get(CHECKSUM);
         this.org = opaque.get(CLIENT);
-        setTlsFromOpaque(opaque);
         String asize = opaque.get(SIZE_IN_BYTES);
         if (asize != null) {
             this.asize = Long.parseLong(asize);
         }
         status = Status.READY;
+        sourceProtocol = Optional.ofNullable(opaque.get(SPR));
         addExternal(opaque);
         calculateRoles();
     }
@@ -327,10 +332,6 @@ public class XrootdTpcInfo
             this.cks = opaque.get(CHECKSUM);
         }
 
-        if (this.tls == null) {
-            setTlsFromOpaque(opaque);
-        }
-
         String value = opaque.get("tpc.ttl");
 
         if (value != null) {
@@ -345,6 +346,10 @@ public class XrootdTpcInfo
 
         if (this.status == null) {
             this.status = Status.PENDING;
+        }
+
+        if (!sourceProtocol.isPresent()) {
+            sourceProtocol = Optional.ofNullable(opaque.get(SPR));
         }
 
         addExternal(opaque);
@@ -368,9 +373,11 @@ public class XrootdTpcInfo
         if (url != null) {
             info.srcHost = url.getHost();
             info.srcPort = url.getPort();
+            info.sourceProtocol = Optional.ofNullable(url.getProtocol());
         } else {
             info.srcHost = response.getHost();
             info.srcPort = response.getPort();
+            info.sourceProtocol = sourceProtocol;
         }
 
         info.src = info.srcHost + ":" + info.srcPort;
@@ -378,7 +385,6 @@ public class XrootdTpcInfo
         info.lfn = lfn;
         info.asize = asize;
         info.cks = cks;
-        info.tls = tls;
         info.loginToken = response.getToken();
         info.delegatedProxy = delegatedProxy;
 
@@ -407,7 +413,7 @@ public class XrootdTpcInfo
 
     public boolean isTls()
     {
-        return tls;
+        return sourceProtocol.filter("xroots"::equals).isPresent();
     }
 
     public synchronized Status verify(String dst, String slfn, String org)
@@ -438,9 +444,10 @@ public class XrootdTpcInfo
         return this.status;
     }
 
+    @Override
     public String toString()
     {
-        return new StringBuilder().append("(key ")
+        StringBuilder sb = new StringBuilder().append("(key ")
                                   .append(key)
                                   .append(")(dst ")
                                   .append(dst)
@@ -460,16 +467,18 @@ public class XrootdTpcInfo
                                   .append(asize)
                                   .append(")(fhandle ")
                                   .append(fd)
-                                  .append(")(tls ")
-                                  .append(tls)
-                                  .append(")(status ")
-                                  .append(status)
-                                  .append(")(token ")
-                                  .append(loginToken)
-                                  .append(")(external [")
-                                  .append(external)
-                                  .append("])")
-                                  .toString();
+                                  .append(')');
+
+        sourceProtocol.ifPresent(p -> sb.append("(spr ").append(p).append(')'));
+
+        return sb.append("(status ")
+                .append(status)
+                .append(")(token ")
+                .append(loginToken)
+                .append(")(external [")
+                .append(external)
+                .append("])")
+                .toString();
     }
 
     public boolean isExpired()
@@ -662,10 +671,30 @@ public class XrootdTpcInfo
         }
     }
 
-    private void setTlsFromOpaque(Map<String, String> map)
+    /**
+     * The source URL if the TPC request targets the destination server.
+     * @param destinationPath The path of the file on the destination server.
+     * @return The URL of the source.
+     * @throws IllegalStateException if tpc.src is not defined.
+     */
+    public URI getSourceURL(String destinationPath)
     {
-        String tlsString = map.get(SPR);
-        tls = "xroots".equals(tlsString);
+        checkState(src != null, "'tpc.src' element is missing");
+
+        int port = (srcPort == null || srcPort == XrootdProtocol.DEFAULT_PORT)
+                ? -1
+                : srcPort;
+
+        String sourcePath = lfn == null ? destinationPath : lfn;
+        String scheme = sourceProtocol.orElse("xroot");
+
+        try {
+            return new URI(scheme, null, srcHost, port,
+                    sourcePath.startsWith("/") ? sourcePath : ("/" + sourcePath),
+                    null, null);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e.toString(), e);
+        }
     }
 
     private void calculateRoles()
