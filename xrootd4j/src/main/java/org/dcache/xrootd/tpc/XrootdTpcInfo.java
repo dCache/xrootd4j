@@ -20,6 +20,8 @@ package org.dcache.xrootd.tpc;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.net.URL;
@@ -41,7 +43,10 @@ import org.dcache.xrootd.util.ParseException;
  *
  * <p>Used to verify and coordinate the open and close requests.</p>
  */
-public class XrootdTpcInfo {
+public class XrootdTpcInfo
+{
+    private static final Logger LOGGER = LoggerFactory.getLogger(XrootdTpcInfo.class);
+
     /**
      * <p>Opaque string name-value keys.</p>
      */
@@ -107,6 +112,50 @@ public class XrootdTpcInfo {
     public enum Status
     {
         PENDING, READY, CANCELLED, ERROR
+    }
+
+    /**
+     * The server has the following TPC role when processing this request.
+     */
+    public enum ServerRole
+    {
+        /** The request is not part of an Xrootd-TPC transfer. */
+        NON_TPC,
+
+        /**
+         * The request is part of an Xrootd-TPC transfer and the server is
+         * the source.
+         */
+        TPC_SOURCE,
+
+        /**
+         * The request is part of an Xrootd-TPC transfer and the server is
+         * the destination.
+         */
+        TPC_DESTINATION
+    }
+
+    /**
+     * The client has the following TPC role when making this request.
+     */
+    public enum ClientRole
+    {
+        /** The client is not making a TPC request. */
+        NON_TPC,
+
+        /**
+         * This request is coming from a client that is orchestrating the
+         * request.  The orchestrator contacts the source and destination
+         * servers, and so coordinates the transfer.  This is typically the
+         * command-line tool xrdcp.
+         */
+        TPC_ORCHESTRATOR,
+
+        /**
+         * The client is the TPC destination server.  This implies
+         * {@literal ServerRole.TPC_SOURCE}.
+         */
+        TPC_DESTINATION
     }
 
     /**
@@ -199,14 +248,16 @@ public class XrootdTpcInfo {
     /**
      * <p>Delegated proxy object</p>
      */
-
     private Serializable delegatedProxy;
 
+    private ServerRole serverRole;
+    private ClientRole clientRole;
 
     public XrootdTpcInfo(String key)
     {
         this.key = key;
         this.createdTime = System.currentTimeMillis();
+        calculateRoles();
     }
 
     /**
@@ -221,6 +272,7 @@ public class XrootdTpcInfo {
         this.dst = opaque.get(DST);
         setSourceFromOpaque(opaque);
         this.cks = opaque.get(CHECKSUM);
+        this.org = opaque.get(CLIENT);
         setTlsFromOpaque(opaque);
         String asize = opaque.get(SIZE_IN_BYTES);
         if (asize != null) {
@@ -228,6 +280,22 @@ public class XrootdTpcInfo {
         }
         status = Status.READY;
         addExternal(opaque);
+        calculateRoles();
+    }
+
+    public ServerRole getServerRole()
+    {
+        return serverRole;
+    }
+
+    public ClientRole getClientRole()
+    {
+        return clientRole;
+    }
+
+    public boolean isTpcRequest()
+    {
+        return clientRole != ClientRole.NON_TPC;
     }
 
     /**
@@ -280,6 +348,7 @@ public class XrootdTpcInfo {
         }
 
         addExternal(opaque);
+        calculateRoles();
 
         return this;
     }
@@ -331,6 +400,7 @@ public class XrootdTpcInfo {
         }
 
         info.status = Status.READY;
+        info.calculateRoles();
 
         return info;
     }
@@ -507,6 +577,7 @@ public class XrootdTpcInfo {
     public void setDst(String dst)
     {
         this.dst = dst;
+        calculateRoles();
     }
 
     public void setFd(int fd)
@@ -527,11 +598,13 @@ public class XrootdTpcInfo {
     public void setOrg(String org)
     {
         this.org = org;
+        calculateRoles();
     }
 
     public void setSrc(String src)
     {
         this.src = src;
+        calculateRoles();
     }
 
     public void setSrcHost(String srcHost)
@@ -593,5 +666,34 @@ public class XrootdTpcInfo {
     {
         String tlsString = map.get(SPR);
         tls = "xroots".equals(tlsString);
+    }
+
+    private void calculateRoles()
+    {
+        if (org != null) {
+            clientRole = ClientRole.TPC_DESTINATION;
+        } else if (src != null || dst != null) {
+            clientRole = ClientRole.TPC_ORCHESTRATOR;
+        } else {
+            clientRole = ClientRole.NON_TPC;
+        }
+
+        if (src != null) {
+            serverRole = ServerRole.TPC_DESTINATION;
+        } else if (dst != null || org != null) {
+            serverRole = ServerRole.TPC_SOURCE;
+        } else {
+            serverRole = ServerRole.NON_TPC;
+        }
+
+        if ((serverRole == ServerRole.TPC_DESTINATION && clientRole != ClientRole.TPC_ORCHESTRATOR)
+               ||
+            (serverRole == ServerRole.TPC_SOURCE && clientRole != ClientRole.TPC_ORCHESTRATOR && clientRole != ClientRole.TPC_DESTINATION)
+               ||
+            (serverRole == ServerRole.NON_TPC && clientRole != ClientRole.NON_TPC)
+           ) {
+            LOGGER.warn("Inconsistent xrootd-TPC roles ServerRole={} ClientRole={}",
+                    serverRole, clientRole);
+        }
     }
 }
