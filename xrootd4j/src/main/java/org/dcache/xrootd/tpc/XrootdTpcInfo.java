@@ -512,11 +512,6 @@ public class XrootdTpcInfo
         return external;
     }
 
-    public String getDst()
-    {
-        return dst;
-    }
-
     public int getFd()
     {
         return fd;
@@ -535,11 +530,6 @@ public class XrootdTpcInfo
     public String getLoginToken()
     {
         return loginToken;
-    }
-
-    public String getOrg()
-    {
-        return org;
     }
 
     public String getSrc()
@@ -562,31 +552,9 @@ public class XrootdTpcInfo
         return status;
     }
 
-    public Long getTtl()
-    {
-
-        return ttl;
-    }
-
-    public void setAsize(long asize)
-    {
-        this.asize = asize;
-    }
-
-    public void setCks(String cks)
-    {
-        this.cks = cks;
-    }
-
     public void setDelegatedProxy(Serializable delegatedProxy)
     {
         this.delegatedProxy = delegatedProxy;
-    }
-
-    public void setDst(String dst)
-    {
-        this.dst = dst;
-        calculateRoles();
     }
 
     public void setFd(int fd)
@@ -594,46 +562,9 @@ public class XrootdTpcInfo
         this.fd = fd;
     }
 
-    public void setLfn(String lfn)
-    {
-        this.lfn = lfn;
-    }
-
-    public void setLoginToken(String loginToken)
-    {
-        this.loginToken = loginToken;
-    }
-
-    public void setOrg(String org)
-    {
-        this.org = org;
-        calculateRoles();
-    }
-
-    public void setSrc(String src)
-    {
-        this.src = src;
-        calculateRoles();
-    }
-
-    public void setSrcHost(String srcHost)
-    {
-        this.srcHost = srcHost;
-    }
-
-    public void setSrcPort(Integer srcPort)
-    {
-        this.srcPort = srcPort;
-    }
-
     public synchronized void setStatus(Status status)
     {
         this.status = status;
-    }
-
-    public void setTtl(Long ttl)
-    {
-        this.ttl = ttl;
     }
 
     private void addExternal(Map<String,String> opaque)
