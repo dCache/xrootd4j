@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -28,6 +28,8 @@ import eu.emi.security.authn.x509.X509CertChainValidator;
 import eu.emi.security.authn.x509.impl.OpensslCertChainValidator;
 import eu.emi.security.authn.x509.impl.ValidatorParams;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -44,8 +46,16 @@ public class CertChainValidatorProvider
     private final long                   trustAnchorRefreshInterval;
 
     public CertChainValidatorProvider(Properties properties)
+                    throws FileNotFoundException
     {
         caCertificatePath = properties.getProperty("xrootd.gsi.ca.path");
+        if (!new File(caCertificatePath).isDirectory()) {
+            throw new FileNotFoundException(caCertificatePath +
+                                            " is missing: GSI requires the X509 "
+                                                            + "certificate "
+                                                            + "authority CRLs");
+        }
+
         trustAnchorRefreshInterval =
                         TimeUnit.valueOf(properties.getProperty("xrootd.gsi.ca.refresh.unit"))
                                 .toMillis(Integer.parseInt(properties.getProperty("xrootd.gsi.ca.refresh")));
