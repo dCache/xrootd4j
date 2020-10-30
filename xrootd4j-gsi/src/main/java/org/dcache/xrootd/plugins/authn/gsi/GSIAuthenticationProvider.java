@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -18,6 +18,7 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
+import java.io.FileNotFoundException;
 import java.util.Properties;
 
 import org.dcache.xrootd.plugins.AuthenticationProvider;
@@ -27,6 +28,7 @@ public class GSIAuthenticationProvider implements AuthenticationProvider
 {
     @Override
     public AuthenticationFactory createFactory(String plugin, Properties properties)
+                    throws FileNotFoundException
     {
         return GSIRequestHandler.PROTOCOL.equals(plugin) ?
                         new GSIAuthenticationFactory(properties) : null;
