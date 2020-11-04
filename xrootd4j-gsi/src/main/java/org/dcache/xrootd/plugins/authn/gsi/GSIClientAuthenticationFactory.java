@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -20,6 +20,7 @@ package org.dcache.xrootd.plugins.authn.gsi;
 
 import io.netty.channel.ChannelHandler;
 
+import java.io.FileNotFoundException;
 import java.util.Properties;
 
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
@@ -35,6 +36,7 @@ public class GSIClientAuthenticationFactory implements ChannelHandlerFactory
     private final CredentialLoader credentialLoader;
 
     public GSIClientAuthenticationFactory(Properties properties)
+                    throws FileNotFoundException
     {
         this.properties = properties;
         validatorProvider = new CertChainValidatorProvider(properties);
