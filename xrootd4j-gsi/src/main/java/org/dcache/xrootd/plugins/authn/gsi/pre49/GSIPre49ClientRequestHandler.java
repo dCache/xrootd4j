@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -28,6 +28,7 @@ import org.dcache.xrootd.plugins.authn.gsi.GSIClientRequestHandler;
 import org.dcache.xrootd.plugins.authn.gsi.GSICredentialManager;
 import org.dcache.xrootd.tpc.XrootdTpcClient;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
+import org.dcache.xrootd.tpc.protocol.messages.InboundErrorResponse;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundAuthenticationRequest;
 
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_puk;
@@ -79,6 +80,13 @@ public class GSIPre49ClientRequestHandler extends GSIClientRequestHandler
     @Override
     protected String getSyncCipherMode() {
         return SYNC_CIPHER_MODE_PADDED;
+    }
+
+    @Override
+    protected void handleAuthenticationError(InboundErrorResponse response)
+                    throws XrootdException {
+        throw new XrootdException(response.getError(),
+                                  response.getErrorMessage());
     }
 
     @Override
