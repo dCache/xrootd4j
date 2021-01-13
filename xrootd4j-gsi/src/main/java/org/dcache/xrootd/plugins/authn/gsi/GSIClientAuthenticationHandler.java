@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -31,6 +31,7 @@ import org.dcache.xrootd.tpc.AbstractClientAuthnHandler;
 import org.dcache.xrootd.tpc.XrootdTpcClient;
 import org.dcache.xrootd.tpc.XrootdTpcInfo;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
+import org.dcache.xrootd.tpc.protocol.messages.InboundErrorResponse;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundAuthenticationRequest;
 
 import static io.netty.channel.ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE;
@@ -62,6 +63,24 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
     public void setClient(XrootdTpcClient client)
     {
         super.setClient(client);
+    }
+
+    protected void doOnErrorResponse(ChannelHandlerContext ctx,
+                                     InboundErrorResponse response)
+                    throws XrootdException
+    {
+        if (requestHandler != null) {
+            requestHandler.handleAuthenticationError(response);
+        } else {
+            XrootdException throwable
+                            = new XrootdException(response.getError(),
+                                                  response.getErrorMessage());
+            exceptionCaught(ctx,
+                            new RuntimeException("An authentication error was  "
+                                            + "intercepted before an authentication "
+                                            + "request was sent; "
+                                            + "this is a bug.", throwable));
+        }
     }
 
     protected void doOnAuthenticationResponse(ChannelHandlerContext ctx,
