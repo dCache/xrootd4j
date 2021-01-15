@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -410,40 +410,42 @@ public interface XrootdProtocol {
 
     /**
      *  _______________________________________________________________________
-     *  SERVER ERROR CODES
+     *  SERVER ERROR CODES (with corresponding POSIX errno)
      *  _______________________________________________________________________
      */
-    int     kXR_ArgInvalid              = 3000;
-    int     kXR_ArgMissing              = 3001;
-    int     kXR_ArgTooLong              = 3002;
-    int     kXR_FileLocked              = 3003;
-    int     kXR_FileNotOpen             = 3004;
-    int     kXR_FSError                 = 3005;
-    int     kXR_InvalidRequest          = 3006;
-    int     kXR_IOError                 = 3007;
-    int     kXR_NoMemory                = 3008;
-    int     kXR_NoSpace                 = 3009;
-    int     kXR_NotAuthorized           = 3010;
-    int     kXR_NotFound                = 3011;
-    int     kXR_ServerError             = 3012;
-    int     kXR_Unsupported             = 3013;
-    int     kXR_noserver                = 3014;
-    int     kXR_NotFile                 = 3015;
-    int     kXR_isDirectory             = 3016;
-    int     kXR_Cancelled               = 3017;
-    int     kXR_ChkLenErr               = 3018;
-    int     kXR_ChkSumErr               = 3019;
-    int     kXR_inProgress              = 3020;
-    int     kXR_overQuota               = 3021;
-    int     kXR_SigVerErr               = 3022;
-    int     kXR_DecryptErr              = 3023;
-    int     kXR_Overloaded              = 3024;
-    int     kXR_fsReadOnly              = 3025;
-    int     kXR_BadPayload              = 3026;
-    int     kXR_AttrNotFound            = 3027;
-    int     kXR_TLSRequired             = 3028;
-    int     kXR_noReplicas              = 3029;
-    int     kXR_ERRFENCE                = 3030;
+    int     kXR_ArgInvalid              = 3000;  // EINVAL
+    int     kXR_ArgMissing              = 3001;  // EINVAL
+    int     kXR_ArgTooLong              = 3002;  // ENAMETOOLONG
+    int     kXR_FileLocked              = 3003;  // EDEADLK
+    int     kXR_FileNotOpen             = 3004;  // EBADF
+    int     kXR_FSError                 = 3005;  // ENODEV
+    int     kXR_InvalidRequest          = 3006;  // EBADRQC
+    int     kXR_IOError                 = 3007;  // EIO
+    int     kXR_NoMemory                = 3008;  // ENOMEM
+    int     kXR_NoSpace                 = 3009;  // ENOSPC
+    int     kXR_NotAuthorized           = 3010;  // EACCES
+    int     kXR_NotFound                = 3011;  // ENOENT
+    int     kXR_ServerError             = 3012;  // EFAULT
+    int     kXR_Unsupported             = 3013;  // ENOTSUP
+    int     kXR_noserver                = 3014;  // EHOSTUNREACH
+    int     kXR_NotFile                 = 3015;  // ENOTBLK
+    int     kXR_isDirectory             = 3016;  // EISDIR
+    int     kXR_Cancelled               = 3017;  // ECANCELED
+    int     kXR_ItExists                = 3018;  // EEXIST
+    int     kXR_ChkSumErr               = 3019;  // EDOM
+    int     kXR_inProgress              = 3020;  // EINPROGRESS
+    int     kXR_overQuota               = 3021;  // EDQUOT
+    int     kXR_SigVerErr               = 3022;  // EILSEQ
+    int     kXR_DecryptErr              = 3023;  // ERANGE
+    int     kXR_Overloaded              = 3024;  // EUSERS
+    int     kXR_fsReadOnly              = 3025;  // EROFS
+    int     kXR_BadPayload              = 3026;  // EINVAL
+    int     kXR_AttrNotFound            = 3027;  // ENOATTR
+    int     kXR_TLSRequired             = 3028;  // EPROTOTYPE
+    int     kXR_noReplicas              = 3029;  // EADDRNOTAVAIL
+    int     kXR_AuthFailed              = 3030;  // EAUTH (preferable) or EBADE
+    int     kXR_Impossible              = 3031;  // EIDRM
+    int     kXR_Conflict                = 3032;  // ENOTTY
     int     kXR_noErrorYet              = 10000;
 
     @Deprecated // Kept for compatibility with plugins
