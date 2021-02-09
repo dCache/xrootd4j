@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -43,6 +43,7 @@ import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 import org.dcache.xrootd.tpc.TpcSigverRequestEncoder;
 import org.dcache.xrootd.tpc.XrootdTpcClient;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
+import org.dcache.xrootd.tpc.protocol.messages.InboundErrorResponse;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundAuthenticationRequest;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_DecryptErr;
@@ -330,6 +331,9 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
     protected abstract X509Credential getClientCredential();
 
     protected abstract Optional<Integer> getClientOpts();
+
+    protected abstract void handleAuthenticationError(InboundErrorResponse response)
+                    throws XrootdException;
 
     protected abstract void loadClientCredential() throws XrootdException;
 
