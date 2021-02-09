@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -36,6 +36,7 @@ import org.dcache.xrootd.plugins.authn.gsi.SerializableX509Credential;
 import org.dcache.xrootd.security.XrootdBucket;
 import org.dcache.xrootd.tpc.XrootdTpcClient;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
+import org.dcache.xrootd.tpc.protocol.messages.InboundErrorResponse;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundAuthenticationRequest;
 
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_cipher;
@@ -74,6 +75,15 @@ public class GSIPost49ClientRequestHandler extends GSIClientRequestHandler
     public int getProtocolVersion()
     {
         return PROTO_WITH_DELEGATION;
+    }
+
+    @Override
+    protected void handleAuthenticationError(InboundErrorResponse response)
+                    throws XrootdException {
+        String message = response.getErrorMessage() + " –– user proxy was "
+                            + client.getInfo().getDelegatedProxy() == null
+                            ? "not " : "" + "delegated.";
+        throw new XrootdException(response.getError(), message);
     }
 
     public OutboundAuthenticationRequest handleCertStep(InboundAuthenticationResponse response,
