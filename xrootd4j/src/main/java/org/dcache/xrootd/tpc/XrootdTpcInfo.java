@@ -19,7 +19,6 @@
 package org.dcache.xrootd.tpc;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +26,7 @@ import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -40,6 +40,8 @@ import org.dcache.xrootd.util.OpaqueStringParser;
 import org.dcache.xrootd.util.ParseException;
 
 import static com.google.common.base.Preconditions.checkState;
+import static java.util.stream.Collectors.toSet;
+import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.*;
 
 /**
  * <p>Metadata established via interaction between user client, source and
@@ -52,89 +54,102 @@ public class XrootdTpcInfo
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(XrootdTpcInfo.class);
 
-    /**
-     * <p>Opaque string name-value keys.</p>
-     */
-    public static final String STAGE = "tpc.stage";
+    public enum Cgi
+    {
+        STAGE("tpc.stage"),
+        RENDEZVOUS_KEY("tpc.key"),
+        SRC("tpc.src"),
+        DLG("tpc.dlg"),
+        DLGON("tpc.dlgon"),
+        DST("tpc.dst"),
+        LOGICAL_NAME("tpc.lfn"),
+        CLIENT("tpc.org"),
+        CHECKSUM("tpc.cks"),
+        TIME_TO_LIVE("tpc.ttl"),
+        SIZE_IN_BYTES("oss.asize"),
+        STR("tpc.str"),
+        TPR("tpc.tpr"),
+        /**
+         *  This protocol should be used in conjunction with
+         *  server-side settings to determine whether the
+         *  TPC client should use TLS (= 'xroots').
+         */
+        SPR("tpc.spr"),
+        /**
+         *  This is the scgi added for delegation purposes.
+         *  <p/>
+         *  From the SLAC documentation:
+         *  <p/>
+         *  The CGI information from the source URL. This element needs to be
+         *  specified only if a) delegation is being used and b) meaningful
+         *  CGI is present on the source URL (see the notes on the definition
+         *  of meaningful). Since a CGI string may not be the value of a
+         *  CGI element, all ampersands in scgi should be converted to tab
+         *  characters. The destination server is responsible for converting
+         *  the tabs to ampersands before initiating the copy.
+         */
+        SCGI("tpc.scgi"),
+        AUTHZ("authz");
 
-    public static final String RENDEZVOUS_KEY = "tpc.key";
+        private static final Set<String> KEYS = EnumSet.allOf(Cgi.class)
+                                                       .stream()
+                                                       .map(Cgi::key)
+                                                       .collect(toSet());
 
-    public static final String SRC = "tpc.src";
+        private String key;
 
-    public static final String DLG = "tpc.dlg";
+        Cgi(String key)
+        {
+            this.key = key;
+        }
 
-    public static final String DLGON = "tpc.dlgon";
+        public String key()
+        {
+            return key;
+        }
 
-    public static final String DST = "tpc.dst";
+        static Set<String> keys()
+        {
+            return KEYS;
+        }
+    }
 
-    public static final String LOGICAL_NAME = "tpc.lfn";
+    public enum CksumType
+    {
+        ADLER32("adler32"),
+        CRC32("crc32"),
+        MD5("md5");
 
-    public static final String CLIENT = "tpc.org";
+        private String key;
 
-    public static final String CHECKSUM = "tpc.cks";
+        CksumType(String key)
+        {
+            this.key = key;
+        }
 
-    public static final String TIME_TO_LIVE = "tpc.ttl";
+        public String key()
+        {
+            return key;
+        }
+    }
 
-    public static final String SIZE_IN_BYTES = "oss.asize";
+    public enum TpcStage
+    {
+        PLACEMENT("placement"),
+        COPY("copy");
 
-    public static final String STR = "tpc.str";
+        private String key;
 
-    public static final String TPR = "tpc.tpr";
+        TpcStage(String key)
+        {
+            this.key = key;
+        }
 
-    /**
-     *  This protocol should be used in conjunction with
-     *  server-side settings to determine whether the
-     *  TPC client should use TLS (= 'xroots').
-     */
-    public static final String SPR = "tpc.spr";
-
-    /**
-     *  This is the scgi added for delegation purposes.
-     *  <p/>
-     *  From the SLAC documentation:
-     *  <p/>
-     *  The CGI information from the source URL. This element needs to be
-     *  specified only if a) delegation is being used and b) meaningful
-     *  CGI is present on the source URL (see the notes on the definition
-     *  of meaningful). Since a CGI string may not be the value of a
-     *  CGI element, all ampersands in scgi should be converted to tab
-     *  characters. The destination server is responsible for converting
-     *  the tabs to ampersands before initiating the copy.
-     */
-    public static final String SCGI = "tpc.scgi";
-
-    /**
-     * <p>Opaque string name-value constant values.</p>
-     */
-    public static final String PLACEMENT = "placement";
-
-    public static final String COPY = "copy";
-
-    public static final String ADLER32 = "adler32";
-
-    public static final String CRC32 = "crc32";
-
-    public static final String MD5 = "md5";
-
-    public static final String AUTHZ= "authz";
-
-    private static final Set<String> TPC_KEYS
-                    = ImmutableSet.of(STAGE,
-                                      RENDEZVOUS_KEY,
-                                      SRC,
-                                      DST,
-                                      LOGICAL_NAME,
-                                      CLIENT,
-                                      CHECKSUM,
-                                      TIME_TO_LIVE,
-                                      SIZE_IN_BYTES,
-                                      STR,
-                                      DLG,
-                                      DLGON,
-                                      TPR,
-                                      SPR,
-                                      SCGI,
-                                      AUTHZ);
+        public String key()
+        {
+            return key;
+        }
+    }
 
     public enum Status
     {
@@ -299,18 +314,18 @@ public class XrootdTpcInfo
      */
     public XrootdTpcInfo(Map<String, String> opaque) throws ParseException
     {
-        this(opaque.get(RENDEZVOUS_KEY));
-        this.lfn = opaque.get(LOGICAL_NAME);
-        this.dst = opaque.get(DST);
+        this(opaque.get(RENDEZVOUS_KEY.key()));
+        this.lfn = opaque.get(LOGICAL_NAME.key());
+        this.dst = opaque.get(DST.key());
         setSourceFromOpaque(opaque);
-        this.cks = opaque.get(CHECKSUM);
-        this.org = opaque.get(CLIENT);
-        String asize = opaque.get(SIZE_IN_BYTES);
+        this.cks = opaque.get(CHECKSUM.key());
+        this.org = opaque.get(CLIENT.key());
+        String asize = opaque.get(SIZE_IN_BYTES.key());
         if (asize != null) {
             this.asize = Long.parseLong(asize);
         }
         status = Status.READY;
-        sourceProtocol = Optional.ofNullable(opaque.get(SPR));
+        sourceProtocol = Optional.ofNullable(opaque.get(SPR.key()));
         findSourceToken(opaque);
         addExternal(opaque);
         calculateRoles();
@@ -345,11 +360,11 @@ public class XrootdTpcInfo
         }
 
         if (this.org == null) {
-            this.org = opaque.get(CLIENT);
+            this.org = opaque.get(CLIENT.key());
         }
 
         if (this.dst == null) {
-            this.dst = opaque.get(DST);
+            this.dst = opaque.get(DST.key());
         }
 
         if (this.src == null) {
@@ -357,17 +372,17 @@ public class XrootdTpcInfo
         }
 
         if (this.cks == null) {
-            this.cks = opaque.get(CHECKSUM);
+            this.cks = opaque.get(CHECKSUM.key());
         }
 
-        String value = opaque.get("tpc.ttl");
+        String value = opaque.get(TIME_TO_LIVE.key());
 
         if (value != null) {
             this.ttl = new Long(value);
             this.startTime = System.currentTimeMillis();
         }
 
-        value = opaque.get(SIZE_IN_BYTES);
+        value = opaque.get(SIZE_IN_BYTES.key());
         if (value != null) {
             this.asize = Long.parseLong(value);
         }
@@ -377,7 +392,11 @@ public class XrootdTpcInfo
         }
 
         if (!sourceProtocol.isPresent()) {
-            sourceProtocol = Optional.ofNullable(opaque.get(SPR));
+            sourceProtocol = Optional.ofNullable(opaque.get(SPR.key()));
+        }
+
+        if (sourceToken == null) {
+            findSourceToken(opaque);
         }
 
         if (sourceToken == null) {
@@ -623,7 +642,7 @@ public class XrootdTpcInfo
     {
         Map<String, String> external = new HashMap<>();
         for (Entry<String, String> entry: opaque.entrySet()) {
-            if (!TPC_KEYS.contains(entry.getKey())) {
+            if (!Cgi.keys().contains(entry.getKey())) {
                 external.put(entry.getKey(), entry.getValue());
             }
         }
@@ -632,9 +651,9 @@ public class XrootdTpcInfo
 
     private void setSourceFromOpaque(Map<String, String> map)
     {
-        src = map.get(DLG);
+        src = map.get(DLG.key());
         if (src == null) {
-            src = map.get(SRC);
+            src = map.get(SRC.key());
         }
         if (src != null) {
             /*
@@ -711,13 +730,13 @@ public class XrootdTpcInfo
 
     private void findSourceToken(Map<String, String> opaque) throws ParseException
     {
-        String scgi = opaque.get(SCGI);
+        String scgi = opaque.get(SCGI.key());
         if (scgi != null) {
             scgi = scgi.replaceAll("\\t+",
                                    String.valueOf(OpaqueStringParser.OPAQUE_PREFIX));
             Map<String, String> sourceOpaque
                             = OpaqueStringParser.getOpaqueMap(scgi);
-            sourceToken = sourceOpaque.get(AUTHZ);
+            sourceToken = sourceOpaque.get(AUTHZ.key());
         }
     }
 }

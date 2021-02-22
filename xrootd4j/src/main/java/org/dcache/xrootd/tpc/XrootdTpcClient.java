@@ -62,6 +62,7 @@ import org.dcache.xrootd.util.OpaqueStringParser;
 import org.dcache.xrootd.util.ParseException;
 
 import static io.netty.channel.ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE;
+import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.*;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 /**
@@ -451,7 +452,7 @@ public class XrootdTpcClient
          */
         String sourceToken = info.getSourceToken();
         if (sourceToken != null) {
-            fullPath.append(XrootdTpcInfo.AUTHZ)
+            fullPath.append(AUTHZ.key())
                     .append(OpaqueStringParser.OPAQUE_SEPARATOR)
                     .append(sourceToken);
         }
@@ -466,11 +467,11 @@ public class XrootdTpcClient
             if (fullPath.length() > 0) {
                 fullPath.append(OpaqueStringParser.OPAQUE_PREFIX);
             }
-            fullPath.append(XrootdTpcInfo.CLIENT)
+            fullPath.append(CLIENT.key())
                     .append(OpaqueStringParser.OPAQUE_SEPARATOR)
                     .append(userUrn)
                     .append(OpaqueStringParser.OPAQUE_PREFIX)
-                    .append(XrootdTpcInfo.RENDEZVOUS_KEY)
+                    .append(RENDEZVOUS_KEY.key())
                     .append(OpaqueStringParser.OPAQUE_SEPARATOR)
                     .append(info.getKey());
         }
