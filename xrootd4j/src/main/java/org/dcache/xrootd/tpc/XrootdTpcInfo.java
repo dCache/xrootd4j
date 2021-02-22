@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -63,6 +63,8 @@ public class XrootdTpcInfo
 
     public static final String DLG = "tpc.dlg";
 
+    public static final String DLGON = "tpc.dlgon";
+
     public static final String DST = "tpc.dst";
 
     public static final String LOGICAL_NAME = "tpc.lfn";
@@ -87,6 +89,21 @@ public class XrootdTpcInfo
     public static final String SPR = "tpc.spr";
 
     /**
+     *  This is the scgi added for delegation purposes.
+     *  <p/>
+     *  From the SLAC documentation:
+     *  <p/>
+     *  The CGI information from the source URL. This element needs to be
+     *  specified only if a) delegation is being used and b) meaningful
+     *  CGI is present on the source URL (see the notes on the definition
+     *  of meaningful). Since a CGI string may not be the value of a
+     *  CGI element, all ampersands in scgi should be converted to tab
+     *  characters. The destination server is responsible for converting
+     *  the tabs to ampersands before initiating the copy.
+     */
+    public static final String SCGI = "tpc.scgi";
+
+    /**
      * <p>Opaque string name-value constant values.</p>
      */
     public static final String PLACEMENT = "placement";
@@ -98,6 +115,8 @@ public class XrootdTpcInfo
     public static final String CRC32 = "crc32";
 
     public static final String MD5 = "md5";
+
+    public static final String AUTHZ= "authz";
 
     private static final Set<String> TPC_KEYS
                     = ImmutableSet.of(STAGE,
@@ -111,8 +130,11 @@ public class XrootdTpcInfo
                                       SIZE_IN_BYTES,
                                       STR,
                                       DLG,
+                                      DLGON,
                                       TPR,
-                                      SPR);
+                                      SPR,
+                                      SCGI,
+                                      AUTHZ);
 
     public enum Status
     {
@@ -246,6 +268,11 @@ public class XrootdTpcInfo
     private String loginToken;
 
     /**
+     * <p>Source authorization token.</p>
+     */
+    private String sourceToken;
+
+    /**
      * <p>Delegated proxy object</p>
      */
     private Serializable delegatedProxy;
@@ -270,7 +297,7 @@ public class XrootdTpcInfo
      *    Calling this constructor implies a READY status.</p>
      *    Ttl is not relevant.
      */
-    public XrootdTpcInfo(Map<String, String> opaque)
+    public XrootdTpcInfo(Map<String, String> opaque) throws ParseException
     {
         this(opaque.get(RENDEZVOUS_KEY));
         this.lfn = opaque.get(LOGICAL_NAME);
@@ -284,6 +311,7 @@ public class XrootdTpcInfo
         }
         status = Status.READY;
         sourceProtocol = Optional.ofNullable(opaque.get(SPR));
+        findSourceToken(opaque);
         addExternal(opaque);
         calculateRoles();
     }
@@ -310,8 +338,8 @@ public class XrootdTpcInfo
      * <p>Will not overwrite existing non-null values.</p>
      */
     public synchronized XrootdTpcInfo addInfoFromOpaque(String slfn,
-                                           Map<String, String> opaque)
-    {
+                                                        Map<String, String> opaque)
+                    throws ParseException {
         if (this.lfn == null) {
             this.lfn = slfn;
         }
@@ -350,6 +378,10 @@ public class XrootdTpcInfo
 
         if (!sourceProtocol.isPresent()) {
             sourceProtocol = Optional.ofNullable(opaque.get(SPR));
+        }
+
+        if (sourceToken == null) {
+            findSourceToken(opaque);
         }
 
         addExternal(opaque);
@@ -402,7 +434,20 @@ public class XrootdTpcInfo
             if (!opaque.startsWith("?")) {
                 opaque = "?" + opaque;
             }
-            info.addExternal(OpaqueStringParser.getOpaqueMap(opaque));
+
+            Map<String, String> map = OpaqueStringParser.getOpaqueMap(opaque);
+
+            /*
+             *  The opaque data returned with the redirect will usually
+             *  be the same as what the client provided the redirector,
+             *  but it is possible that the redirector may substitute
+             *  a new token to use against the new endpoint.
+             *
+             *  In either case, the token will be the value of 'authz'.
+             */
+            info.sourceToken = map.get(AUTHZ);
+
+            info.addExternal(map);
         }
 
         info.status = Status.READY;
@@ -475,6 +520,8 @@ public class XrootdTpcInfo
                 .append(status)
                 .append(")(token ")
                 .append(loginToken)
+                .append(")(source token ")
+                .append(sourceToken)
                 .append(")(external [")
                 .append(external)
                 .append("])")
@@ -505,6 +552,11 @@ public class XrootdTpcInfo
     public Serializable getDelegatedProxy()
     {
         return delegatedProxy;
+    }
+
+    public String getSourceToken()
+    {
+        return sourceToken;
     }
 
     public String getExternal()
@@ -654,6 +706,18 @@ public class XrootdTpcInfo
            ) {
             LOGGER.warn("Inconsistent xrootd-TPC roles ServerRole={} ClientRole={}",
                     serverRole, clientRole);
+        }
+    }
+
+    private void findSourceToken(Map<String, String> opaque) throws ParseException
+    {
+        String scgi = opaque.get(SCGI);
+        if (scgi != null) {
+            scgi = scgi.replaceAll("\\t+",
+                                   String.valueOf(OpaqueStringParser.OPAQUE_PREFIX));
+            Map<String, String> sourceOpaque
+                            = OpaqueStringParser.getOpaqueMap(scgi);
+            sourceToken = sourceOpaque.get(AUTHZ);
         }
     }
 }

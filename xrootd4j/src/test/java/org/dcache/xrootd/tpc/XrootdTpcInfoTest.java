@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -163,6 +163,119 @@ public class XrootdTpcInfoTest
         givenOpaque("?tpc.src=hostname&tpc.key=token&tpc.stage=copy&tpc.spr=xroots");
 
         assertTrue(info.isTls());
+    }
+
+    @Test
+    public void shouldFindAliceTypeTokenFromSCGI() throws Exception
+    {
+        /*
+         * -----BEGIN SEALED CIPHER-----
+         * ..
+         * .. (Base64-encoded cipher)
+         * ..
+         * -----END SEALED CIPHER-----
+         * -----BEGIN SEALED ENVELOPE-----
+         * ..
+         * .. (Base64-encoded envelope)
+         * ..
+         * -----END SEALED ENVELOPE-----
+         */
+        String authz = new StringBuilder()
+                        .append("-----BEGIN SEALED CIPHER-----")
+                        .append("\n")
+                        .append("eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImtleS1yczI1NiJ9")
+                        .append(".eyJ2ZXIiOiJzY2l0b2tlbjoyLjAiLCJhdWQiOiJodHRwczovL2RlbW8uc2")
+                        .append("NpdG9rZW5zLm9yZyIsImlzcyI6Imh0dHBzOi8vZGVtby5zY2l0b2tlbnMub3")
+                        .append("JnIiwiaWF0IjoxNjEzNTAwMjM5LCJuYmYiOjE2MTM1MDAyMzksImp0aSI6Im")
+                        .append("U3NzY4NTAzLWIxMzUtNDhhOC04YTc5LTUwMThlZDI2YzBjZiIsInNjb3BlI")
+                        .append("\n")
+                        .append("-----END SEALED CIPHER-----")
+                        .append("\n")
+                        .append("-----BEGIN SEALED ENVELOPE-----")
+                        .append("\n")
+                        .append("joicmVhZDovcG5mcy9mcy91c3IvdGVzdC9hcm9zc2kvdm9sYXRpbGUgd3Jpd")
+                        .append("GU6L3BuZnMvZnMvdXNyL3Rlc3QvYXJvc3NpL3ZvbGF0aWxlIiwiZXhwIjox")
+                        .append("NjEzNzAwMDAwfQ.Vqa0WDYOPiPTM-RtV6r0HMm0SkdGoRo5p2jtiHLzJK-")
+                        .append("nN-Z67xc_A6t7mtGo5SxcIEu65XWlUVIUOCM5_keIcye4HNcI1OGaXOoIm")
+                        .append("iXP_pBOiIgk_VWcCjxUDhyYnguLGOP2HCeitblJnyQ88IcNCQ0ayQmqS4bz6")
+                        .append("EQjiXdhHJDcsi3wGhSGrvO4rJR-B2nR4HA5m7I8cUF9Z07FxJA7eGdNN_x")
+                        .append("DcVjWgOG2UeG9fIypGWCx_UU7tQPJdDt73JZCQzgP9RBvnnQE8wp0rHNkUSK")
+                        .append("_ov89itVf74QmGw_1D88tew9Xq45JjPb1rS1z7L1XMWsqTenZeIMe98ISiyxVDw")
+                        .append("\n")
+                        .append("-----END SEALED ENVELOPE-----")
+                        .toString();
+        StringBuilder sb = new StringBuilder("?tpc.src=hostname");
+        sb.append("&authz=").append(authz)
+          .append("&tpc.key=token&tpc.stage=copy")
+          .append("&tpc.scgi=authz=")
+          .append(authz)
+          .append("\t")
+          .append("tpc.stage=placement")
+          .append("&tpc.spr=xroots");
+        givenOpaque(sb.toString());
+
+        assertEquals("Token does not match.",
+                     authz, info.getSourceToken());
+    }
+
+    @Test
+    public void shouldFindSourceAuthzFromSCGI() throws Exception
+    {
+        String authz = new StringBuilder()
+            .append("eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImtleS1yczI1NiJ9")
+            .append(".eyJ2ZXIiOiJzY2l0b2tlbjoyLjAiLCJhdWQiOiJodHRwczovL2RlbW8uc2")
+            .append("NpdG9rZW5zLm9yZyIsImlzcyI6Imh0dHBzOi8vZGVtby5zY2l0b2tlbnMub3")
+            .append("JnIiwiaWF0IjoxNjEzNTAwMjM5LCJuYmYiOjE2MTM1MDAyMzksImp0aSI6Im")
+            .append("U3NzY4NTAzLWIxMzUtNDhhOC04YTc5LTUwMThlZDI2YzBjZiIsInNjb3BlI")
+            .append("joicmVhZDovcG5mcy9mcy91c3IvdGVzdC9hcm9zc2kvdm9sYXRpbGUgd3Jpd")
+            .append("GU6L3BuZnMvZnMvdXNyL3Rlc3QvYXJvc3NpL3ZvbGF0aWxlIiwiZXhwIjox")
+            .append("NjEzNzAwMDAwfQ.Vqa0WDYOPiPTM-RtV6r0HMm0SkdGoRo5p2jtiHLzJK-")
+            .append("nN-Z67xc_A6t7mtGo5SxcIEu65XWlUVIUOCM5_keIcye4HNcI1OGaXOoIm")
+            .append("iXP_pBOiIgk_VWcCjxUDhyYnguLGOP2HCeitblJnyQ88IcNCQ0ayQmqS4bz6")
+            .append("EQjiXdhHJDcsi3wGhSGrvO4rJR-B2nR4HA5m7I8cUF9Z07FxJA7eGdNN_x")
+            .append("DcVjWgOG2UeG9fIypGWCx_UU7tQPJdDt73JZCQzgP9RBvnnQE8wp0rHNkUSK")
+            .append("_ov89itVf74QmGw_1D88tew9Xq45JjPb1rS1z7L1XMWsqTenZeIMe98ISiyxVDw")
+            .toString();
+        StringBuilder sb = new StringBuilder("?tpc.src=hostname");
+        sb.append("&authz=").append(authz)
+          .append("&tpc.key=token&tpc.stage=copy")
+          .append("&tpc.scgi=authz=")
+          .append(authz)
+          .append("\t")
+          .append("tpc.stage=placement")
+          .append("&tpc.spr=xroots");
+        givenOpaque(sb.toString());
+
+        assertEquals("Token does not match.",
+                     authz, info.getSourceToken());
+    }
+
+    @Test
+    public void shouldNotFindSourceAuthzFromSCGI() throws Exception
+    {
+        String authz = new StringBuilder()
+                        .append("eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImtleS1yczI1NiJ9")
+                        .append(".eyJ2ZXIiOiJzY2l0b2tlbjoyLjAiLCJhdWQiOiJodHRwczovL2RlbW8uc2")
+                        .append("NpdG9rZW5zLm9yZyIsImlzcyI6Imh0dHBzOi8vZGVtby5zY2l0b2tlbnMub3")
+                        .append("JnIiwiaWF0IjoxNjEzNTAwMjM5LCJuYmYiOjE2MTM1MDAyMzksImp0aSI6Im")
+                        .append("U3NzY4NTAzLWIxMzUtNDhhOC04YTc5LTUwMThlZDI2YzBjZiIsInNjb3BlI")
+                        .append("joicmVhZDovcG5mcy9mcy91c3IvdGVzdC9hcm9zc2kvdm9sYXRpbGUgd3Jpd")
+                        .append("GU6L3BuZnMvZnMvdXNyL3Rlc3QvYXJvc3NpL3ZvbGF0aWxlIiwiZXhwIjox")
+                        .append("NjEzNzAwMDAwfQ.Vqa0WDYOPiPTM-RtV6r0HMm0SkdGoRo5p2jtiHLzJK-")
+                        .append("nN-Z67xc_A6t7mtGo5SxcIEu65XWlUVIUOCM5_keIcye4HNcI1OGaXOoIm")
+                        .append("iXP_pBOiIgk_VWcCjxUDhyYnguLGOP2HCeitblJnyQ88IcNCQ0ayQmqS4bz6")
+                        .append("EQjiXdhHJDcsi3wGhSGrvO4rJR-B2nR4HA5m7I8cUF9Z07FxJA7eGdNN_x")
+                        .append("DcVjWgOG2UeG9fIypGWCx_UU7tQPJdDt73JZCQzgP9RBvnnQE8wp0rHNkUSK")
+                        .append("_ov89itVf74QmGw_1D88tew9Xq45JjPb1rS1z7L1XMWsqTenZeIMe98ISiyxVDw")
+                        .toString();
+        StringBuilder sb = new StringBuilder("?tpc.src=hostname");
+        sb.append("&authz=").append(authz)
+          .append("&tpc.key=token&tpc.stage=copy")
+          .append("&tpc.scgi=tpc.stage=placement")
+          .append("&tpc.spr=xroots");
+        givenOpaque(sb.toString());
+
+        assertNull("Token was not null.", info.getSourceToken());
     }
 
     public void givenOpaque(String opaque) throws ParseException
