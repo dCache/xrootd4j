@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -444,12 +444,25 @@ public class XrootdTpcClient
         StringBuilder fullPath = new StringBuilder();
 
         /*
+         *  If the source token exists, put it first.
+         */
+        String sourceToken = info.getSourceToken();
+        if (sourceToken != null) {
+            fullPath.append(XrootdTpcInfo.AUTHZ)
+                    .append(OpaqueStringParser.OPAQUE_SEPARATOR)
+                    .append(sourceToken);
+        }
+
+        /*
          *  If delegation is not being used, forward the rendezvous key and
          *  client info.
          */
         String protocol = (String)authnContext.get("protocol");
         String tpcDlg = (String)authnContext.get("tpcdlg");
         if ("gsi".equals(protocol) && !"gsi".equalsIgnoreCase(tpcDlg)) {
+            if (fullPath.length() > 0) {
+                fullPath.append(OpaqueStringParser.OPAQUE_PREFIX);
+            }
             fullPath.append(XrootdTpcInfo.CLIENT)
                     .append(OpaqueStringParser.OPAQUE_SEPARATOR)
                     .append(userUrn)
