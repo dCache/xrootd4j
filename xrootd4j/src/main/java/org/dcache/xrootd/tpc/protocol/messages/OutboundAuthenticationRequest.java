@@ -76,23 +76,9 @@ public class OutboundAuthenticationRequest
 
     public String describe()
     {
-        StringBuilder builder = new StringBuilder("\n");
-        builder.append("/////////////////////////////////////////////////////////\n");
-        builder.append("//           Outbound Authentication Response\n");
-        builder.append("//\n");
-        builder.append("//  stream:  ").append(streamId).append("\n");
-        builder.append("//  request: ").append(requestId).append("\n");
-        builder.append("//\n");
-
-        int i = 0;
-
-        for (XrootdBucket bucket : buckets) {
-            i = bucket.dump(builder, getClientStep(step), ++i);
-        }
-
-        builder.append("/////////////////////////////////////////////////////////\n");
-
-        return builder.toString();
+        return XrootdBucketUtils.describe("//           Outbound Authentication Response",
+            b->XrootdBucketUtils.dumpBuckets(b, buckets, getClientStep(step)),
+            streamId, requestId, null);
     }
 
     @Override

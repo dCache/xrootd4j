@@ -23,13 +23,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.dcache.xrootd.core.XrootdEncoder.writeZeroPad;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_certreq;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_reserved;
 
@@ -37,7 +40,8 @@ import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_reserved;
  *  Utilities for deserializing, writing, and printing out GSI byte buckets.
  */
 public class XrootdBucketUtils {
-    private static final Logger LOGGER = LoggerFactory.getLogger(XrootdBucketUtils.class);
+    private static final Logger LOGGER
+                    = LoggerFactory.getLogger(XrootdBucketUtils.class);
 
     private static final String BYTE_DUMP[] =
     {
@@ -50,6 +54,29 @@ public class XrootdBucketUtils {
         "//  0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x                  %s\n",
         "//  0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x           %s\n"
     };
+
+    public static String describe(String title,
+                                  Consumer<StringBuilder> data,
+                                  Integer streamId,
+                                  Integer requestId,
+                                  Integer stat)
+    {
+        StringBuilder builder = new StringBuilder("\n");
+        builder.append("/////////////////////////////////////////////////////////\n");
+        builder.append(title);
+        builder.append("\n//\n");
+        builder.append("//  stream:  ").append(streamId).append("\n");
+        if (requestId != null) {
+            builder.append("//  request: ").append(requestId).append("\n");
+        }
+        if (stat != null) {
+            builder.append("//  stat:    ").append(stat).append("\n");
+        }
+        builder.append("//\n");
+        data.accept(builder);
+        builder.append("/////////////////////////////////////////////////////////\n");
+        return builder.toString();
+    }
 
     /**
      * Deserialize an XrootdBucket. Depending on the BucketType, return an
@@ -134,15 +161,15 @@ public class XrootdBucketUtils {
                         new EnumMap<>(BucketType.class);
 
         while (bucketType != BucketType.kXRS_none) {
+            LOGGER.debug("Deserialized a bucket with code {}, type {}",
+                         bucketCode, bucketType);
+
             int bucketLength = buffer.readInt();
 
             XrootdBucket bucket = deserialize(bucketType,
                                               buffer.slice(buffer.readerIndex(),
                                                            bucketLength));
             buckets.put(bucketType, bucket);
-
-            LOGGER.debug("Deserialized a bucket with code {}, type {}",
-                         bucketCode, bucketType);
 
             /* proceed to the next bucket */
             buffer.readerIndex(buffer.readerIndex() + bucketLength);
@@ -165,8 +192,7 @@ public class XrootdBucketUtils {
      * @throws IOException Deserialization fails
      */
     public static NestedBucketBuffer deserializeNested(BucketType type, ByteBuf buffer)
-                    throws IOException
-    {
+                    throws IOException {
         /* kXRS_main can be a nested or an encrypted (raw) bucket. Try whether it
          * looks like a nested buffer and use raw deserialization if not */
         int readIndex = buffer.readerIndex();
@@ -175,7 +201,8 @@ public class XrootdBucketUtils {
 
         int step = deserializeStep(buffer);
 
-        LOGGER.debug("NestedBucketBuffer protocol: {}, step {}", protocol, step);
+        LOGGER.debug("NestedBucketBuffer protocol: {}, step {}", protocol,
+                     step);
 
         if (step < kXGC_certreq || step > kXGC_reserved) {
             /* reset buffer */
@@ -183,7 +210,19 @@ public class XrootdBucketUtils {
             throw new IOException("Buffer contents are not a nested buffer!");
         }
 
-        return new NestedBucketBuffer(type, protocol, step, deserializeBuckets(buffer));
+        return new NestedBucketBuffer(type, protocol, step,
+                                      deserializeBuckets(buffer));
+    }
+
+    public static void dumpBuckets(StringBuilder builder,
+                                   Collection<XrootdBucket> buckets,
+                                   String step)
+    {
+        int i = 0;
+
+        for (XrootdBucket bucket : buckets) {
+            i = bucket.dump(builder, step, ++i);
+        }
     }
 
     public static void dumpBytes(StringBuilder builder, byte[] data)
@@ -247,12 +286,9 @@ public class XrootdBucketUtils {
     public static void writeBytes(ByteBuf buffer,
                                   String protocol,
                                   int step,
-                                  List<XrootdBucket> buckets) {
-        byte[] bytes = protocol.getBytes(US_ASCII);
-        buffer.writeBytes(bytes);
-        /* protocol must be 0-padded to 4 bytes */
-        buffer.writeZero(4 - bytes.length);
-
+                                  List<XrootdBucket> buckets)
+    {
+        writeZeroPad(protocol, buffer, 4);
         buffer.writeInt(step);
         for (XrootdBucket bucket : buckets) {
             bucket.serialize(buffer);

@@ -37,15 +37,6 @@ public class AuthenticationResponse extends AbstractXrootdResponse<Authenticatio
     private static final Logger LOGGER =
                     LoggerFactory.getLogger(AuthenticationResponse.class);
 
-    @Override
-    public void writeTo(ChannelHandlerContext ctx, ChannelPromise promise)
-    {
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace(describe());
-        }
-        super.writeTo(ctx, promise);
-    }
-
     private final String protocol;
     private final int step;
     private final List<XrootdBucket> buckets;
@@ -79,23 +70,11 @@ public class AuthenticationResponse extends AbstractXrootdResponse<Authenticatio
 
     public String describe()
     {
-        StringBuilder builder = new StringBuilder("\n");
-        builder.append("/////////////////////////////////////////////////////////\n");
-        builder.append("//               Authentication Response\n");
-        builder.append("//\n");
-        builder.append("//  stream:  ").append(request.getStreamId()).append("\n");
-        builder.append("//  request: ").append(request.getRequestId()).append("\n");
-        builder.append("//\n");
-
-        int i = 0;
-
-        for (XrootdBucket bucket : buckets) {
-            i = bucket.dump(builder, getServerStep(step), ++i);
-        }
-
-        builder.append("/////////////////////////////////////////////////////////\n");
-
-        return builder.toString();
+        return XrootdBucketUtils.describe("//               Authentication Response",
+            b -> {XrootdBucketUtils.dumpBuckets(b,
+                                                  buckets,
+                                                  getServerStep(step));},
+            request.getStreamId(), request.getRequestId(),null);
     }
 
     public String getProtocol()
@@ -113,6 +92,15 @@ public class AuthenticationResponse extends AbstractXrootdResponse<Authenticatio
     {
         // PROTOCOL + STEP + BODY + TERMINAL
         return 4 + 4 + length + 4;
+    }
+
+    @Override
+    public void writeTo(ChannelHandlerContext ctx, ChannelPromise promise)
+    {
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace(describe());
+        }
+        super.writeTo(ctx, promise);
     }
 
     @Override

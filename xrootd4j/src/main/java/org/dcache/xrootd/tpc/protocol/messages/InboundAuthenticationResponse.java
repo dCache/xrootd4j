@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -101,28 +100,14 @@ public class InboundAuthenticationResponse
         }
     }
 
+
     public String describe()
     {
-        StringBuilder builder = new StringBuilder("\n");
-        builder.append("/////////////////////////////////////////////////////////\n");
-        builder.append("//           Inbound Authentication Response\n");
-        builder.append("//\n");
-        builder.append("//  stream:  ").append(streamId).append("\n");
-        builder.append("//  stat:    ").append(stat).append("\n");
-        builder.append("//\n");
-
-        int i = 0;
-
-        Collection<XrootdBucket> buckets = bucketMap.values();
-
-        for (XrootdBucket bucket : buckets) {
-            i = bucket.dump(builder,
-                            XrootdSecurityProtocol.getServerStep(serverStep), ++i);
-        }
-
-        builder.append("/////////////////////////////////////////////////////////\n");
-
-        return builder.toString();
+        return XrootdBucketUtils.describe("//           Inbound Authentication Response",
+            b->XrootdBucketUtils.dumpBuckets(b,
+                                             bucketMap.values(),
+                                             XrootdSecurityProtocol.getServerStep(serverStep)),
+            streamId, null, stat);
     }
 
     public Map<BucketType, XrootdBucket> getBuckets() {
