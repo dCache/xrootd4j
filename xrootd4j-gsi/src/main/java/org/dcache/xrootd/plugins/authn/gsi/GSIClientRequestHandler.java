@@ -40,7 +40,9 @@ import org.dcache.xrootd.security.StringBucket;
 import org.dcache.xrootd.security.TLSSessionInfo;
 import org.dcache.xrootd.security.UnsignedIntBucket;
 import org.dcache.xrootd.security.XrootdBucket;
-import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
+import org.dcache.xrootd.security.XrootdBucketUtils.BucketSerializer;
+import org.dcache.xrootd.security.XrootdBucketUtils.BucketSerializerBuilder;
+import org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 import org.dcache.xrootd.tpc.TpcSigverRequestEncoder;
 import org.dcache.xrootd.tpc.XrootdTpcClient;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
@@ -49,10 +51,9 @@ import org.dcache.xrootd.tpc.protocol.messages.OutboundAuthenticationRequest;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_DecryptErr;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_IOError;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kGSErrError;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_cert;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_certreq;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
 public abstract class GSIClientRequestHandler extends GSIRequestHandler
 {
@@ -180,11 +181,21 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
                         = new CertRequestBuckets(challenge,
                                                  getClientOpts()).buildContainer();
 
+        BucketSerializer serializer = new BucketSerializerBuilder()
+                        .withStreamId(client.getStreamId())
+                        .withRequestId(kXR_auth)
+                        .withProtocol(PROTOCOL)
+                        .withStep(kXGC_certreq)
+                        .withStepName(getClientStep(kXGC_certreq))
+                        .withBuckets(container.getBuckets())
+                        .withTitle("//           Outbound Authentication Request")
+                        .build();
+
         return new OutboundAuthenticationRequest(client.getStreamId(),
-                                                 container.getSize(),
                                                  PROTOCOL,
-                                                 kXGC_certreq,
-                                                 container.getBuckets());
+                                                 // (will be replaced by method when utils moved to gsi module REVISIT
+                                                 container.getSize() + 12,
+                                                 serializer);
     }
 
     public abstract OutboundAuthenticationRequest
@@ -307,11 +318,21 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
                                                     selectedDigest)
                                             .buildContainer();
 
+            BucketSerializer serializer = new BucketSerializerBuilder()
+                            .withStreamId(client.getStreamId())
+                            .withRequestId(kXR_auth)
+                            .withProtocol(PROTOCOL)
+                            .withStep(kXGC_cert)
+                            .withStepName(getClientStep(kXGC_cert))
+                            .withBuckets(container.getBuckets())
+                            .withTitle("//           Outbound Authentication Request")
+                            .build();
+
             return new OutboundAuthenticationRequest(response.getStreamId(),
-                                                     container.getSize(),
                                                      PROTOCOL,
-                                                     kXGC_cert,
-                                                     container.getBuckets());
+                                                     // (will be replaced by method when utils moved to gsi module REVISIT
+                                                     container.getSize() + 12,
+                                                     serializer);
         } catch (IOException e) {
             LOGGER.error("Problems during cert step {}." +
                                          e.getMessage() == null ? e.getClass().getName() :

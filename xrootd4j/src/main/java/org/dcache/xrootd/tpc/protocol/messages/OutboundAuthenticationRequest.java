@@ -21,82 +21,72 @@ package org.dcache.xrootd.tpc.protocol.messages;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.List;
+import java.util.function.Consumer;
 
-import org.dcache.xrootd.security.XrootdBucket;
-import org.dcache.xrootd.security.XrootdBucketUtils;
-
+import static org.dcache.xrootd.core.XrootdEncoder.writeZeroPad;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.getClientStep;
 
 /**
- * <p>Request to third-party source server.</p>
+ * Request to third-party source server.
+ * <p/>
+ * This has the same structure as the request to the server.
+ *  <p/>
+ *  kXR_char streamid[2] <br/>
+ *  kXR_unt16<br/>
+ *  kXR_char reserved[12] <br/>
+ *  kXR_char credtype[4] <br/>
+ *  kXR_int32 credlen <br/>
+ *  kXR_char cred[credlen]
+ *  </p>
+ *  Different security protocols will use the cred data differently.
+ *  that functionality should not be here, but in the specific protocol's
+ *  processing.
  */
 public class OutboundAuthenticationRequest
                 extends AbstractXrootdOutboundRequest {
-    private static final Logger LOGGER =
-                    LoggerFactory.getLogger(OutboundAuthenticationRequest.class);
 
-    private final String             protocol;
-    private final int                step;
-    private final List<XrootdBucket> buckets;
-    private final int length;
+    private final String            credType;
+    private final int               length;
+    private final Consumer<ByteBuf> serializer;
 
     /**
      * @param streamId of this request
-     * @param length
-     * @param protocol the currently used authentication protocol
-     * @param step the processing step
-     * @param buckets list of buckets containing server-side authentication
-     *                information (challenge, host certificate, etc.)
+     * @param credType usually the protocol name
+     * @param length of the data container to be serialized
+     * @param serializer function responsible for writing to the buffer
      */
     public OutboundAuthenticationRequest(int streamId,
+                                         String credType,
                                          int length,
-                                         String protocol,
-                                         int step,
-                                         List<XrootdBucket> buckets) {
+                                         Consumer<ByteBuf> serializer)
+    {
         super(streamId, kXR_auth);
-        this.protocol = protocol;
-        this.step = step;
+        this.credType = credType;
         this.length = length;
-        this.buckets = buckets;
+        this.serializer = serializer;
     }
 
     @Override
     public void writeTo(ChannelHandlerContext ctx, ChannelPromise promise)
     {
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace(describe());
-        }
         super.writeTo(ctx, promise);
     }
 
-    public String describe()
+    @Override
+    protected void getParams(ByteBuf buffer)
     {
-        return XrootdBucketUtils.describe("//           Outbound Authentication Response",
-            b->XrootdBucketUtils.dumpBuckets(b, buckets, getClientStep(step)),
-            streamId, requestId, null);
+        // pad ... skip the 12 reserved bytes
+        buffer.writeZero(12);
+        writeZeroPad(credType, buffer, 4);
+        buffer.writeInt(length);
+        serializer.accept(buffer);
     }
 
     @Override
-    protected void getParams(ByteBuf buffer) {
-        // pad ... skip the 16 bytes
-        buffer.writeZero(16);
-        buffer.writeInt(12 + length);
-        XrootdBucketUtils.writeBytes(buffer, protocol, step, buckets);
-    }
-
-    @Override
-    protected int getParamsLen() {
-        // 16 bytes reserved + len + data
-        return getDataLen() + 20;
-    }
-
-    private int getDataLen() {
-        // 12 = protocol + step + terminal
-        return 12 + length;
+    protected int getParamsLen()
+    {
+        // 16 bytes reserved + 4 len + data
+        return length + 20;
     }
 }

@@ -59,6 +59,94 @@ public class XrootdBucketUtils {
         "//  0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x           %s\n"
     };
 
+    public static class BucketSerializerBuilder
+    {
+        private final BucketSerializer serializer;
+
+        public BucketSerializerBuilder()
+        {
+            serializer = new BucketSerializer();
+        }
+
+        public BucketSerializerBuilder withTitle(String title)
+        {
+            serializer.title = title;
+            return this;
+        }
+
+        public BucketSerializerBuilder withStreamId(Integer streamId)
+        {
+            serializer.streamId = streamId;
+            return this;
+        }
+
+        public BucketSerializerBuilder withRequestId(Integer requestId)
+        {
+            serializer.requestId = requestId;
+            return this;
+        }
+
+        public BucketSerializerBuilder withStat(Integer stat)
+        {
+            serializer.stat = stat;
+            return this;
+        }
+
+        public BucketSerializerBuilder withStepName(String stepName)
+        {
+            serializer.stepName = stepName;
+            return this;
+        }
+
+        public BucketSerializerBuilder withProtocol(String protocol)
+        {
+            serializer.protocol = protocol;
+            return this;
+        }
+
+        public BucketSerializerBuilder withStep(int step)
+        {
+            serializer.step = step;
+            return this;
+        }
+
+        public BucketSerializerBuilder withBuckets(List<XrootdBucket> buckets)
+        {
+            serializer.buckets = buckets;
+            return this;
+        }
+
+        public BucketSerializer build()
+        {
+            return serializer;
+        }
+    }
+
+    public static class BucketSerializer implements Consumer<ByteBuf>
+    {
+        String             title;
+        Integer            streamId;
+        Integer            requestId;
+        Integer            stat;
+        String             stepName;
+        String             protocol;
+        int                step;
+        List<XrootdBucket> buckets;
+
+        @Override
+        public void accept(ByteBuf byteBuf)
+        {
+            writeBytes(byteBuf, protocol, step, buckets);
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace(describe(title,
+                                      b -> dumpBuckets(b, buckets, stepName),
+                                      streamId,
+                                      requestId,
+                                      stat));
+            }
+        }
+    }
+
     /**
      *  The Xrootd GSI protocol passes handshake information in structs
      *  that are called "buckets".  Each bucket has embedded in it

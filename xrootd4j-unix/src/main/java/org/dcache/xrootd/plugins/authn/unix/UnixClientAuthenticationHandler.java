@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -18,20 +18,15 @@
  */
 package org.dcache.xrootd.plugins.authn.unix;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelId;
 
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.Map;
+import java.util.function.Consumer;
 
 import org.dcache.xrootd.core.XrootdException;
-import org.dcache.xrootd.security.NestedBucketBuffer;
 import org.dcache.xrootd.security.SigningPolicy;
-import org.dcache.xrootd.security.StringBucket;
 import org.dcache.xrootd.security.TLSSessionInfo;
-import org.dcache.xrootd.security.XrootdBucket;
-import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 import org.dcache.xrootd.tpc.AbstractClientAuthnHandler;
 import org.dcache.xrootd.tpc.TpcSigverRequestEncoder;
 import org.dcache.xrootd.tpc.XrootdTpcInfo;
@@ -39,12 +34,10 @@ import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundAuthenticationRequest;
 
 import static io.netty.channel.ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE;
+import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_error;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_creds;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_main;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_cert;
 
 /**
  *  <p>Client-side handler which allows TPC via unix authentication.
@@ -114,24 +107,23 @@ public class UnixClientAuthenticationHandler extends AbstractClientAuthnHandler
                                     sigverRequestEncoder);
         }
 
-        Map<BucketType, XrootdBucket> nestedBuckets
-                        = new EnumMap<>(BucketType.class);
-        StringBucket unameBucket = new StringBucket(kXRS_creds, client.getUname());
-        nestedBuckets.put(unameBucket.getType(), unameBucket);
-        NestedBucketBuffer mainBucket = new NestedBucketBuffer(kXRS_main,
-                                                               PROTOCOL,
-                                                               kXGC_cert,
-                                                               nestedBuckets);
+        String uname = client.getUname();
+        Consumer<ByteBuf> serializer = b -> writeBytes(b, uname);
         OutboundAuthenticationRequest request
                         = new OutboundAuthenticationRequest(client.getStreamId(),
-                                                            mainBucket.getSize(),
                                                             PROTOCOL,
-                                                            kXGC_cert,
-                                                            Collections.singletonList(mainBucket));
+                                                            uname.length(),
+                                                            serializer);
         client.setExpectedResponse(kXR_auth);
         client.setAuthResponse(null);
         ctx.writeAndFlush(request, ctx.newPromise())
            .addListener(FIRE_EXCEPTION_ON_FAILURE);
         client.startTimer(ctx);
+    }
+
+    private static void writeBytes(ByteBuf buffer, String uname)
+    {
+        byte[] bytes = uname.getBytes(US_ASCII);
+        buffer.writeBytes(bytes);
     }
 }
