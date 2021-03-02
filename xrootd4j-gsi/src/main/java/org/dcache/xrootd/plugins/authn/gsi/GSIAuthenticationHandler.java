@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -32,6 +32,8 @@ import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.security.BufferDecrypter;
+import org.dcache.xrootd.security.XrootdBucketUtils;
+import org.dcache.xrootd.security.XrootdBucketUtils.BucketData;
 
 import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.CRYPTO_MODE;
 import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.PROTOCOL;
@@ -74,16 +76,18 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
     public XrootdResponse<AuthenticationRequest> authenticate(AuthenticationRequest request)
         throws XrootdException
     {
+        BucketData data = XrootdBucketUtils.deserializeData(request);
+
         /* check whether the protocol matches */
-        if (!PROTOCOL.equalsIgnoreCase(request.getProtocol())) {
+        if (!PROTOCOL.equalsIgnoreCase(data.getProtocol())) {
             requestHandler.cancelHandshake();
             throw new XrootdException(kXR_InvalidRequest,
-                                      "Specified Protocol " + request.getProtocol() +
+                                      "Specified Protocol " + data.getProtocol() +
                                       " is not the protocol that was negotiated.");
         }
 
         if (requestHandler == null) {
-            requestHandler = createRequestHandler(request.getVersion());
+            requestHandler = createRequestHandler(data.getVersion());
         }
 
         if (requestHandler.isRequestExpired()) {
@@ -94,36 +98,36 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
 
         XrootdResponse<AuthenticationRequest> response;
 
-        switch (request.getStep()) {
+        switch (data.getStep()) {
             case kXGC_none:
                 response = new OkResponse<>(request);
                 break;
             case kXGC_certreq:
-                response = requestHandler.handleCertReqStep(request);
+                response = requestHandler.handleCertReqStep(request, data);
                 LOGGER.debug("authenticate, processed certreq step "
                                              + "for stream {}, session {}.",
                              request.getStreamId(), request.getSession());
                 break;
             case kXGC_cert:
-                response = requestHandler.handleCertStep(request);
-                finished = requestHandler.isFinished(request);
+                response = requestHandler.handleCertStep(request, data);
+                finished = requestHandler.isFinished(data);
                 LOGGER.debug("authenticate, processed cert step "
                                              + "for stream {}, session {}.",
                              request.getStreamId(), request.getSession());
                 break;
             case kXGC_sigpxy:
-                response = requestHandler.handleSigPxyStep(request);
+                response = requestHandler.handleSigPxyStep(request, data);
                 LOGGER.debug("authenticate, processed sigpxy step "
                                              + "for stream {}, session {}.",
                              request.getStreamId(), request.getSession());
-                finished = requestHandler.isFinished(request);;
+                finished = requestHandler.isFinished(data);;
                 break;
             default:
                 requestHandler.cancelHandshake();
                 throw new XrootdException(kGSErrBadOpt,
                                           "Error during authentication, " +
                                                           "unknown processing step: "
-                                                          + request.getStep());
+                                                          + data.getStep());
         }
 
         requestHandler.updateLastRequest();

@@ -100,7 +100,6 @@ public class InboundAuthenticationResponse
         }
     }
 
-
     public String describe()
     {
         return XrootdBucketUtils.describe("//           Inbound Authentication Response",

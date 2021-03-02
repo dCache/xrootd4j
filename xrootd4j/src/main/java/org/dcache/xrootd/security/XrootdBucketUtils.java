@@ -29,10 +29,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.core.XrootdEncoder.writeZeroPad;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_version;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.getClientStep;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_certreq;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_reserved;
 
@@ -54,6 +58,60 @@ public class XrootdBucketUtils {
         "//  0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x                  %s\n",
         "//  0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x           %s\n"
     };
+
+    /**
+     *  The Xrootd GSI protocol passes handshake information in structs
+     *  that are called "buckets".  Each bucket has embedded in it
+     *  the four fields (protocol, step, version) as well as a length
+     *  integer for the length of the actual data.
+     *
+     *  All of this gets serialized into the byte data fields of the
+     *  Authentication requests and responses (which other protocols
+     *  may structure differently.)
+     */
+    public static class BucketData
+    {
+        /**
+         * The protocol, zero-padded char[4]
+         */
+        String protocol;
+
+        /**
+         * The step, int32
+         */
+        int step;
+
+        /**
+         *  The protocol version.
+         */
+        Integer version;
+
+        /**
+         * The buckets (kind of a serialized datatype with an
+         * int32 block of metadata).
+         */
+        final Map<BucketType, XrootdBucket> bucketMap = new EnumMap<>(BucketType.class);
+
+        public String getProtocol()
+        {
+            return protocol;
+        }
+
+        public int getStep()
+        {
+            return step;
+        }
+
+        public Integer getVersion()
+        {
+            return version;
+        }
+
+        public Map<BucketType, XrootdBucket> getBucketMap()
+        {
+            return bucketMap;
+        }
+    }
 
     public static String describe(String title,
                                   Consumer<StringBuilder> data,
@@ -179,6 +237,49 @@ public class XrootdBucketUtils {
         }
 
         return buckets;
+    }
+
+    public static BucketData deserializeData(AuthenticationRequest request)
+    {
+        BucketData data = new BucketData();
+        ByteBuf buffer = request.getCredentialBuffer();
+
+        data.protocol = XrootdBucketUtils.deserializeProtocol(buffer);
+
+        if (data.protocol.equals("unix")) {
+            data.step = kXR_ok;
+            return data;
+        }
+
+        data.step = XrootdBucketUtils.deserializeStep(buffer);
+
+        try {
+            data.bucketMap.putAll(XrootdBucketUtils.deserializeBuckets(buffer));
+        } catch (IOException ioex) {
+            throw new IllegalArgumentException("Illegal credential format: {}",
+                                               ioex);
+        }
+
+        request.releaseBuffer();
+
+        UnsignedIntBucket versionBucket
+                        = (UnsignedIntBucket)data.bucketMap.get(kXRS_version);
+
+        if (versionBucket != null) {
+            data.version = versionBucket.getContent();
+        }
+
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace(describe("//                Authentication Request",
+                                  b -> dumpBuckets(b,
+                                                   data.bucketMap.values(),
+                                                   getClientStep(data.step)),
+                                  request.getStreamId(),
+                                  request.getRequestId(),
+                                  null));
+        }
+
+        return data;
     }
 
     /**

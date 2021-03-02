@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -35,6 +35,7 @@ import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.security.NestedBucketBuffer;
 import org.dcache.xrootd.security.XrootdBucket;
+import org.dcache.xrootd.security.XrootdBucketUtils.BucketData;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
@@ -63,9 +64,9 @@ public class GSIPre49ServerRequestHandler extends GSIServerRequestHandler
 
     @Override
     public XrootdResponse<AuthenticationRequest>
-        handleCertReqStep(AuthenticationRequest request) throws XrootdException
+        handleCertReqStep(AuthenticationRequest request, BucketData data) throws XrootdException
     {
-        return handleCertReqStep(request, false, kXRS_puk);
+        return handleCertReqStep(request, data, false, kXRS_puk);
     }
 
     /**
@@ -79,13 +80,12 @@ public class GSIPre49ServerRequestHandler extends GSIServerRequestHandler
      */
     @Override
     public XrootdResponse<AuthenticationRequest>
-        handleCertStep(AuthenticationRequest request) throws XrootdException
+        handleCertStep(AuthenticationRequest request, BucketData data) throws XrootdException
     {
         try {
-            validateCiphers(request);
-            validateDigests(request);
-
-            Map<BucketType, XrootdBucket> receivedBuckets = request.getBuckets();
+            Map<BucketType, XrootdBucket> receivedBuckets = data.getBucketMap();
+            validateCiphers(receivedBuckets);
+            validateDigests(receivedBuckets);
 
             finalizeSessionKey(receivedBuckets, kXRS_puk);
 
@@ -128,7 +128,7 @@ public class GSIPre49ServerRequestHandler extends GSIServerRequestHandler
 
     @Override
     public XrootdResponse<AuthenticationRequest> handleSigPxyStep
-                    (AuthenticationRequest request) throws XrootdException
+                    (AuthenticationRequest request, BucketData data) throws XrootdException
     {
         /*
          *  Should not happen.
@@ -138,9 +138,9 @@ public class GSIPre49ServerRequestHandler extends GSIServerRequestHandler
     }
 
     @Override
-    public boolean isFinished(AuthenticationRequest request)
+    public boolean isFinished(BucketData data)
     {
-        return kXGC_cert == request.getStep();
+        return kXGC_cert == data.getStep();
     }
 
     @Override

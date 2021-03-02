@@ -19,106 +19,76 @@
 package org.dcache.xrootd.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.EnumMap;
-import java.util.Map;
-
-import org.dcache.xrootd.security.UnsignedIntBucket;
-import org.dcache.xrootd.security.XrootdBucket;
-import org.dcache.xrootd.security.XrootdBucketUtils;
-import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
-
+import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_version;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.getClientStep;
 
+/**
+ *  The structure of the authentication request according to the protocol:
+ *  <p/>
+ *  kXR_char streamid[2] <br/>
+ *  kXR_unt16 kXR_auth <br/>
+ *  kXR_char reserved[12] <br/>
+ *  kXR_char credtype[4] <br/>
+ *  kXR_int32 credlen <br/>
+ *  kXR_char cred[credlen]
+ *  </p>
+ *  Different security protocols will use the cred data differently.
+ *  That functionality should not be here, but in the specific protocol's
+ *  processing.
+ */
 public class AuthenticationRequest extends AbstractXrootdRequest
 {
-    private static final Logger LOGGER =
-        LoggerFactory.getLogger(AuthenticationRequest.class);
+    private final String credType;
+    private final int    credLen;
+    private final ByteBuf credential;
 
-    /** the protocol as it is send by the client, zero-padded char[4] */
-    private final String protocol;
-    /** the step as it is send by the client, int32 */
-    private final int step;
-    /** store the buckets (kind of a serialized datatype with an
-     * int32 block of metadata) received from the client
-     */
-    /**
-     *  pull the protocol version of the client out of the bucket map
-     *  for convenient access.
-     */
-    private Integer version;
-
-    private final Map<BucketType, XrootdBucket> bucketMap =
-        new EnumMap<>(BucketType.class);
-
-    /**
-     * Deserialize protocol, processing step and all the bucks sent by the
-     * client
-     * @param buffer The buffer containing the above
-     */
     public AuthenticationRequest(ByteBuf buffer)
     {
         super(buffer, kXR_auth);
 
-        /* skip reserved bytes and credlen */
-        buffer.readerIndex(24);
+        /*
+         * skip reserved bytes
+         */
+        buffer.readerIndex(16);
 
-        protocol = XrootdBucketUtils.deserializeProtocol(buffer);
+        credType = buffer.toString(buffer.readerIndex(), 4, US_ASCII).trim();
 
-        if (protocol.equals("unix")) {
-            step = kXR_ok;
+        /*
+         * toString does not advance the index
+         */
+        buffer.readerIndex(buffer.readerIndex() + 4);
+
+        credLen = buffer.readInt();
+
+        if (credLen == 0) {
+            credential = null;
             return;
         }
 
-        step = XrootdBucketUtils.deserializeStep(buffer);
-
-        try {
-            bucketMap.putAll(XrootdBucketUtils.deserializeBuckets(buffer));
-        } catch (IOException ioex) {
-            throw new IllegalArgumentException("Illegal credential format: {}",
-                                               ioex);
-        }
-
-        UnsignedIntBucket versionBucket
-                        = (UnsignedIntBucket)bucketMap.get(kXRS_version);
-
-        if (versionBucket != null) {
-            version = versionBucket.getContent();
-        }
-
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace(describe());
-        }
+        credential = buffer.alloc().ioBuffer(credLen);
+        credential.writeBytes(buffer);
     }
 
-    public String describe()
+    public String getCredType()
     {
-        return XrootdBucketUtils.describe("//                Authentication Request",
-            b -> XrootdBucketUtils.dumpBuckets(b,
-                                                  bucketMap.values(),
-                                                  getClientStep(step)),
-            streamId, requestId,null);
+        return credType;
     }
 
-    public Map<BucketType, XrootdBucket> getBuckets() {
-        return bucketMap;
+    public int getCredLen()
+    {
+        return credLen;
     }
 
-    public int getStep() {
-        return step;
+    public ByteBuf getCredentialBuffer()
+    {
+        return credential;
     }
 
-    public String getProtocol() {
-        return protocol;
-    }
-
-    public Integer getVersion() {
-        return version;
+    public void releaseBuffer()
+    {
+       if (credential != null) {
+           credential.release();
+       }
     }
 }

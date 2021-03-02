@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -29,6 +29,7 @@ import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.util.Map;
 import java.util.Optional;
 
 import org.dcache.xrootd.core.XrootdException;
@@ -41,6 +42,7 @@ import org.dcache.xrootd.security.NestedBucketBuffer;
 import org.dcache.xrootd.security.RawBucket;
 import org.dcache.xrootd.security.StringBucket;
 import org.dcache.xrootd.security.XrootdBucket;
+import org.dcache.xrootd.security.XrootdBucketUtils.BucketData;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
@@ -122,18 +124,18 @@ public abstract class GSIServerRequestHandler extends GSIRequestHandler
     }
 
     public abstract XrootdResponse<AuthenticationRequest>
-        handleCertReqStep(AuthenticationRequest request)
+        handleCertReqStep(AuthenticationRequest request, BucketData data)
                     throws XrootdException;
 
     public abstract XrootdResponse<AuthenticationRequest>
-        handleCertStep(AuthenticationRequest request)
+        handleCertStep(AuthenticationRequest request, BucketData data)
                     throws XrootdException;
 
     public abstract XrootdResponse<AuthenticationRequest>
-        handleSigPxyStep(AuthenticationRequest request)
+        handleSigPxyStep(AuthenticationRequest request, BucketData data)
                     throws XrootdException;
 
-    public abstract boolean isFinished(AuthenticationRequest request);
+    public abstract boolean isFinished(BucketData data);
 
     /**
      * Handle the kXGC_certreq step.
@@ -148,28 +150,30 @@ public abstract class GSIServerRequestHandler extends GSIRequestHandler
      * may or may not be signed using the RSA private key.
      *
      * @param request The received authentication request
+     * @param data Parsed buckets
      * @param signDHParams if true, sign using RSA private key
      * @param dhParamBucketType either kXRS_puk (pre-4.9) or kXRS_cipher (4.9+).
      * @return AuthenticationResponse with kXR_authmore
      */
     protected XrootdResponse<AuthenticationRequest>
         handleCertReqStep(AuthenticationRequest request,
+                          BucketData data,
                           boolean signDHParams,
                           BucketType dhParamBucketType) throws XrootdException
     {
         try {
-            StringBucket bucket = (StringBucket)request.getBuckets()
-                                                       .get(kXRS_cryptomod);
+            Map<BucketType, XrootdBucket> map = data.getBucketMap();
+            StringBucket bucket = (StringBucket)map.get(kXRS_cryptomod);
             validateCryptoMode(bucket.getContent());
 
-            bucket = (StringBucket)request.getBuckets().get(kXRS_issuer_hash);
+            bucket = (StringBucket)map.get(kXRS_issuer_hash);
             String caIdentities = bucket.getContent();
             credentialManager.checkCaIdentities(caIdentities.split("[|]"));
 
             PEMCredential credential = credentialManager.getHostCredential();
             rsaSession.initializeForEncryption(credential.getKey());
             NestedBucketBuffer mainBucket =
-                            ((NestedBucketBuffer) request.getBuckets().get(kXRS_main));
+                            ((NestedBucketBuffer)map.get(kXRS_main));
             XrootdBucket main = postProcessMainBucket(mainBucket.getNestedBuckets(),
                                                       Optional.empty(),
                                                       kXGS_cert);
@@ -211,19 +215,15 @@ public abstract class GSIServerRequestHandler extends GSIRequestHandler
         }
     }
 
-    protected String validateCiphers(AuthenticationRequest request) throws XrootdException
+    protected String validateCiphers(Map<BucketType, XrootdBucket> map) throws XrootdException
     {
-        StringBucket cipherBucket
-                        = (StringBucket) request.getBuckets().get(kXRS_cipher_alg);
-
+        StringBucket cipherBucket = (StringBucket) map.get(kXRS_cipher_alg);
         return validateCiphers(cipherBucket.getContent().split("[:]"));
     }
 
-    protected String validateDigests(AuthenticationRequest request) throws XrootdException
+    protected String validateDigests(Map<BucketType, XrootdBucket> map) throws XrootdException
     {
-        StringBucket digestBucket
-                        = (StringBucket) request.getBuckets().get(kXRS_md_alg);
-
+        StringBucket digestBucket = (StringBucket) map.get(kXRS_md_alg);
         return validateDigests(digestBucket.getContent().split("[:]"));
     }
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -55,6 +55,7 @@ import org.dcache.xrootd.security.NestedBucketBuffer;
 import org.dcache.xrootd.security.StringBucket;
 import org.dcache.xrootd.security.UnsignedIntBucket;
 import org.dcache.xrootd.security.XrootdBucket;
+import org.dcache.xrootd.security.XrootdBucketUtils.BucketData;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_DecryptErr;
@@ -102,11 +103,11 @@ public class GSIPost49ServerRequestHandler extends GSIServerRequestHandler
 
     @Override
     public XrootdResponse<AuthenticationRequest> handleCertReqStep(
-                    AuthenticationRequest request) throws XrootdException
+                    AuthenticationRequest request, BucketData data) throws XrootdException
     {
         UnsignedIntBucket clientOpts
-                        = (UnsignedIntBucket)request.getBuckets()
-                                                    .get(kXRS_clnt_opts);
+                        = (UnsignedIntBucket)data.getBucketMap()
+                                                 .get(kXRS_clnt_opts);
 
         if (clientOpts != null) {
             clientCanSignRequest
@@ -118,7 +119,7 @@ public class GSIPost49ServerRequestHandler extends GSIServerRequestHandler
 
 
 
-        return handleCertReqStep(request, true, kXRS_cipher);
+        return handleCertReqStep(request, data, true, kXRS_cipher);
     }
 
     /**
@@ -136,7 +137,7 @@ public class GSIPost49ServerRequestHandler extends GSIServerRequestHandler
      */
     @Override
     public XrootdResponse<AuthenticationRequest>
-        handleCertStep(AuthenticationRequest request) throws XrootdException
+        handleCertStep(AuthenticationRequest request, BucketData data) throws XrootdException
     {
         try {
             /*
@@ -144,15 +145,15 @@ public class GSIPost49ServerRequestHandler extends GSIServerRequestHandler
              */
             dhSession.setPaddedKey(true);
 
+            Map<BucketType, XrootdBucket> receivedBuckets = data.getBucketMap();
+
             /*
              *  Just in case the client did not indicate the initialization
              *  vector prefix length, set the IV back to 0.
              */
-            dhSession.setSessionIVLen(findSessionIVLen(validateCiphers(request)));
+            dhSession.setSessionIVLen(findSessionIVLen(validateCiphers(receivedBuckets)));
 
-            validateDigests(request);
-
-            Map<BucketType, XrootdBucket> receivedBuckets = request.getBuckets();
+            validateDigests(receivedBuckets);
 
             PublicKey clientPuk = extractClientPublicKey(receivedBuckets);
 
@@ -214,10 +215,10 @@ public class GSIPost49ServerRequestHandler extends GSIServerRequestHandler
      */
     @Override
     public XrootdResponse<AuthenticationRequest>
-        handleSigPxyStep(AuthenticationRequest request) throws XrootdException
+        handleSigPxyStep(AuthenticationRequest request, BucketData data) throws XrootdException
     {
         try {
-            Map<BucketType, XrootdBucket> receivedBuckets = request.getBuckets();
+            Map<BucketType, XrootdBucket> receivedBuckets = data.getBucketMap();
             NestedBucketBuffer mainBucket
                             = decryptMainBucketWithSessionKey(receivedBuckets,
                                                               "kXGC_sigpxy");
@@ -273,10 +274,10 @@ public class GSIPost49ServerRequestHandler extends GSIServerRequestHandler
     }
 
     @Override
-    public boolean isFinished(AuthenticationRequest request)
+    public boolean isFinished(BucketData data)
     {
-        return ((hasProxy || !clientCanSignRequest) && kXGC_cert == request.getStep())
-                        || kXGC_sigpxy == request.getStep();
+        return ((hasProxy || !clientCanSignRequest) && kXGC_cert == data.getStep())
+                        || kXGC_sigpxy == data.getStep();
     }
 
     @Override
