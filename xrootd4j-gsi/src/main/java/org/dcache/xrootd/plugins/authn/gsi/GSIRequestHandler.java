@@ -45,11 +45,6 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import org.dcache.xrootd.core.XrootdException;
-import org.dcache.xrootd.security.NestedBucketBuffer;
-import org.dcache.xrootd.security.RawBucket;
-import org.dcache.xrootd.security.StringBucket;
-import org.dcache.xrootd.security.XrootdBucket;
-import org.dcache.xrootd.security.XrootdBucketUtils;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
 import static eu.emi.security.authn.x509.impl.CertificateUtils.Encoding.PEM;
@@ -197,7 +192,7 @@ public abstract class GSIRequestHandler
      * @return the main bucket as a nested bucket buffer
      */
     protected NestedBucketBuffer
-        decryptMainBucketWithSessionKey(Map<BucketType, XrootdBucket> receivedBuckets,
+        decryptMainBucketWithSessionKey(Map<BucketType, GSIBucket> receivedBuckets,
                                         String step)
                     throws NoSuchPaddingException,
                     InvalidAlgorithmParameterException,
@@ -214,7 +209,7 @@ public abstract class GSIRequestHandler
                                              encrypted);
         ByteBuf buffer = wrappedBuffer(decrypted);
         NestedBucketBuffer nested
-                        = XrootdBucketUtils.deserializeNested(kXRS_main, buffer);
+                        = GSIBucketUtils.deserializeNested(kXRS_main, buffer);
 
         if (LOGGER.isTraceEnabled()) {
             StringBuilder builder = new StringBuilder();
@@ -252,11 +247,11 @@ public abstract class GSIRequestHandler
      * @param nestedBuckets containing the x509 bucket.
      * @return the cert chain
      */
-    protected X509Certificate[] extractChain(Map<BucketType, XrootdBucket> nestedBuckets)
+    protected X509Certificate[] extractChain(Map<BucketType, GSIBucket> nestedBuckets)
                     throws XrootdException, IOException
     {
         LOGGER.debug("Extracting X509Certificate chain.");
-        XrootdBucket clientX509Bucket = nestedBuckets.get(kXRS_x509);
+        GSIBucket clientX509Bucket = nestedBuckets.get(kXRS_x509);
 
         if (clientX509Bucket == null) {
             throw new XrootdException(kGSErrDecodeBuffer, "No kXRS_x509 bucket.");
@@ -291,7 +286,7 @@ public abstract class GSIRequestHandler
      * @param receivedBuckets
      * @param bucketType  kXRS_cipher or kXRS_puk.
      */
-    protected void finalizeSessionKey(Map<BucketType, XrootdBucket> receivedBuckets,
+    protected void finalizeSessionKey(Map<BucketType, GSIBucket> receivedBuckets,
                                       BucketType bucketType)
                     throws IOException, GeneralSecurityException, XrootdException
     {
@@ -360,8 +355,8 @@ public abstract class GSIRequestHandler
      *
      * @return  main bucket either encrypted or not, depending on step
      */
-    protected XrootdBucket
-        postProcessMainBucket(Map<BucketType, XrootdBucket> buckets,
+    protected GSIBucket
+        postProcessMainBucket(Map<BucketType, GSIBucket> buckets,
                               Optional<String> serializedX509,
                               int step)
                     throws BadPaddingException, IllegalBlockSizeException,
@@ -397,7 +392,7 @@ public abstract class GSIRequestHandler
                                                 x509Bucket);
             default:
                 LOGGER.debug("Building unencrypted main bucket.");
-                Map<BucketType, XrootdBucket> nestedBuckets = new EnumMap<>(BucketType.class);
+                Map<BucketType, GSIBucket> nestedBuckets = new EnumMap<>(BucketType.class);
                 nestedBuckets.put(signedRtagBucket.getType(), signedRtagBucket);
                 nestedBuckets.put(randomTagBucket.getType(), randomTagBucket);
                 if (x509Bucket != null) {
@@ -416,7 +411,7 @@ public abstract class GSIRequestHandler
      * @return the extracted and verified certificate chain
      */
     protected X509Certificate[]
-        processRSAVerification(Map<BucketType, XrootdBucket> nestedBuckets,
+        processRSAVerification(Map<BucketType, GSIBucket> nestedBuckets,
                                Optional<PublicKey> toMatch)
                     throws InvalidKeyException, IOException, XrootdException
     {
@@ -518,11 +513,11 @@ public abstract class GSIRequestHandler
      * using the received public key).  Check that it matches the token
      * previously generated.
      */
-    protected void verifySignedRTag(Map<BucketType, XrootdBucket> nestedBuckets)
+    protected void verifySignedRTag(Map<BucketType, GSIBucket> nestedBuckets)
                     throws XrootdException, BadPaddingException,
                     IllegalBlockSizeException, IOException
     {
-        XrootdBucket signedRTagBucket = nestedBuckets.get(kXRS_signed_rtag);
+        GSIBucket signedRTagBucket = nestedBuckets.get(kXRS_signed_rtag);
         byte[] signedRTag = ((RawBucket) signedRTagBucket).getContent();
 
         byte[] rTag = rsaSession.decrypt(signedRTag);
@@ -548,7 +543,7 @@ public abstract class GSIRequestHandler
      * Assumes session key has been finalized.
      */
     private RawBucket buildEncryptedMainBucket(int step,
-                                               XrootdBucket ... buckets)
+                                               GSIBucket... buckets)
                     throws XrootdException, NoSuchPaddingException,
                     InvalidAlgorithmParameterException,
                     NoSuchAlgorithmException, IllegalBlockSizeException,
@@ -570,7 +565,7 @@ public abstract class GSIRequestHandler
         buffer.writeBytes(bytes);
         buffer.writeZero(4 - bytes.length);
         buffer.writeInt(step);
-        for (XrootdBucket bucket: buckets) {
+        for (GSIBucket bucket: buckets) {
             if (bucket != null) {
                 bucket.serialize(buffer);
             }
@@ -591,7 +586,7 @@ public abstract class GSIRequestHandler
      * @return the rtag challenge signed using the rsaCipher (assumed to be
      *         initialized with the local private key).
      */
-    private byte[] signRtagChallenge(Map<BucketType, XrootdBucket> nestedBuckets)
+    private byte[] signRtagChallenge(Map<BucketType, GSIBucket> nestedBuckets)
                     throws BadPaddingException, IllegalBlockSizeException,
                     IOException
     {

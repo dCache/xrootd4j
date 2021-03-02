@@ -27,7 +27,7 @@ import java.util.Optional;
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.plugins.authn.gsi.post49.GSIPost49ClientRequestHandler;
 import org.dcache.xrootd.plugins.authn.gsi.pre49.GSIPre49ClientRequestHandler;
-import org.dcache.xrootd.security.XrootdBucketUtils.BucketData;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketData;
 import org.dcache.xrootd.tpc.AbstractClientAuthnHandler;
 import org.dcache.xrootd.tpc.XrootdTpcClient;
 import org.dcache.xrootd.tpc.XrootdTpcInfo;
@@ -39,7 +39,7 @@ import static io.netty.channel.ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE;
 import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.PROTOCOL;
 import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.PROTO_WITH_DELEGATION;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import static org.dcache.xrootd.security.XrootdBucketUtils.deserializeData;
+import static org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.deserializeData;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
 /**

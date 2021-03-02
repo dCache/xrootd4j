@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
  */
-package org.dcache.xrootd.security;
+package org.dcache.xrootd.plugins.authn.gsi;
 
 import io.netty.buffer.ByteBuf;
 
@@ -32,11 +32,11 @@ import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
  * @author tzangerl
  *
  */
-public abstract class XrootdBucket
+public abstract class GSIBucket
 {
     protected final BucketType _type;
 
-    public XrootdBucket(BucketType type) {
+    public GSIBucket(BucketType type) {
         _type = type;
     }
 
@@ -47,9 +47,9 @@ public abstract class XrootdBucket
      */
     public int dump(StringBuilder builder, String step, int number)
     {
-        builder.append("//                                                     //\n");
-        builder.append("//                    XrootdBucket                     //\n");
-        builder.append("//                                                     //\n");
+        builder.append("\n//                                                    //\n");
+        builder.append("//                       GSIBucket                      //\n");
+        builder.append("//                                                      //\n");
         builder.append("//  Name: ").append(this.getClass().getSimpleName()).append("\n");
         builder.append("//  Step: ").append(step).append("\n");
         builder.append("//  Buck: ").append(number).append("\n");

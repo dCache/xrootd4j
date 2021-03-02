@@ -16,79 +16,71 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
  */
-package org.dcache.xrootd.security;
+package org.dcache.xrootd.plugins.authn.gsi;
 
 import io.netty.buffer.ByteBuf;
+
+import java.nio.ByteBuffer;
 
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
 /**
- * A bucket containing a header plus a number of bytes. This can be binary
- * data, but a raw-bucket can also represent encryptet buckets of another
- * type.
+ * A bucket containing a header plus an unsigned integer.
  *
- * @see XrootdBucket
+ * @see GSIBucket
  *
  * @author radicke
  * @author tzangerl
  *
  */
-public class RawBucket extends XrootdBucket
+public class UnsignedIntBucket extends GSIBucket
 {
-    private final byte[] _data;
+   private final int _data;
 
-    public RawBucket(BucketType type, byte[] data) {
+    public UnsignedIntBucket(BucketType type, int data) {
         super(type);
         _data = data;
     }
 
-    /**
-     *  This usually will be called only if trace is enabled.
-     *
-     *  We here imitate the XrootD XrdSutBuffer DUMP printout.
-     */
+    @Override
     public int dump(StringBuilder builder, String step, int number)
     {
         super.dump(builder, step, number);
         builder.append("//\n");
-        builder.append("//                  RAW BYTE CONTENTS                  //\n");
+        builder.append("//                UNSIGNED INT CONTENTS\n");
         builder.append("//\n");
-        XrootdBucketUtils.dumpBytes(builder, _data);
+        builder.append("//  decimal: ").append(_data).append("\n");
+        builder.append("//\n");
+        ByteBuffer b = ByteBuffer.allocate(4);
+        b.putInt(_data);
+        byte[] result = b.array();
+        GSIBucketUtils.dumpBytes(builder, result);
         return number;
     }
 
-    public byte[] getContent() {
+    public int getContent() {
         return _data;
     }
 
-    public static RawBucket deserialize(BucketType type, ByteBuf buffer) {
+    public static UnsignedIntBucket deserialize(BucketType type, ByteBuf buffer) {
 
-        byte [] tmp = new byte[buffer.readableBytes()];
-        buffer.getBytes(0, tmp);
-        return new RawBucket(type, tmp);
+        return new UnsignedIntBucket(type, buffer.getInt(0));
     }
 
     @Override
     public void serialize(ByteBuf out) {
         super.serialize(out);
-        out.writeInt(_data.length);
-        out.writeBytes(_data);
+        out.writeInt(4);
+        out.writeInt(_data);
     }
 
     @Override
     public int getSize() {
-        return super.getSize() + 4 + _data.length;
+        return super.getSize() + 8;
     }
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(super.toString()+" hex dump:");
-
-        for (byte b : _data) {
-            sb.append(" ").append(Integer.toHexString(b));
-        }
-
-        return sb.toString();
+        return super.toString() + " decimal int: "+ _data;
     }
 }
-

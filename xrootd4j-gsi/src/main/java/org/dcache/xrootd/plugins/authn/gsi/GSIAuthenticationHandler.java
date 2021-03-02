@@ -32,8 +32,7 @@ import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.security.BufferDecrypter;
-import org.dcache.xrootd.security.XrootdBucketUtils;
-import org.dcache.xrootd.security.XrootdBucketUtils.BucketData;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketData;
 
 import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.CRYPTO_MODE;
 import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.PROTOCOL;
@@ -76,7 +75,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
     public XrootdResponse<AuthenticationRequest> authenticate(AuthenticationRequest request)
         throws XrootdException
     {
-        BucketData data = XrootdBucketUtils.deserializeData(request);
+        BucketData data = GSIBucketUtils.deserializeData(request);
 
         /* check whether the protocol matches */
         if (!PROTOCOL.equalsIgnoreCase(data.getProtocol())) {

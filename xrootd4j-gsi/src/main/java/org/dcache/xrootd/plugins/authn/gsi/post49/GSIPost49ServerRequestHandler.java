@@ -42,23 +42,24 @@ import java.util.Optional;
 
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.plugins.authn.gsi.CertUtil;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucket;
 import org.dcache.xrootd.plugins.authn.gsi.GSIBucketContainer;
 import org.dcache.xrootd.plugins.authn.gsi.GSIBucketContainerBuilder;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketData;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketSerializer;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketSerializerBuilder;
 import org.dcache.xrootd.plugins.authn.gsi.GSICredentialManager;
 import org.dcache.xrootd.plugins.authn.gsi.GSIServerRequestHandler;
+import org.dcache.xrootd.plugins.authn.gsi.NestedBucketBuffer;
+import org.dcache.xrootd.plugins.authn.gsi.StringBucket;
+import org.dcache.xrootd.plugins.authn.gsi.UnsignedIntBucket;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.AuthenticationResponse;
 import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.dcache.xrootd.protocol.messages.XrootdResponse;
-import org.dcache.xrootd.security.NestedBucketBuffer;
-import org.dcache.xrootd.security.StringBucket;
-import org.dcache.xrootd.security.UnsignedIntBucket;
-import org.dcache.xrootd.security.XrootdBucket;
-import org.dcache.xrootd.security.XrootdBucketUtils.BucketData;
-import org.dcache.xrootd.security.XrootdBucketUtils.BucketSerializer;
-import org.dcache.xrootd.security.XrootdBucketUtils.BucketSerializerBuilder;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
+import static org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.getLengthForRequest;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_DecryptErr;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_authmore;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
@@ -72,10 +73,10 @@ public class GSIPost49ServerRequestHandler extends GSIServerRequestHandler
 {
     class ProxyRequestResponse extends GSIBucketContainerBuilder
     {
-        XrootdBucket mainBucket;
+        GSIBucket    mainBucket;
         StringBucket cryptoBucket;
 
-        public ProxyRequestResponse(XrootdBucket mainBucket,
+        public ProxyRequestResponse(GSIBucket mainBucket,
                                     String cryptoMode)
         {
             this.mainBucket = mainBucket;
@@ -147,7 +148,7 @@ public class GSIPost49ServerRequestHandler extends GSIServerRequestHandler
              */
             dhSession.setPaddedKey(true);
 
-            Map<BucketType, XrootdBucket> receivedBuckets = data.getBucketMap();
+            Map<BucketType, GSIBucket> receivedBuckets = data.getBucketMap();
 
             /*
              *  Just in case the client did not indicate the initialization
@@ -220,12 +221,12 @@ public class GSIPost49ServerRequestHandler extends GSIServerRequestHandler
         handleSigPxyStep(AuthenticationRequest request, BucketData data) throws XrootdException
     {
         try {
-            Map<BucketType, XrootdBucket> receivedBuckets = data.getBucketMap();
+            Map<BucketType, GSIBucket> receivedBuckets = data.getBucketMap();
             NestedBucketBuffer mainBucket
                             = decryptMainBucketWithSessionKey(receivedBuckets,
                                                               "kXGC_sigpxy");
 
-            Map<BucketType, XrootdBucket> nestedBuckets = mainBucket.getNestedBuckets();
+            Map<BucketType, GSIBucket> nestedBuckets = mainBucket.getNestedBuckets();
 
             rsaSession.initializeForDecryption(credentialManager.getSenderPublicKey());
             verifySignedRTag(nestedBuckets);
@@ -291,7 +292,7 @@ public class GSIPost49ServerRequestHandler extends GSIServerRequestHandler
      * Processes the new kXRS_puk bucket in order to use the client public key
      * to decrypt the signed DH parameters.
      */
-    private PublicKey extractClientPublicKey(Map<BucketType, XrootdBucket> buckets)
+    private PublicKey extractClientPublicKey(Map<BucketType, GSIBucket> buckets)
                     throws NoSuchProviderException, NoSuchAlgorithmException,
                     InvalidKeySpecException
     {
@@ -328,9 +329,9 @@ public class GSIPost49ServerRequestHandler extends GSIServerRequestHandler
 
         PEMCredential credential = credentialManager.getHostCredential();
         rsaSession.initializeForEncryption(credential.getKey());
-        XrootdBucket main = postProcessMainBucket(mainBucket.getNestedBuckets(),
-                                                  Optional.of(csr),
-                                                  kXGS_pxyreq);
+        GSIBucket main = postProcessMainBucket(mainBucket.getNestedBuckets(),
+                                               Optional.of(csr),
+                                               kXGS_pxyreq);
 
         GSIBucketContainer responseBuckets
                         = new ProxyRequestResponse(main,
@@ -349,8 +350,7 @@ public class GSIPost49ServerRequestHandler extends GSIServerRequestHandler
 
         return new AuthenticationResponse(request,
                                           kXR_authmore,
-                                          // (will be replaced by method when utils moved to gsi module REVISIT
-                                          responseBuckets.getSize() + 12,
+                                          getLengthForRequest(responseBuckets),
                                           serializer);
     }
 }

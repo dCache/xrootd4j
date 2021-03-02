@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -18,28 +18,36 @@
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import org.dcache.xrootd.security.XrootdBucket;
 
 /**
  * Convenience utility for building bucket containers.
  */
 public abstract class GSIBucketContainerBuilder
 {
+    private static final Logger LOGGER
+                    = LoggerFactory.getLogger(GSIBucketContainerBuilder.class);
     /**
      * @param buckets null bucket values are allowed
      * @return the container with all non-null buckets added
      */
-    public static GSIBucketContainer build(XrootdBucket... buckets)
+    public static GSIBucketContainer build(GSIBucket... buckets)
     {
         int responseLength = 0;
-        List<XrootdBucket> responseList = new ArrayList<>();
-        for (XrootdBucket bucket: buckets) {
+        List<GSIBucket> responseList = new ArrayList<>();
+        for (GSIBucket bucket: buckets) {
             if (bucket != null) {
                 responseList.add(bucket);
                 responseLength += bucket.getSize();
+                LOGGER.trace("added bucket {} of size {}; "
+                                             + "response length is now {}.",
+                             bucket.getType(),
+                             bucket.getSize(), 
+                             responseLength);
             }
         }
         return new GSIBucketContainer(responseList, responseLength);

@@ -34,8 +34,8 @@ import org.dcache.xrootd.plugins.authn.gsi.GSIBucketContainerBuilder;
 import org.dcache.xrootd.plugins.authn.gsi.GSIClientRequestHandler;
 import org.dcache.xrootd.plugins.authn.gsi.GSICredentialManager;
 import org.dcache.xrootd.plugins.authn.gsi.SerializableX509Credential;
-import org.dcache.xrootd.security.XrootdBucket;
-import org.dcache.xrootd.security.XrootdBucketUtils.BucketData;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucket;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketData;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 import org.dcache.xrootd.tpc.XrootdTpcClient;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
@@ -49,9 +49,9 @@ public class GSIPost49ClientRequestHandler extends GSIClientRequestHandler
 {
     protected class PxyreqResponseBuckets extends GSIBucketContainerBuilder
     {
-        private XrootdBucket mainBucket;
+        private GSIBucket mainBucket;
 
-        public PxyreqResponseBuckets(XrootdBucket mainBucket) throws XrootdException {
+        public PxyreqResponseBuckets(GSIBucket mainBucket) throws XrootdException {
             this.mainBucket = mainBucket;
         }
 
@@ -161,7 +161,7 @@ public class GSIPost49ClientRequestHandler extends GSIClientRequestHandler
         return !noPadding;
     }
 
-    protected String validateCiphers(Map<BucketType, XrootdBucket> bucketMap)
+    protected String validateCiphers(Map<BucketType, GSIBucket> bucketMap)
                     throws XrootdException
     {
         return super.validateCiphers(bucketMap)

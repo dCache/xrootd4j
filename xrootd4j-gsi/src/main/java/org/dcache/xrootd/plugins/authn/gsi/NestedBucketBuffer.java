@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
  */
-package org.dcache.xrootd.security;
+package org.dcache.xrootd.plugins.authn.gsi;
 
 import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
@@ -46,23 +46,23 @@ import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
  *
  *  - kXRS_none
  *
- * @see XrootdBucket
+ * @see GSIBucket
  *
  * @author radicke
  * @author tzangerl
  *
  */
-public class NestedBucketBuffer extends XrootdBucket {
-    private static final Logger _logger =
+public class NestedBucketBuffer extends GSIBucket {
+    private static final Logger              _logger =
         LoggerFactory.getLogger(NestedBucketBuffer.class);
-    private final Map<BucketType, XrootdBucket> _nestedBuckets;
-    private final String _protocol;
-    private final int _step;
+    private final Map<BucketType, GSIBucket> _nestedBuckets;
+    private final String                     _protocol;
+    private final int                        _step;
 
     public NestedBucketBuffer(BucketType type,
                               String protocol,
                               int step,
-                              Map<BucketType, XrootdBucket> nestedBuckets) {
+                              Map<BucketType, GSIBucket> nestedBuckets) {
         super(type);
         _protocol = protocol;
         _step = step;
@@ -77,8 +77,8 @@ public class NestedBucketBuffer extends XrootdBucket {
 
         int i = number;
 
-        Collection<XrootdBucket> buckets = _nestedBuckets.values();
-        for (XrootdBucket bucket: buckets) {
+        Collection<GSIBucket> buckets = _nestedBuckets.values();
+        for (GSIBucket bucket: buckets) {
             i = bucket.dump(builder, step, ++i);
         }
         builder.append("//\n");
@@ -91,7 +91,7 @@ public class NestedBucketBuffer extends XrootdBucket {
      *
      * @return the list of XrootdBuckets nested in this buffer
      */
-    public Map<BucketType, XrootdBucket> getNestedBuckets() {
+    public Map<BucketType, GSIBucket> getNestedBuckets() {
         return _nestedBuckets;
     }
 
@@ -126,7 +126,7 @@ public class NestedBucketBuffer extends XrootdBucket {
 
         out.writeInt(_step);
 
-        for (XrootdBucket bucket : _nestedBuckets.values()) {
+        for (GSIBucket bucket : _nestedBuckets.values()) {
             bucket.serialize(out);
         }
 
@@ -139,7 +139,7 @@ public class NestedBucketBuffer extends XrootdBucket {
     public int getSize() {
         int size = super.getSize() + 4 + 4 + 4;
 
-        for (XrootdBucket bucket : _nestedBuckets.values()) {
+        for (GSIBucket bucket : _nestedBuckets.values()) {
             size += bucket.getSize();
         }
 
@@ -151,7 +151,7 @@ public class NestedBucketBuffer extends XrootdBucket {
         StringBuilder sb = new StringBuilder();
         sb.append(super.toString()).append("begin nested BucketBuffer\n");
 
-        for (XrootdBucket bucket : _nestedBuckets.values()) {
+        for (GSIBucket bucket : _nestedBuckets.values()) {
             sb.append(bucket.toString());
         }
 

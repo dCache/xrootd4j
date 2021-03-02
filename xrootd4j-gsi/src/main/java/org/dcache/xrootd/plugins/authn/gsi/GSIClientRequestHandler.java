@@ -19,7 +19,6 @@
 package org.dcache.xrootd.plugins.authn.gsi;
 
 import eu.emi.security.authn.x509.X509Credential;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,19 +31,13 @@ import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 import org.dcache.xrootd.core.XrootdException;
-import org.dcache.xrootd.security.NestedBucketBuffer;
-import org.dcache.xrootd.security.RawBucket;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketData;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketSerializer;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketSerializerBuilder;
 import org.dcache.xrootd.security.SigningPolicy;
-import org.dcache.xrootd.security.StringBucket;
 import org.dcache.xrootd.security.TLSSessionInfo;
-import org.dcache.xrootd.security.UnsignedIntBucket;
-import org.dcache.xrootd.security.XrootdBucket;
-import org.dcache.xrootd.security.XrootdBucketUtils.BucketData;
-import org.dcache.xrootd.security.XrootdBucketUtils.BucketSerializer;
-import org.dcache.xrootd.security.XrootdBucketUtils.BucketSerializerBuilder;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 import org.dcache.xrootd.tpc.TpcSigverRequestEncoder;
 import org.dcache.xrootd.tpc.XrootdTpcClient;
@@ -52,6 +45,7 @@ import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundErrorResponse;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundAuthenticationRequest;
 
+import static org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.getLengthForRequest;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_DecryptErr;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_IOError;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
@@ -73,7 +67,7 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
 
         public CertRequestBuckets(String rtag, Optional<Integer> opts)
                         throws XrootdException {
-            Map<BucketType, XrootdBucket> nestedBuckets
+            Map<BucketType, GSIBucket> nestedBuckets
                             = new EnumMap<>(BucketType.class);
             StringBucket randomTagBucket = new StringBucket(kXRS_rtag, rtag);
             nestedBuckets.put(randomTagBucket.getType(), randomTagBucket);
@@ -101,14 +95,14 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
 
     protected class CertResponseBuckets extends GSIBucketContainerBuilder
     {
-        XrootdBucket mainBucket;
+        GSIBucket mainBucket;
         RawBucket dhParamsBucket;
         StringBucket cipherBucket;
         StringBucket digestBucket;
         StringBucket publicKeyBucket;
         StringBucket userNameBucket;
 
-        public CertResponseBuckets(XrootdBucket mainBucket,
+        public CertResponseBuckets(GSIBucket mainBucket,
                                    byte[] dhParams,
                                    BucketType dhParamType,
                                    Optional<String> publicKeyPem,
@@ -196,15 +190,14 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
 
         return new OutboundAuthenticationRequest(client.getStreamId(),
                                                  PROTOCOL,
-                                                 // (will be replaced by method when utils moved to gsi module REVISIT
-                                                 container.getSize() + 12,
+                                                 getLengthForRequest(container),
                                                  serializer);
     }
 
     public abstract OutboundAuthenticationRequest
         handleCertStep(InboundAuthenticationResponse response,
-                        BucketData data,
-                        ChannelHandlerContext ctx)
+                       BucketData data,
+                       ChannelHandlerContext ctx)
                     throws XrootdException;
 
     protected Optional<TpcSigverRequestEncoder> getSigverEncoder(XrootdTpcClient client)
@@ -222,7 +215,7 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
         return Optional.ofNullable(sigverRequestEncoder);
     }
 
-    protected X509Certificate validateCertificate(Map<BucketType, XrootdBucket> bucketMap)
+    protected X509Certificate validateCertificate(Map<BucketType, GSIBucket> bucketMap)
                     throws IOException, GeneralSecurityException,
                     XrootdException {
         X509Certificate[] chain = processRSAVerification(bucketMap,
@@ -232,7 +225,7 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
         return serverCert;
     }
 
-    protected String validateCiphers(Map<BucketType, XrootdBucket> bucketMap)
+    protected String validateCiphers(Map<BucketType, GSIBucket> bucketMap)
                     throws XrootdException
     {
         StringBucket cipherBucket
@@ -241,7 +234,7 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
         return validateCiphers(cipherBucket.getContent().split("[:]"));
     }
 
-    protected String validateDigests(Map<BucketType, XrootdBucket> bucketMap)
+    protected String validateDigests(Map<BucketType, GSIBucket> bucketMap)
                     throws XrootdException
     {
         StringBucket digestBucket
@@ -274,16 +267,16 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
      *     and username.
      */
     protected OutboundAuthenticationRequest
-    handleCertStep(InboundAuthenticationResponse response,
-                   BucketData data,
-                   ChannelHandlerContext ctx,
-                   BucketType dhParamBucket,
-                   boolean signDhParams,
-                   Optional<String> publicKeyPem,
-                   Optional<String> userName) throws XrootdException
+        handleCertStep(InboundAuthenticationResponse response,
+                       BucketData data,
+                       ChannelHandlerContext ctx,
+                       BucketType dhParamBucket,
+                       boolean signDhParams,
+                       Optional<String> publicKeyPem,
+                       Optional<String> userName) throws XrootdException
     {
         try {
-            Map<BucketType, XrootdBucket> bucketMap = data.getBucketMap();
+            Map<BucketType, GSIBucket> bucketMap = data.getBucketMap();
             String selectedCipher = validateCiphers(bucketMap);
             String selectedDigest = validateDigests(bucketMap);
             X509Certificate serverCert = validateCertificate(bucketMap);
@@ -309,7 +302,7 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
             String serializedCert = CertUtil.chainToPEM(Arrays.asList(chain));
             rsaSession.initializeForEncryption(clientCredential.getKey());
 
-            XrootdBucket mainBucket
+            GSIBucket mainBucket
                             = postProcessMainBucket(bucketMap,
                                                     Optional.of(serializedCert),
                                                     kXGC_cert);
@@ -336,8 +329,7 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
 
             return new OutboundAuthenticationRequest(response.getStreamId(),
                                                      PROTOCOL,
-                                                     // (will be replaced by method when utils moved to gsi module REVISIT
-                                                     container.getSize() + 12,
+                                                     getLengthForRequest(container),
                                                      serializer);
         } catch (IOException e) {
             LOGGER.error("Problems during cert step {}." +

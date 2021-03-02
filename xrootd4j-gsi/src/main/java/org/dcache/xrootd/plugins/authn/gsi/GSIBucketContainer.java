@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -20,17 +20,15 @@ package org.dcache.xrootd.plugins.authn.gsi;
 
 import java.util.List;
 
-import org.dcache.xrootd.security.XrootdBucket;
-
 /**
  * Utility wrapper around bucket list.
  */
 public class GSIBucketContainer
 {
-    private final     int            _size;
-    private final List<XrootdBucket> _buckets;
+    private final     int         _size;
+    private final List<GSIBucket> _buckets;
 
-    public GSIBucketContainer(List<XrootdBucket> buckets, int size)
+    public GSIBucketContainer(List<GSIBucket> buckets, int size)
     {
         _buckets = buckets;
         _size = size;
@@ -41,7 +39,7 @@ public class GSIBucketContainer
         return _size;
     }
 
-    public List<XrootdBucket> getBuckets()
+    public List<GSIBucket> getBuckets()
     {
         return _buckets;
     }

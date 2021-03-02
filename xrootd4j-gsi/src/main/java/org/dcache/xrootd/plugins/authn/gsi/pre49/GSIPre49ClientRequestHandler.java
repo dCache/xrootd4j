@@ -26,7 +26,7 @@ import java.util.Optional;
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.plugins.authn.gsi.GSIClientRequestHandler;
 import org.dcache.xrootd.plugins.authn.gsi.GSICredentialManager;
-import org.dcache.xrootd.security.XrootdBucketUtils.BucketData;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketData;
 import org.dcache.xrootd.tpc.XrootdTpcClient;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundErrorResponse;

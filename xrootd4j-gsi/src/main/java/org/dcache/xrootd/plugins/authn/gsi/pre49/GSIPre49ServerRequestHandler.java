@@ -33,9 +33,9 @@ import org.dcache.xrootd.plugins.authn.gsi.GSIServerRequestHandler;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.dcache.xrootd.protocol.messages.XrootdResponse;
-import org.dcache.xrootd.security.NestedBucketBuffer;
-import org.dcache.xrootd.security.XrootdBucket;
-import org.dcache.xrootd.security.XrootdBucketUtils.BucketData;
+import org.dcache.xrootd.plugins.authn.gsi.NestedBucketBuffer;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucket;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketData;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
@@ -83,7 +83,7 @@ public class GSIPre49ServerRequestHandler extends GSIServerRequestHandler
         handleCertStep(AuthenticationRequest request, BucketData data) throws XrootdException
     {
         try {
-            Map<BucketType, XrootdBucket> receivedBuckets = data.getBucketMap();
+            Map<BucketType, GSIBucket> receivedBuckets = data.getBucketMap();
             validateCiphers(receivedBuckets);
             validateDigests(receivedBuckets);
 

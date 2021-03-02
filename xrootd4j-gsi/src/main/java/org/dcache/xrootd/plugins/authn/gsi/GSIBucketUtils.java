@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
  */
-package org.dcache.xrootd.security;
+package org.dcache.xrootd.plugins.authn.gsi;
 
 import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
@@ -49,9 +49,9 @@ import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 /**
  *  Utilities for deserializing, writing, and printing out GSI byte buckets.
  */
-public class XrootdBucketUtils {
+public class GSIBucketUtils {
     private static final Logger LOGGER
-                    = LoggerFactory.getLogger(XrootdBucketUtils.class);
+                    = LoggerFactory.getLogger(GSIBucketUtils.class);
 
     private static final String BYTE_DUMP[] =
     {
@@ -116,7 +116,7 @@ public class XrootdBucketUtils {
             return this;
         }
 
-        public BucketSerializerBuilder withBuckets(List<XrootdBucket> buckets)
+        public BucketSerializerBuilder withBuckets(List<GSIBucket> buckets)
         {
             serializer.buckets = buckets;
             return this;
@@ -137,7 +137,7 @@ public class XrootdBucketUtils {
         String             stepName;
         String             protocol;
         int                step;
-        List<XrootdBucket> buckets;
+        List<GSIBucket>    buckets;
 
         @Override
         public void accept(ByteBuf byteBuf)
@@ -184,7 +184,7 @@ public class XrootdBucketUtils {
          * The buckets (kind of a serialized datatype with an
          * int32 block of metadata).
          */
-        final Map<BucketType, XrootdBucket> bucketMap = new EnumMap<>(BucketType.class);
+        final Map<BucketType, GSIBucket> bucketMap = new EnumMap<>(BucketType.class);
 
         public String getProtocol()
         {
@@ -201,33 +201,10 @@ public class XrootdBucketUtils {
             return version;
         }
 
-        public Map<BucketType, XrootdBucket> getBucketMap()
+        public Map<BucketType, GSIBucket> getBucketMap()
         {
             return bucketMap;
         }
-    }
-
-    public static String describe(String title,
-                                  Consumer<StringBuilder> data,
-                                  Integer streamId,
-                                  Integer requestId,
-                                  Integer stat)
-    {
-        StringBuilder builder = new StringBuilder("\n");
-        builder.append("/////////////////////////////////////////////////////////\n");
-        builder.append(title);
-        builder.append("\n//\n");
-        builder.append("//  stream:  ").append(streamId).append("\n");
-        if (requestId != null) {
-            builder.append("//  request: ").append(requestId).append("\n");
-        }
-        if (stat != null) {
-            builder.append("//  stat:    ").append(stat).append("\n");
-        }
-        builder.append("//\n");
-        data.accept(builder);
-        builder.append("/////////////////////////////////////////////////////////\n");
-        return builder.toString();
     }
 
     /**
@@ -243,10 +220,10 @@ public class XrootdBucketUtils {
      * @param buffer The buffer containing the buckets
      * @return The deserialized bucket
      */
-    public static XrootdBucket deserialize(BucketType type, ByteBuf buffer)
+    public static GSIBucket deserialize(BucketType type, ByteBuf buffer)
                     throws IOException {
 
-        XrootdBucket bucket;
+        GSIBucket bucket;
 
         switch (type) {
 
@@ -303,13 +280,13 @@ public class XrootdBucketUtils {
      * @return Map from bucket-type to deserialized buckets
      * @throws IOException Failure of deserialization
      */
-    public static Map<BucketType, XrootdBucket> deserializeBuckets(ByteBuf buffer)
+    public static Map<BucketType, GSIBucket> deserializeBuckets(ByteBuf buffer)
                     throws IOException {
 
         int bucketCode = buffer.readInt();
         BucketType bucketType = BucketType.get(bucketCode);
 
-        Map<BucketType, XrootdBucket> buckets =
+        Map<BucketType, GSIBucket> buckets =
                         new EnumMap<>(BucketType.class);
 
         while (bucketType != BucketType.kXRS_none) {
@@ -318,9 +295,12 @@ public class XrootdBucketUtils {
 
             int bucketLength = buffer.readInt();
 
-            XrootdBucket bucket = deserialize(bucketType,
-                                              buffer.slice(buffer.readerIndex(),
-                                                           bucketLength));
+            LOGGER.error("bucket type {} has length {}.",
+                         bucketType, bucketLength);
+
+            GSIBucket bucket = deserialize(bucketType,
+                                           buffer.slice(buffer.readerIndex(),
+                                                        bucketLength));
             buckets.put(bucketType, bucket);
 
             /* proceed to the next bucket */
@@ -338,17 +318,11 @@ public class XrootdBucketUtils {
         BucketData data = new BucketData();
         ByteBuf buffer = request.getCredentialBuffer();
 
-        data.protocol = XrootdBucketUtils.deserializeProtocol(buffer);
-
-        if (data.protocol.equals("unix")) {
-            data.step = kXR_ok;
-            return data;
-        }
-
-        data.step = XrootdBucketUtils.deserializeStep(buffer);
+        data.protocol = deserializeProtocol(buffer);
+        data.step = deserializeStep(buffer);
 
         try {
-            data.bucketMap.putAll(XrootdBucketUtils.deserializeBuckets(buffer));
+            data.bucketMap.putAll(GSIBucketUtils.deserializeBuckets(buffer));
         } catch (IOException ioex) {
             throw new IllegalArgumentException("Illegal credential format: {}",
                                                ioex);
@@ -380,11 +354,11 @@ public class XrootdBucketUtils {
                     throws XrootdException {
         BucketData data = new BucketData();
         ByteBuf buffer = response.getDataBuffer();
-        data.protocol = XrootdBucketUtils.deserializeProtocol(buffer);
-        data.step = XrootdBucketUtils.deserializeStep(buffer);
+        data.protocol = deserializeProtocol(buffer);
+        data.step = deserializeStep(buffer);
 
         try {
-            data.bucketMap.putAll(XrootdBucketUtils.deserializeBuckets(buffer));
+            data.bucketMap.putAll(GSIBucketUtils.deserializeBuckets(buffer));
 
             /*
              *  if pxyreq, do not deserialize and unpack the main bucket.
@@ -397,7 +371,7 @@ public class XrootdBucketUtils {
                  *   skip.
                  */
                 mainBuffer.readerIndex(8);
-                data.bucketMap.putAll(XrootdBucketUtils.deserializeBuckets(mainBuffer));
+                data.bucketMap.putAll(GSIBucketUtils.deserializeBuckets(mainBuffer));
             }
         } catch (IOException e) {
             throw new XrootdException(kXR_IOError, e.toString());
@@ -452,12 +426,12 @@ public class XrootdBucketUtils {
     }
 
     public static void dumpBuckets(StringBuilder builder,
-                                   Collection<XrootdBucket> buckets,
+                                   Collection<GSIBucket> buckets,
                                    String step)
     {
         int i = 0;
 
-        for (XrootdBucket bucket : buckets) {
+        for (GSIBucket bucket : buckets) {
             i = bucket.dump(builder, step, ++i);
         }
     }
@@ -520,17 +494,50 @@ public class XrootdBucketUtils {
         }
     }
 
-    public static void writeBytes(ByteBuf buffer, String protocol,
+    public static int getLengthForRequest(GSIBucketContainer container)
+    {
+        /*
+         *  The request length for GSI carries
+         *  protocol (4 bytes) + step (4 bytes) + container size + terminal
+         *  marker (4 bytes).
+         */
+        return 12 + container.getSize();
+    }
+
+    private static void writeBytes(ByteBuf buffer, String protocol,
                                   int step,
-                                  List<XrootdBucket> buckets)
+                                  List<GSIBucket> buckets)
     {
         writeZeroPad(protocol, buffer, 4);
         buffer.writeInt(step);
-        for (XrootdBucket bucket : buckets) {
+        for (GSIBucket bucket : buckets) {
             bucket.serialize(buffer);
         }
 
         buffer.writeInt(BucketType.kXRS_none.getCode());
+    }
+
+    private static String describe(String title,
+                                   Consumer<StringBuilder> data,
+                                   Integer streamId,
+                                   Integer requestId,
+                                   Integer stat)
+    {
+        StringBuilder builder = new StringBuilder("\n");
+        builder.append("/////////////////////////////////////////////////////////\n");
+        builder.append(title);
+        builder.append("\n//\n");
+        builder.append("//  stream:  ").append(streamId).append("\n");
+        if (requestId != null) {
+            builder.append("//  request: ").append(requestId).append("\n");
+        }
+        if (stat != null) {
+            builder.append("//  stat:    ").append(stat).append("\n");
+        }
+        builder.append("//\n");
+        data.accept(builder);
+        builder.append("/////////////////////////////////////////////////////////\n");
+        return builder.toString();
     }
 
     public static String deserializeProtocol(ByteBuf buffer)
@@ -560,7 +567,7 @@ public class XrootdBucketUtils {
         return sb.toString();
     }
 
-    private XrootdBucketUtils()
+    private GSIBucketUtils()
     {
         // Static singleton
     }

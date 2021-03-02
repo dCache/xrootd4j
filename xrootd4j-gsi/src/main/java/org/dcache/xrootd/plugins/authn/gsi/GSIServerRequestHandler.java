@@ -33,19 +33,16 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.dcache.xrootd.core.XrootdException;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketData;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketSerializer;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketSerializerBuilder;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.AuthenticationResponse;
 import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.security.BufferDecrypter;
-import org.dcache.xrootd.security.NestedBucketBuffer;
-import org.dcache.xrootd.security.RawBucket;
-import org.dcache.xrootd.security.StringBucket;
-import org.dcache.xrootd.security.XrootdBucket;
-import org.dcache.xrootd.security.XrootdBucketUtils.BucketData;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
-import org.dcache.xrootd.security.XrootdBucketUtils.BucketSerializer;
-import org.dcache.xrootd.security.XrootdBucketUtils.BucketSerializerBuilder;
 
+import static org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.getLengthForRequest;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_authmore;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
@@ -57,14 +54,14 @@ public abstract class GSIServerRequestHandler extends GSIRequestHandler
 
     protected class CertRequestBuckets extends GSIBucketContainerBuilder
     {
-        XrootdBucket mainBucket;
+        GSIBucket mainBucket;
         RawBucket dhPublicBucket;
         StringBucket cryptoBucket;
         StringBucket cipherBucket;
         StringBucket digestBucket;
         StringBucket hostCertBucket;
 
-        public CertRequestBuckets(XrootdBucket mainBucket,
+        public CertRequestBuckets(GSIBucket mainBucket,
                                   String cryptoMode,
                                   byte [] signedDHParams,
                                   BucketType dhParamBucketType,
@@ -162,7 +159,7 @@ public abstract class GSIServerRequestHandler extends GSIRequestHandler
                           BucketType dhParamBucketType) throws XrootdException
     {
         try {
-            Map<BucketType, XrootdBucket> map = data.getBucketMap();
+            Map<BucketType, GSIBucket> map = data.getBucketMap();
             StringBucket bucket = (StringBucket)map.get(kXRS_cryptomod);
             validateCryptoMode(bucket.getContent());
 
@@ -174,9 +171,9 @@ public abstract class GSIServerRequestHandler extends GSIRequestHandler
             rsaSession.initializeForEncryption(credential.getKey());
             NestedBucketBuffer mainBucket =
                             ((NestedBucketBuffer)map.get(kXRS_main));
-            XrootdBucket main = postProcessMainBucket(mainBucket.getNestedBuckets(),
-                                                      Optional.empty(),
-                                                      kXGS_cert);
+            GSIBucket main = postProcessMainBucket(mainBucket.getNestedBuckets(),
+                                                   Optional.empty(),
+                                                   kXGS_cert);
 
             GSIBucketContainer responseBuckets =
                             new CertRequestBuckets(main,
@@ -199,8 +196,7 @@ public abstract class GSIServerRequestHandler extends GSIRequestHandler
 
             return new AuthenticationResponse(request,
                                               kXR_authmore,
-                                              // (will be replaced by method when utils moved to gsi module REVISIT
-                                              responseBuckets.getSize() + 12,
+                                              getLengthForRequest(responseBuckets),
                                               serializer);
         } catch (InvalidKeyException ikex) {
             LOGGER.error("Configured host-key could not be used for " +
@@ -223,13 +219,13 @@ public abstract class GSIServerRequestHandler extends GSIRequestHandler
         }
     }
 
-    protected String validateCiphers(Map<BucketType, XrootdBucket> map) throws XrootdException
+    protected String validateCiphers(Map<BucketType, GSIBucket> map) throws XrootdException
     {
         StringBucket cipherBucket = (StringBucket) map.get(kXRS_cipher_alg);
         return validateCiphers(cipherBucket.getContent().split("[:]"));
     }
 
-    protected String validateDigests(Map<BucketType, XrootdBucket> map) throws XrootdException
+    protected String validateDigests(Map<BucketType, GSIBucket> map) throws XrootdException
     {
         StringBucket digestBucket = (StringBucket) map.get(kXRS_md_alg);
         return validateDigests(digestBucket.getContent().split("[:]"));

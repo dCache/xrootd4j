@@ -16,28 +16,27 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
  */
-package org.dcache.xrootd.security;
+package org.dcache.xrootd.plugins.authn.gsi;
 
 import io.netty.buffer.ByteBuf;
 
-import java.nio.ByteBuffer;
-
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+
 /**
- * A bucket containing a header plus an unsigned integer.
+ * A bucket containing a header plus a String.
  *
- * @see XrootdBucket
+ * @see GSIBucket
  *
  * @author radicke
  * @author tzangerl
  *
  */
-public class UnsignedIntBucket extends XrootdBucket
-{
-   private final int _data;
+public class StringBucket extends GSIBucket {
+  private final String _data;
 
-    public UnsignedIntBucket(BucketType type, int data) {
+    public StringBucket(BucketType type, String data) {
         super(type);
         _data = data;
     }
@@ -47,40 +46,38 @@ public class UnsignedIntBucket extends XrootdBucket
     {
         super.dump(builder, step, number);
         builder.append("//\n");
-        builder.append("//                UNSIGNED INT CONTENTS\n");
+        builder.append("//                   STRING CONTENTS                   //\n");
         builder.append("//\n");
-        builder.append("//  decimal: ").append(_data).append("\n");
-        builder.append("//\n");
-        ByteBuffer b = ByteBuffer.allocate(4);
-        b.putInt(_data);
-        byte[] result = b.array();
-        XrootdBucketUtils.dumpBytes(builder, result);
+        GSIBucketUtils.dumpBytes(builder, _data.getBytes());
         return number;
     }
 
-    public int getContent() {
+    public String getContent() {
         return _data;
     }
 
-    public static UnsignedIntBucket deserialize(BucketType type, ByteBuf buffer) {
+    public static StringBucket deserialize(BucketType type, ByteBuf buffer) {
 
-        return new UnsignedIntBucket(type, buffer.getInt(0));
+        String s = buffer.toString(US_ASCII);
+        return new StringBucket(type, s);
     }
 
     @Override
     public void serialize(ByteBuf out) {
         super.serialize(out);
-        out.writeInt(4);
-        out.writeInt(_data);
+        byte[] bytes = _data.getBytes(US_ASCII);
+        out.writeInt(bytes.length);
+        out.writeBytes(bytes);
     }
 
     @Override
     public int getSize() {
-        return super.getSize() + 8;
+        return super.getSize() + 4 + _data.length();
     }
 
     @Override
     public String toString() {
-        return super.toString() + " decimal int: "+ _data;
+        return super.toString() + _data;
     }
+
 }

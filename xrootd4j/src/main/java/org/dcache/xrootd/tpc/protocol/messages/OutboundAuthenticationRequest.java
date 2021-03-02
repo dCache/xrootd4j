@@ -44,8 +44,8 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
  *  processing.
  */
 public class OutboundAuthenticationRequest
-                extends AbstractXrootdOutboundRequest {
-
+                extends AbstractXrootdOutboundRequest
+{
     private final String            credType;
     private final int               length;
     private final Consumer<ByteBuf> serializer;
@@ -86,7 +86,7 @@ public class OutboundAuthenticationRequest
     @Override
     protected int getParamsLen()
     {
-        // 16 bytes reserved + 4 len + data
-        return length + 20;
+        // 12 bytes reserved + 4 bytes type + 4 bytes len + data
+        return 20 + length;
     }
 }
