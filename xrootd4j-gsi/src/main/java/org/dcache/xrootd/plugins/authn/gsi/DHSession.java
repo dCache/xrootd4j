@@ -49,7 +49,7 @@ import java.security.NoSuchProviderException;
 import java.security.PublicKey;
 import java.util.Arrays;
 
-import org.dcache.xrootd.security.RawBucket;
+import org.dcache.xrootd.security.XrootdBucketUtils;
 
 import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.RANDOM;
 
@@ -208,7 +208,7 @@ public class DHSession
 
         if (LOGGER.isTraceEnabled()) {
             builder = new StringBuilder();
-            RawBucket.dumpBytes(builder, encrypted);
+            XrootdBucketUtils.dumpBytes(builder, encrypted);
             LOGGER.trace("encrypted:\n{}", builder.toString());
         }
 
@@ -222,7 +222,7 @@ public class DHSession
 
         if (LOGGER.isTraceEnabled()) {
             builder = new StringBuilder();
-            RawBucket.dumpBytes(builder, decrypted);
+            XrootdBucketUtils.dumpBytes(builder, decrypted);
             LOGGER.trace("decrypted:\n{}", builder.toString());
         }
 
@@ -254,7 +254,7 @@ public class DHSession
 
         if (LOGGER.isTraceEnabled()) {
             builder = new StringBuilder();
-            RawBucket.dumpBytes(builder, unencrypted);
+            XrootdBucketUtils.dumpBytes(builder, unencrypted);
             LOGGER.trace("unencrypted:\n{}", builder.toString());
         }
 
@@ -269,7 +269,7 @@ public class DHSession
         LOGGER.trace("encrypted:");
         if (LOGGER.isTraceEnabled()) {
             builder.setLength(0);
-            RawBucket.dumpBytes(builder, encrypted);
+            XrootdBucketUtils.dumpBytes(builder, encrypted);
             LOGGER.trace("encrypted:\n{}", builder.toString());
         }
 
@@ -285,7 +285,7 @@ public class DHSession
 
             if (LOGGER.isTraceEnabled()) {
                 builder = new StringBuilder();
-                RawBucket.dumpBytes(builder, IV);
+                XrootdBucketUtils.dumpBytes(builder, IV);
                 LOGGER.trace("initialization vector:\n{}", builder.toString());
             }
 
@@ -296,7 +296,7 @@ public class DHSession
 
         if (LOGGER.isTraceEnabled()) {
             builder = new StringBuilder();
-            RawBucket.dumpBytes(builder, IV);
+            XrootdBucketUtils.dumpBytes(builder, IV);
             LOGGER.trace("initialization vector:\n{}", builder.toString());
         }
 
@@ -387,8 +387,8 @@ public class DHSession
             if (LOGGER.isTraceEnabled()) {
                 StringBuilder oldB = new StringBuilder();
                 StringBuilder newB = new StringBuilder();
-                RawBucket.dumpBytes(oldB, defective);
-                RawBucket.dumpBytes(newB, encoded);
+                XrootdBucketUtils.dumpBytes(oldB, defective);
+                XrootdBucketUtils.dumpBytes(newB, encoded);
                 LOGGER.trace("OLD:\n{}\nNEW:\n{}",
                              oldB.toString(), newB.toString());
             }

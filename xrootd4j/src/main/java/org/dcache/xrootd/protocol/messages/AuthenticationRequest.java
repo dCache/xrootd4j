@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -29,9 +29,9 @@ import java.util.Map;
 
 import org.dcache.xrootd.security.UnsignedIntBucket;
 import org.dcache.xrootd.security.XrootdBucket;
+import org.dcache.xrootd.security.XrootdBucketUtils;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_version;
@@ -70,17 +70,17 @@ public class AuthenticationRequest extends AbstractXrootdRequest
         /* skip reserved bytes and credlen */
         buffer.readerIndex(24);
 
-        protocol = deserializeProtocol(buffer);
+        protocol = XrootdBucketUtils.deserializeProtocol(buffer);
 
         if (protocol.equals("unix")) {
             step = kXR_ok;
             return;
         }
 
-        step = deserializeStep(buffer);
+        step = XrootdBucketUtils.deserializeStep(buffer);
 
         try {
-            bucketMap.putAll(deserializeBuckets(buffer));
+            bucketMap.putAll(XrootdBucketUtils.deserializeBuckets(buffer));
         } catch (IOException ioex) {
             throw new IllegalArgumentException("Illegal credential format: {}",
                                                ioex);
@@ -119,58 +119,6 @@ public class AuthenticationRequest extends AbstractXrootdRequest
         builder.append("/////////////////////////////////////////////////////////\n");
 
         return builder.toString();
-    }
-
-    /**
-     * Deserialize the buckets sent by the client and put them into a EnumMap
-     * sorted by their header-information. As there are list-type buffers,
-     * this method can be called recursively. In current xrootd, this is
-     * limited to a maximum of 1 recursion (main buffer containing list of
-     * further buffers).
-     *
-     * @param buffer The buffer containing the received buckets
-     * @return Map from bucket-type to deserialized buckets
-     * @throws IOException Failure of deserialization
-     */
-    public static Map<BucketType, XrootdBucket> deserializeBuckets(ByteBuf buffer)
-        throws IOException {
-
-        int bucketCode = buffer.readInt();
-        BucketType bucketType = BucketType.get(bucketCode);
-
-        Map<BucketType, XrootdBucket> buckets =
-            new EnumMap<>(BucketType.class);
-
-        while (bucketType != BucketType.kXRS_none) {
-            int bucketLength = buffer.readInt();
-
-            XrootdBucket bucket = XrootdBucket.deserialize(bucketType,
-                                                           buffer.slice(buffer.readerIndex(), bucketLength));
-            buckets.put(bucketType, bucket);
-
-            LOGGER.debug("Deserialized a bucket with code {}, type {}",
-                         bucketCode, bucketType);
-
-            /* proceed to the next bucket */
-            buffer.readerIndex(buffer.readerIndex() + bucketLength);
-
-            bucketCode = buffer.readInt();
-            bucketType = BucketType.get(bucketCode);
-        }
-
-        return buckets;
-    }
-
-    public static String deserializeProtocol(ByteBuf buffer) {
-       String protocol = buffer.toString(buffer.readerIndex(), 4, US_ASCII).trim();
-
-       /* toString does not advance the index */
-       buffer.readerIndex(buffer.readerIndex() + 4);
-       return protocol;
-    }
-
-    public static int deserializeStep(ByteBuf buffer) {
-        return buffer.readInt();
     }
 
     public Map<BucketType, XrootdBucket> getBuckets() {

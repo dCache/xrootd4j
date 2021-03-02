@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -27,9 +27,9 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 import org.dcache.xrootd.security.XrootdBucket;
+import org.dcache.xrootd.security.XrootdBucketUtils;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
-import static org.dcache.xrootd.protocol.messages.AuthenticationResponse.writeBytes;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.getClientStep;
 
 /**
@@ -100,7 +100,7 @@ public class OutboundAuthenticationRequest
         // pad ... skip the 16 bytes
         buffer.writeZero(16);
         buffer.writeInt(12 + length);
-        writeBytes(buffer, protocol, step, buckets);
+        XrootdBucketUtils.writeBytes(buffer, protocol, step, buckets);
     }
 
     @Override

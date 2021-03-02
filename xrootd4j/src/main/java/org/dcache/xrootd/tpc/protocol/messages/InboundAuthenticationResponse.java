@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -30,14 +30,13 @@ import java.util.Map;
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.security.RawBucket;
 import org.dcache.xrootd.security.XrootdBucket;
+import org.dcache.xrootd.security.XrootdBucketUtils;
 import org.dcache.xrootd.security.XrootdSecurityProtocol;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
 import static io.netty.buffer.Unpooled.wrappedBuffer;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_IOError;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
-import static org.dcache.xrootd.protocol.messages.AuthenticationRequest.deserializeBuckets;
-import static org.dcache.xrootd.protocol.messages.AuthenticationRequest.deserializeProtocol;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_main;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGS_pxyreq;
 
@@ -74,11 +73,11 @@ public class InboundAuthenticationResponse
             return;
         }
 
-        protocol = deserializeProtocol(buffer);
+        protocol = XrootdBucketUtils.deserializeProtocol(buffer);
         serverStep = buffer.readInt();
 
         try {
-            bucketMap.putAll(deserializeBuckets(buffer));
+            bucketMap.putAll(XrootdBucketUtils.deserializeBuckets(buffer));
 
             /*
              *  if pxyreq, do not deserialize and unpack the main bucket.
@@ -91,7 +90,7 @@ public class InboundAuthenticationResponse
                  *   skip.
                  */
                 mainBuffer.readerIndex(8);
-                bucketMap.putAll(deserializeBuckets(mainBuffer));
+                bucketMap.putAll(XrootdBucketUtils.deserializeBuckets(mainBuffer));
             }
         } catch (IOException e) {
             throw new XrootdException(kXR_IOError, e.toString());

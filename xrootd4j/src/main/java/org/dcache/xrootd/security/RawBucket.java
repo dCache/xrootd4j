@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -35,90 +35,6 @@ import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
  */
 public class RawBucket extends XrootdBucket
 {
-    private static final String BYTE_DUMP[] =
-    {
-        "//  0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x    %s\n",
-        "//  0x%02x                                                     %s\n",
-        "//  0x%02x 0x%02x                                              %s\n",
-        "//  0x%02x 0x%02x 0x%02x                                       %s\n",
-        "//  0x%02x 0x%02x 0x%02x 0x%02x                                %s\n",
-        "//  0x%02x 0x%02x 0x%02x 0x%02x 0x%02x                         %s\n",
-        "//  0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x                  %s\n",
-        "//  0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x           %s\n"
-    };
-
-    public static void dumpBytes(StringBuilder builder, byte[] data)
-    {
-        int i = 0;
-        int D = data.length / 8;
-
-        for (int d = 0; d < D; ++d) {
-            builder.append(String.format(BYTE_DUMP[0],
-                                         data[i], data[i+1], data[i+2],
-                                         data[i+3], data[i+4], data[i+5],
-                                         data[i+6], data[i+7],
-                                         getAscii(data, i, 8)));
-            i+=8;
-        }
-
-        switch (data.length % 8) {
-            case 7:
-                builder.append(String.format(BYTE_DUMP[7],
-                                             data[i], data[i+1], data[i+2],
-                                             data[i+3], data[i+4], data[i+5],
-                                             data[i+6],
-                                             getAscii(data, i, 7)));
-                break;
-            case 6:
-                builder.append(String.format(BYTE_DUMP[6],
-                                             data[i], data[i+1], data[i+2],
-                                             data[i+3], data[i+4], data[i+5],
-                                             getAscii(data, i, 6)));
-                break;
-            case 5:
-                builder.append(String.format(BYTE_DUMP[5],
-                                             data[i], data[i+1], data[i+2],
-                                             data[i+3], data[i+4],
-                                             getAscii(data, i, 5)));
-                break;
-            case 4:
-                builder.append(String.format(BYTE_DUMP[4],
-                                             data[i], data[i+1], data[i+2],
-                                             data[i+3],
-                                             getAscii(data, i, 4)));
-                break;
-            case 3:
-                builder.append(String.format(BYTE_DUMP[3],
-                                             data[i], data[i+1], data[i+2],
-                                             getAscii(data, i, 3)));
-                break;
-            case 2:
-                builder.append(String.format(BYTE_DUMP[2],
-                                             data[i], data[i+1],
-                                             getAscii(data, i, 2)));
-                break;
-            case 1:
-                builder.append(String.format(BYTE_DUMP[1],
-                                             data[i],
-                                             getAscii(data, i, 1)));
-                break;
-        }
-    }
-
-    private static String getAscii(byte[] bytes, int from, int len)
-    {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < len; ++i) {
-            byte b = bytes[from+i];
-            if (32 < b && b < 127) {
-                sb.append((char)b);
-            } else {
-                sb.append('.');
-            }
-        }
-        return sb.toString();
-    }
-
     private final byte[] _data;
 
     public RawBucket(BucketType type, byte[] data) {
@@ -137,7 +53,7 @@ public class RawBucket extends XrootdBucket
         builder.append("//\n");
         builder.append("//                  RAW BYTE CONTENTS                  //\n");
         builder.append("//\n");
-        dumpBytes(builder, _data);
+        XrootdBucketUtils.dumpBytes(builder, _data);
         return number;
     }
 

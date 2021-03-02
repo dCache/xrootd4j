@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -22,16 +22,11 @@ import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 
-import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
-
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_certreq;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_reserved;
 
 /**
  * Format of a NestedBucketBuffer:
@@ -90,41 +85,6 @@ public class NestedBucketBuffer extends XrootdBucket {
         builder.append("//......................END NESTED.......................\n");
 
         return i;
-    }
-
-    /**
-     * Deserialize the NestedBucketBuffer. Retrieve all the buckets and
-     * recursively deserialize them. Also, retrieve the protocol information
-     * and the step.
-     *
-     * @param type The type of the bucket (usually kXRS_main)
-     * @param buffer The buffer containing the nested bucket buffer
-     * @return Deserialized buffer
-     * @throws IOException Deserialization fails
-     */
-    public static NestedBucketBuffer deserialize(BucketType type, ByteBuf buffer)
-        throws IOException {
-
-        /* kXRS_main can be a nested or an encrypted (raw) bucket. Try whether it
-         * looks like a nested buffer and use raw deserialization if not */
-        int readIndex = buffer.readerIndex();
-
-        String protocol = AuthenticationRequest.deserializeProtocol(buffer);
-
-        int step = AuthenticationRequest.deserializeStep(buffer);
-
-        _logger.debug("NestedBucketBuffer protocol: {}, step {}", protocol, step);
-
-        if (step < kXGC_certreq || step > kXGC_reserved) {
-            /* reset buffer */
-            buffer.readerIndex(readIndex);
-            throw new IOException("Buffer contents are not a nested buffer!");
-        }
-
-        return new NestedBucketBuffer(type,
-                protocol,
-                step,
-                AuthenticationRequest.deserializeBuckets(buffer));
     }
 
     /**

@@ -20,8 +20,6 @@ package org.dcache.xrootd.security;
 
 import io.netty.buffer.ByteBuf;
 
-import java.io.IOException;
-
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
 /**
@@ -66,68 +64,6 @@ public abstract class XrootdBucket
 
     public void serialize(ByteBuf out) {
         out.writeInt(_type.getCode());
-    }
-
-    /**
-     * Deserialize an XrootdBucket. Depending on the BucketType, return an
-     * XrootdBucket of a specific subtype.
-     *
-     * The only type where the returned type is not a-priori known is
-     * kXRS_main, which can be encrypted. If it is encrypted, a binary (raw)
-     * bucket is returned, if it is not encyrpted, a list of contained
-     * buckets (nestedBuffer) is returned.
-     *
-     * @param type The type of the bucket that should be deserialized
-     * @param buffer The buffer containing the buckets
-     * @return The deserialized bucket
-     */
-    public static XrootdBucket deserialize(BucketType type, ByteBuf buffer)
-        throws IOException {
-
-        XrootdBucket bucket;
-
-        switch (type) {
-
-            case kXRS_main:
-
-                try {
-
-                    bucket = NestedBucketBuffer.deserialize(type, buffer);
-
-                } catch (IOException e) {
-                    // ok the nested buffer seems to be encrypted
-                    // just store the binary data for now, it will be decrypted later on
-                    bucket = RawBucket.deserialize(type, buffer);
-                }
-
-                break;
-
-            case kXRS_cryptomod:    // fall through
-            case kXRS_issuer_hash:  // fall through
-            case kXRS_rtag:         // fall through
-            case kXRS_puk:          // fall through
-            case kXRS_cipher_alg:   // fall through
-            case kXRS_x509:         // fall through
-            case kXRS_x509_req:     // fall through
-            case kXRS_md_alg:       // fall through
-            case kXRS_message:      // fall through
-
-                bucket = StringBucket.deserialize(type, buffer);
-                break;
-
-            case kXRS_version:      // fall through
-            case kXRS_clnt_opts:
-
-                bucket = UnsignedIntBucket.deserialize(type, buffer);
-                break;
-
-            default:
-
-                bucket = RawBucket.deserialize(type, buffer);
-                break;
-        }
-
-        return bucket;
     }
 
     /**

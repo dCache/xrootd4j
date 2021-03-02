@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -23,8 +23,6 @@ import io.netty.buffer.ByteBuf;
 import java.nio.ByteBuffer;
 
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
-
-import static org.dcache.xrootd.security.RawBucket.dumpBytes;
 
 /**
  * A bucket containing a header plus an unsigned integer.
@@ -56,7 +54,7 @@ public class UnsignedIntBucket extends XrootdBucket
         ByteBuffer b = ByteBuffer.allocate(4);
         b.putInt(_data);
         byte[] result = b.array();
-        dumpBytes(builder, result);
+        XrootdBucketUtils.dumpBytes(builder, result);
         return number;
     }
 

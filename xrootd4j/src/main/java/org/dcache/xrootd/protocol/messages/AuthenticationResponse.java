@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -27,36 +27,15 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 import org.dcache.xrootd.security.XrootdBucket;
-import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
+import org.dcache.xrootd.security.XrootdBucketUtils;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.getServerStep;
 
 public class AuthenticationResponse extends AbstractXrootdResponse<AuthenticationRequest>
 {
     private static final Logger LOGGER =
                     LoggerFactory.getLogger(AuthenticationResponse.class);
-
-    /**
-     * Code is shared by outbound authentication request used by tpc client.
-     */
-    public static void writeBytes(ByteBuf buffer,
-                                  String protocol,
-                                  int step,
-                                  List<XrootdBucket> buckets) {
-        byte[] bytes = protocol.getBytes(US_ASCII);
-        buffer.writeBytes(bytes);
-        /* protocol must be 0-padded to 4 bytes */
-        buffer.writeZero(4 - bytes.length);
-
-        buffer.writeInt(step);
-        for (XrootdBucket bucket : buckets) {
-            bucket.serialize(buffer);
-        }
-
-        buffer.writeInt(BucketType.kXRS_none.getCode());
-    }
 
     @Override
     public void writeTo(ChannelHandlerContext ctx, ChannelPromise promise)
@@ -139,6 +118,6 @@ public class AuthenticationResponse extends AbstractXrootdResponse<Authenticatio
     @Override
     protected void getBytes(ByteBuf buffer)
     {
-        writeBytes(buffer, protocol, step, buckets);
+        XrootdBucketUtils.writeBytes(buffer, protocol, step, buckets);
     }
 }

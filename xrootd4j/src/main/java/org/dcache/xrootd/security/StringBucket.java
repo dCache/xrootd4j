@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -23,7 +23,6 @@ import io.netty.buffer.ByteBuf;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
-import static org.dcache.xrootd.security.RawBucket.dumpBytes;
 
 /**
  * A bucket containing a header plus a String.
@@ -49,7 +48,7 @@ public class StringBucket extends XrootdBucket {
         builder.append("//\n");
         builder.append("//                   STRING CONTENTS                   //\n");
         builder.append("//\n");
-        dumpBytes(builder,_data.getBytes());
+        XrootdBucketUtils.dumpBytes(builder,_data.getBytes());
         return number;
     }
 

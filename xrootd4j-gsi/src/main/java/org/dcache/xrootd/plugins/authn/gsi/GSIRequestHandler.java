@@ -49,6 +49,7 @@ import org.dcache.xrootd.security.NestedBucketBuffer;
 import org.dcache.xrootd.security.RawBucket;
 import org.dcache.xrootd.security.StringBucket;
 import org.dcache.xrootd.security.XrootdBucket;
+import org.dcache.xrootd.security.XrootdBucketUtils;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
 import static eu.emi.security.authn.x509.impl.CertificateUtils.Encoding.PEM;
@@ -213,7 +214,7 @@ public abstract class GSIRequestHandler
                                              encrypted);
         ByteBuf buffer = wrappedBuffer(decrypted);
         NestedBucketBuffer nested
-                        = NestedBucketBuffer.deserialize(kXRS_main, buffer);
+                        = XrootdBucketUtils.deserializeNested(kXRS_main, buffer);
 
         if (LOGGER.isTraceEnabled()) {
             StringBuilder builder = new StringBuilder();
