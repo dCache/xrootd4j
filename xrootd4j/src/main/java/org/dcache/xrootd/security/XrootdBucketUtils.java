@@ -31,7 +31,10 @@ import java.util.function.Consumer;
 
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
+import org.dcache.xrootd.core.XrootdException;
+import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
 
+import static io.netty.buffer.Unpooled.wrappedBuffer;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.core.XrootdEncoder.writeZeroPad;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
@@ -39,6 +42,9 @@ import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.getClientStep;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_certreq;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_reserved;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_IOError;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_main;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
 /**
  *  Utilities for deserializing, writing, and printing out GSI byte buckets.
@@ -365,6 +371,48 @@ public class XrootdBucketUtils {
                                   request.getStreamId(),
                                   request.getRequestId(),
                                   null));
+        }
+
+        return data;
+    }
+
+    public static BucketData deserializeData(InboundAuthenticationResponse response)
+                    throws XrootdException {
+        BucketData data = new BucketData();
+        ByteBuf buffer = response.getDataBuffer();
+        data.protocol = XrootdBucketUtils.deserializeProtocol(buffer);
+        data.step = XrootdBucketUtils.deserializeStep(buffer);
+
+        try {
+            data.bucketMap.putAll(XrootdBucketUtils.deserializeBuckets(buffer));
+
+            /*
+             *  if pxyreq, do not deserialize and unpack the main bucket.
+             */
+            if (data.step != kXGS_pxyreq) {
+                RawBucket mainBucket = (RawBucket) data.bucketMap.remove(kXRS_main);
+                ByteBuf mainBuffer = wrappedBuffer(mainBucket.getContent());
+                /*
+                 *   protocol and server step are repeated inside this bucket;
+                 *   skip.
+                 */
+                mainBuffer.readerIndex(8);
+                data.bucketMap.putAll(XrootdBucketUtils.deserializeBuckets(mainBuffer));
+            }
+        } catch (IOException e) {
+            throw new XrootdException(kXR_IOError, e.toString());
+        }
+
+        response.releaseBuffer();
+
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace(describe("//           Inbound Authentication Response",
+                                  b->dumpBuckets(b,
+                                                 data.bucketMap.values(),
+                                                 getServerStep(data.step)),
+                                  response.getStreamId(),
+                                  response.getRequestId(),
+                                  response.getStatus()));
         }
 
         return data;

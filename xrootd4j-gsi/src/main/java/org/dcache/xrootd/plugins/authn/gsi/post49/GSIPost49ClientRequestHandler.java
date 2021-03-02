@@ -24,6 +24,7 @@ import io.netty.channel.ChannelHandlerContext;
 
 import java.io.Serializable;
 import java.security.KeyStoreException;
+import java.util.Map;
 import java.util.Optional;
 
 import org.dcache.xrootd.core.XrootdException;
@@ -34,6 +35,8 @@ import org.dcache.xrootd.plugins.authn.gsi.GSIClientRequestHandler;
 import org.dcache.xrootd.plugins.authn.gsi.GSICredentialManager;
 import org.dcache.xrootd.plugins.authn.gsi.SerializableX509Credential;
 import org.dcache.xrootd.security.XrootdBucket;
+import org.dcache.xrootd.security.XrootdBucketUtils.BucketData;
+import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 import org.dcache.xrootd.tpc.XrootdTpcClient;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundErrorResponse;
@@ -87,10 +90,12 @@ public class GSIPost49ClientRequestHandler extends GSIClientRequestHandler
     }
 
     public OutboundAuthenticationRequest handleCertStep(InboundAuthenticationResponse response,
+                                                        BucketData data,
                                                         ChannelHandlerContext ctx)
                     throws XrootdException
     {
         return handleCertStep(response,
+                              data,
                               ctx,
                               kXRS_cipher,
                               true,
@@ -156,10 +161,10 @@ public class GSIPost49ClientRequestHandler extends GSIClientRequestHandler
         return !noPadding;
     }
 
-    protected String validateCiphers(InboundAuthenticationResponse inbound)
+    protected String validateCiphers(Map<BucketType, XrootdBucket> bucketMap)
                     throws XrootdException
     {
-        return super.validateCiphers(inbound)
+        return super.validateCiphers(bucketMap)
                         + SESSION_IV_DELIM + SESSION_IV_LEN;
     }
 

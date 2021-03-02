@@ -19,45 +19,18 @@
 package org.dcache.xrootd.tpc.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.EnumMap;
-import java.util.Map;
 
 import org.dcache.xrootd.core.XrootdException;
-import org.dcache.xrootd.security.RawBucket;
-import org.dcache.xrootd.security.XrootdBucket;
-import org.dcache.xrootd.security.XrootdBucketUtils;
-import org.dcache.xrootd.security.XrootdSecurityProtocol;
-import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
-import static io.netty.buffer.Unpooled.wrappedBuffer;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_IOError;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_main;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGS_pxyreq;
 
 /**
- * <p>Response from third-party source server.</p>
+ * Response from third-party source server.
  */
-public class InboundAuthenticationResponse
-                extends AbstractXrootdInboundResponse
+public class InboundAuthenticationResponse extends AbstractXrootdInboundResponse
 {
-    private static final Logger LOGGER =
-                    LoggerFactory.getLogger(InboundAuthenticationResponse.class);
-
-    /**
-     * Map of the buckets (kind of a serialized datatype with an
-     * int32 block of metadata) received from the client.
-     */
-    private final Map<BucketType, XrootdBucket> bucketMap =
-                    new EnumMap<>(BucketType.class);
-
-    private int dataLength;
-    private int serverStep;
-    private String protocol;
+    private final int dataLength;
+    private final ByteBuf data;
 
     public InboundAuthenticationResponse(ByteBuf buffer) throws
                     XrootdException {
@@ -66,59 +39,16 @@ public class InboundAuthenticationResponse
         dataLength = buffer.readInt();
 
         if (dataLength == 0) {
-            /*
-             *  OK response;
-             */
+            data = null;
             return;
         }
 
-        protocol = XrootdBucketUtils.deserializeProtocol(buffer);
-        serverStep = buffer.readInt();
-
-        try {
-            bucketMap.putAll(XrootdBucketUtils.deserializeBuckets(buffer));
-
-            /*
-             *  if pxyreq, do not deserialize and unpack the main bucket.
-             */
-            if (serverStep != kXGS_pxyreq) {
-                RawBucket mainBucket = (RawBucket) bucketMap.remove(kXRS_main);
-                ByteBuf mainBuffer = wrappedBuffer(mainBucket.getContent());
-                /*
-                 *   protocol and server step are repeated inside this bucket;
-                 *   skip.
-                 */
-                mainBuffer.readerIndex(8);
-                bucketMap.putAll(XrootdBucketUtils.deserializeBuckets(mainBuffer));
-            }
-        } catch (IOException e) {
-            throw new XrootdException(kXR_IOError, e.toString());
-        }
-
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace(describe());
-        }
-    }
-
-    public String describe()
-    {
-        return XrootdBucketUtils.describe("//           Inbound Authentication Response",
-            b->XrootdBucketUtils.dumpBuckets(b,
-                                             bucketMap.values(),
-                                             XrootdSecurityProtocol.getServerStep(serverStep)),
-            streamId, null, stat);
-    }
-
-    public Map<BucketType, XrootdBucket> getBuckets() {
-        return bucketMap;
+        data = buffer.alloc().ioBuffer(dataLength);
+        data.writeBytes(buffer);
     }
 
     public int getDataLength() {
         return dataLength;
-    }
-
-    public String getProtocol() {
-        return protocol;
     }
 
     @Override
@@ -126,7 +56,15 @@ public class InboundAuthenticationResponse
         return kXR_auth;
     }
 
-    public int getServerStep() {
-        return serverStep;
+    public ByteBuf getDataBuffer()
+    {
+        return data;
+    }
+
+    public void releaseBuffer()
+    {
+        if (data != null) {
+            data.release();
+        }
     }
 }

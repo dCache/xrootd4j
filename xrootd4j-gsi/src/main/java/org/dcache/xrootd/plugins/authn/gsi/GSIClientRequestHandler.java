@@ -42,6 +42,7 @@ import org.dcache.xrootd.security.StringBucket;
 import org.dcache.xrootd.security.TLSSessionInfo;
 import org.dcache.xrootd.security.UnsignedIntBucket;
 import org.dcache.xrootd.security.XrootdBucket;
+import org.dcache.xrootd.security.XrootdBucketUtils.BucketData;
 import org.dcache.xrootd.security.XrootdBucketUtils.BucketSerializer;
 import org.dcache.xrootd.security.XrootdBucketUtils.BucketSerializerBuilder;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.*;
@@ -202,7 +203,8 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
 
     public abstract OutboundAuthenticationRequest
         handleCertStep(InboundAuthenticationResponse response,
-                       ChannelHandlerContext ctx)
+                        BucketData data,
+                        ChannelHandlerContext ctx)
                     throws XrootdException;
 
     protected Optional<TpcSigverRequestEncoder> getSigverEncoder(XrootdTpcClient client)
@@ -220,30 +222,30 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
         return Optional.ofNullable(sigverRequestEncoder);
     }
 
-    protected X509Certificate validateCertificate(InboundAuthenticationResponse inbound)
+    protected X509Certificate validateCertificate(Map<BucketType, XrootdBucket> bucketMap)
                     throws IOException, GeneralSecurityException,
                     XrootdException {
-        X509Certificate[] chain = processRSAVerification(inbound.getBuckets(),
+        X509Certificate[] chain = processRSAVerification(bucketMap,
                                                          Optional.empty());
         X509Certificate serverCert = chain[0];
         GSICredentialManager.checkIdentity(serverCert, client.getInfo().getSrcHost());
         return serverCert;
     }
 
-    protected String validateCiphers(InboundAuthenticationResponse inbound)
+    protected String validateCiphers(Map<BucketType, XrootdBucket> bucketMap)
                     throws XrootdException
     {
         StringBucket cipherBucket
-                        = (StringBucket) inbound.getBuckets().get(kXRS_cipher_alg);
+                        = (StringBucket) bucketMap.get(kXRS_cipher_alg);
 
         return validateCiphers(cipherBucket.getContent().split("[:]"));
     }
 
-    protected String validateDigests(InboundAuthenticationResponse inbound)
+    protected String validateDigests(Map<BucketType, XrootdBucket> bucketMap)
                     throws XrootdException
     {
         StringBucket digestBucket
-                        = (StringBucket) inbound.getBuckets().get(kXRS_md_alg);
+                        = (StringBucket) bucketMap.get(kXRS_md_alg);
 
         return validateDigests(digestBucket.getContent().split("[:]"));
     }
@@ -272,23 +274,25 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
      *     and username.
      */
     protected OutboundAuthenticationRequest
-        handleCertStep(InboundAuthenticationResponse response,
-                       ChannelHandlerContext ctx, BucketType dhParamBucket,
-                       boolean signDhParams,
-                       Optional<String> publicKeyPem,
-                       Optional<String> userName) throws XrootdException
+    handleCertStep(InboundAuthenticationResponse response,
+                   BucketData data,
+                   ChannelHandlerContext ctx,
+                   BucketType dhParamBucket,
+                   boolean signDhParams,
+                   Optional<String> publicKeyPem,
+                   Optional<String> userName) throws XrootdException
     {
         try {
-            String selectedCipher = validateCiphers(response);
-            String selectedDigest = validateDigests(response);
-
-            X509Certificate serverCert = validateCertificate(response);
+            Map<BucketType, XrootdBucket> bucketMap = data.getBucketMap();
+            String selectedCipher = validateCiphers(bucketMap);
+            String selectedDigest = validateDigests(bucketMap);
+            X509Certificate serverCert = validateCertificate(bucketMap);
             rsaSession.initializeForDecryption(serverCert.getPublicKey());
-            verifySignedRTag(response.getBuckets());
+            verifySignedRTag(bucketMap);
 
             dhSession = new DHSession(false, findSessionIVLen(selectedCipher));
             dhSession.setPaddedKey(usePadded());
-            finalizeSessionKey(response.getBuckets(), dhParamBucket);
+            finalizeSessionKey(bucketMap, dhParamBucket);
 
             Optional<TpcSigverRequestEncoder> encoder = getSigverEncoder(client);
             if (encoder.isPresent()) {
@@ -306,7 +310,7 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
             rsaSession.initializeForEncryption(clientCredential.getKey());
 
             XrootdBucket mainBucket
-                            = postProcessMainBucket(response.getBuckets(),
+                            = postProcessMainBucket(bucketMap,
                                                     Optional.of(serializedCert),
                                                     kXGC_cert);
 
