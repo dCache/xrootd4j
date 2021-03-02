@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.Map;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.dcache.xrootd.core.XrootdEncoder.writeZeroPad;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 
 /**
@@ -122,10 +122,7 @@ public class NestedBucketBuffer extends XrootdBucket {
         int start = out.writerIndex();
         out.writeInt(0); // placeholder value
 
-        /* the protocol is be 0-padded to 4 bytes */
-        byte[] protocol = _protocol.getBytes(US_ASCII);
-        out.writeBytes(protocol);
-        out.writeZero(4 - protocol.length);
+        writeZeroPad(_protocol, out, 4);
 
         out.writeInt(_step);
 

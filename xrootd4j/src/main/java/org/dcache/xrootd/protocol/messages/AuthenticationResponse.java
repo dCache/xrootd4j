@@ -19,93 +19,39 @@
 package org.dcache.xrootd.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPromise;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.List;
-
-import org.dcache.xrootd.security.XrootdBucket;
-import org.dcache.xrootd.security.XrootdBucketUtils;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.getServerStep;
+import java.util.function.Consumer;
 
 public class AuthenticationResponse extends AbstractXrootdResponse<AuthenticationRequest>
 {
-    private static final Logger LOGGER =
-                    LoggerFactory.getLogger(AuthenticationResponse.class);
-
-    private final String protocol;
-    private final int step;
-    private final List<XrootdBucket> buckets;
-    private final int length;
+    private final int               length;
+    private final Consumer<ByteBuf> serializer;
 
     /**
      * @param request the request this is a response to
      * @param status the status (usually kXR_authmore)
-     * @param length
-     * @param protocol the currently used authentication protocol
-     * @param step the processing step
-     * @param buckets list of buckets containing server-side authentication
-     *                information (challenge, host certificate, etc.)
+     * @param length of the data container to be serialized
+     * @param serializer function responsible for writing to the buffer
      */
     public AuthenticationResponse(AuthenticationRequest request,
                                   int status,
                                   int length,
-                                  String protocol,
-                                  int step,
-                                  List<XrootdBucket> buckets)
+                                  Consumer<ByteBuf> serializer)
     {
         super(request, status);
-
-        checkArgument(protocol.length() <= 4);
-
-        this.protocol = protocol;
-        this.step = step;
-        this.buckets = buckets;
         this.length = length;
-    }
-
-    public String describe()
-    {
-        return XrootdBucketUtils.describe("//               Authentication Response",
-            b -> {XrootdBucketUtils.dumpBuckets(b,
-                                                  buckets,
-                                                  getServerStep(step));},
-            request.getStreamId(), request.getRequestId(),null);
-    }
-
-    public String getProtocol()
-    {
-        return protocol;
-    }
-
-    public int getStep()
-    {
-        return step;
+        this.serializer = serializer;
     }
 
     @Override
     public int getDataLength()
     {
-        // PROTOCOL + STEP + BODY + TERMINAL
-        return 4 + 4 + length + 4;
-    }
-
-    @Override
-    public void writeTo(ChannelHandlerContext ctx, ChannelPromise promise)
-    {
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace(describe());
-        }
-        super.writeTo(ctx, promise);
+        return length;
     }
 
     @Override
     protected void getBytes(ByteBuf buffer)
     {
-        XrootdBucketUtils.writeBytes(buffer, protocol, step, buckets);
+        serializer.accept(buffer);
     }
 }

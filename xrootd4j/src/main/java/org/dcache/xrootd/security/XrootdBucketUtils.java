@@ -472,8 +472,7 @@ public class XrootdBucketUtils {
         }
     }
 
-    public static void writeBytes(ByteBuf buffer,
-                                  String protocol,
+    public static void writeBytes(ByteBuf buffer, String protocol,
                                   int step,
                                   List<XrootdBucket> buckets)
     {

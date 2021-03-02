@@ -46,7 +46,6 @@ import org.dcache.xrootd.plugins.authn.gsi.GSIBucketContainer;
 import org.dcache.xrootd.plugins.authn.gsi.GSIBucketContainerBuilder;
 import org.dcache.xrootd.plugins.authn.gsi.GSICredentialManager;
 import org.dcache.xrootd.plugins.authn.gsi.GSIServerRequestHandler;
-import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.AuthenticationResponse;
 import org.dcache.xrootd.protocol.messages.OkResponse;
@@ -56,9 +55,12 @@ import org.dcache.xrootd.security.StringBucket;
 import org.dcache.xrootd.security.UnsignedIntBucket;
 import org.dcache.xrootd.security.XrootdBucket;
 import org.dcache.xrootd.security.XrootdBucketUtils.BucketData;
+import org.dcache.xrootd.security.XrootdBucketUtils.BucketSerializer;
+import org.dcache.xrootd.security.XrootdBucketUtils.BucketSerializerBuilder;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_DecryptErr;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_authmore;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
@@ -334,11 +336,21 @@ public class GSIPost49ServerRequestHandler extends GSIServerRequestHandler
                         = new ProxyRequestResponse(main,
                                                    CRYPTO_MODE)
                         .buildContainer();
+
+        BucketSerializer serializer = new BucketSerializerBuilder()
+                        .withStreamId(request.getStreamId())
+                        .withRequestId(kXR_authmore)
+                        .withProtocol(PROTOCOL)
+                        .withStep(kXGS_pxyreq)
+                        .withStepName(getServerStep(kXGS_pxyreq))
+                        .withBuckets(responseBuckets.getBuckets())
+                        .withTitle("//               Authentication Response")
+                        .build();
+
         return new AuthenticationResponse(request,
-                                          XrootdProtocol.kXR_authmore,
-                                          responseBuckets.getSize(),
-                                          PROTOCOL,
-                                          kXGS_pxyreq,
-                                          responseBuckets.getBuckets());
+                                          kXR_authmore,
+                                          // (will be replaced by method when utils moved to gsi module REVISIT
+                                          responseBuckets.getSize() + 12,
+                                          serializer);
     }
 }

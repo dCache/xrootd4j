@@ -19,6 +19,7 @@
 package org.dcache.xrootd.plugins.authn.gsi;
 
 import eu.emi.security.authn.x509.X509Credential;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +32,7 @@ import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.security.NestedBucketBuffer;

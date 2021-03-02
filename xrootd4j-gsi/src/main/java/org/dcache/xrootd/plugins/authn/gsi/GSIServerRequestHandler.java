@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.dcache.xrootd.core.XrootdException;
-import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.AuthenticationResponse;
 import org.dcache.xrootd.protocol.messages.XrootdResponse;
@@ -44,11 +43,12 @@ import org.dcache.xrootd.security.StringBucket;
 import org.dcache.xrootd.security.XrootdBucket;
 import org.dcache.xrootd.security.XrootdBucketUtils.BucketData;
 import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
+import org.dcache.xrootd.security.XrootdBucketUtils.BucketSerializer;
+import org.dcache.xrootd.security.XrootdBucketUtils.BucketSerializerBuilder;
 
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_authmore;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kGSErrError;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kGSErrInit;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGS_cert;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
 public abstract class GSIServerRequestHandler extends GSIRequestHandler
 {
@@ -187,13 +187,21 @@ public abstract class GSIServerRequestHandler extends GSIRequestHandler
                                                    SUPPORTED_DIGESTS,
                                                    encodedHostCert(credential))
                                                 .buildContainer();
+            BucketSerializer serializer = new BucketSerializerBuilder()
+                            .withStreamId(request.getStreamId())
+                            .withRequestId(kXR_authmore)
+                            .withProtocol(PROTOCOL)
+                            .withStep(kXGS_cert)
+                            .withStepName(getServerStep(kXGS_cert))
+                            .withBuckets(responseBuckets.getBuckets())
+                            .withTitle("//               Authentication Response")
+                            .build();
 
             return new AuthenticationResponse(request,
-                                              XrootdProtocol.kXR_authmore,
-                                              responseBuckets.getSize(),
-                                              PROTOCOL,
-                                              kXGS_cert,
-                                              responseBuckets.getBuckets());
+                                              kXR_authmore,
+                                              // (will be replaced by method when utils moved to gsi module REVISIT
+                                              responseBuckets.getSize() + 12,
+                                              serializer);
         } catch (InvalidKeyException ikex) {
             LOGGER.error("Configured host-key could not be used for " +
                                          "signing: {}", ikex.getMessage());
