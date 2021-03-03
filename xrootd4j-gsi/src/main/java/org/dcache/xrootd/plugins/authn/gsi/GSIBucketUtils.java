@@ -295,7 +295,7 @@ public class GSIBucketUtils {
 
             int bucketLength = buffer.readInt();
 
-            LOGGER.error("bucket type {} has length {}.",
+            LOGGER.debug("bucket type {} has length {}.",
                          bucketType, bucketLength);
 
             GSIBucket bucket = deserialize(bucketType,
