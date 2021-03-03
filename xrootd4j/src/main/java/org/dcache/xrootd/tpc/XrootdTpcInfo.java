@@ -211,6 +211,16 @@ public class XrootdTpcInfo
     private final long createdTime;
 
     /**
+     * <p>User uid; used only for UNIX protocol.</p>
+     */
+    private Long uid;
+
+    /**
+     * <p>User primary gid; used only for UNIX protocol.</p>
+     */
+    private Long gid;
+
+    /**
      * <p>The client identifier, in the form [user].[pid]@[hostname]</p>
      */
     private String org;
@@ -438,6 +448,8 @@ public class XrootdTpcInfo
         info.cks = cks;
         info.loginToken = response.getToken();
         info.delegatedProxy = delegatedProxy;
+        info.uid = uid;
+        info.gid = gid;
 
         String opaque = response.getOpaque();
 
@@ -588,6 +600,11 @@ public class XrootdTpcInfo
         return fd;
     }
 
+    public Long getGid()
+    {
+        return gid;
+    }
+
     public String getKey()
     {
         return key;
@@ -621,6 +638,21 @@ public class XrootdTpcInfo
     public synchronized Status getStatus()
     {
         return status;
+    }
+
+    public Long getUid()
+    {
+        return uid;
+    }
+
+    public void setUid(Long uid)
+    {
+        this.uid = uid;
+    }
+
+    public void setGid(Long gid)
+    {
+        this.gid = gid;
     }
 
     public void setDelegatedProxy(Serializable delegatedProxy)

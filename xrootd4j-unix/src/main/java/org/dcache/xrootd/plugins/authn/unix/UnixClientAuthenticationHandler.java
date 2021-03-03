@@ -29,6 +29,7 @@ import org.dcache.xrootd.security.SigningPolicy;
 import org.dcache.xrootd.security.TLSSessionInfo;
 import org.dcache.xrootd.tpc.AbstractClientAuthnHandler;
 import org.dcache.xrootd.tpc.TpcSigverRequestEncoder;
+import org.dcache.xrootd.tpc.XrootdTpcClient;
 import org.dcache.xrootd.tpc.XrootdTpcInfo;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundAuthenticationRequest;
@@ -48,13 +49,36 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
  *     pool, which now requires unix (in order to guarantee signed hashes
  *     are passed from the vanilla xrootd client).</p>
  *
- *  <p>The module merely sends a response with the username; the
+ *  <p>The module merely sends a response with the uid + " " + gid; the
  *     sigver handler is given no crypto handler, and thus sigver requests
  *     will be signed without encryption.</p>
  */
 public class UnixClientAuthenticationHandler extends AbstractClientAuthnHandler
 {
     public static final String PROTOCOL = "unix";
+
+    private static String getCredential(XrootdTpcClient client)
+    {
+        Long uid = client.getInfo().getUid();
+
+        if (uid == null) {
+            return PROTOCOL + client.getUname();
+        }
+
+        Long gid = client.getInfo().getGid();
+
+        if (gid == null) {
+            return PROTOCOL + uid;
+        } else {
+            return PROTOCOL + uid + " " + gid;
+        }
+    }
+
+    private static void writeBytes(ByteBuf buffer, String cred)
+    {
+        byte[] bytes = cred.getBytes(US_ASCII);
+        buffer.writeBytes(bytes);
+    }
 
     public UnixClientAuthenticationHandler() {
         super(PROTOCOL);
@@ -107,23 +131,17 @@ public class UnixClientAuthenticationHandler extends AbstractClientAuthnHandler
                                     sigverRequestEncoder);
         }
 
-        String uname = client.getUname();
-        Consumer<ByteBuf> serializer = b -> writeBytes(b, uname);
+        String cred = getCredential(client);
+        Consumer<ByteBuf> serializer = b -> writeBytes(b, cred);
         OutboundAuthenticationRequest request
                         = new OutboundAuthenticationRequest(client.getStreamId(),
                                                             PROTOCOL,
-                                                            uname.length(),
+                                                            cred.length(),
                                                             serializer);
         client.setExpectedResponse(kXR_auth);
         client.setAuthResponse(null);
         ctx.writeAndFlush(request, ctx.newPromise())
            .addListener(FIRE_EXCEPTION_ON_FAILURE);
         client.startTimer(ctx);
-    }
-
-    private static void writeBytes(ByteBuf buffer, String uname)
-    {
-        byte[] bytes = uname.getBytes(US_ASCII);
-        buffer.writeBytes(bytes);
     }
 }
