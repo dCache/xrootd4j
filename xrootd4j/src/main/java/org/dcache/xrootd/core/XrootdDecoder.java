@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -23,12 +23,26 @@ import io.netty.channel.ChannelHandlerContext;
 
 import java.util.List;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+
 /**
  * A FrameDecoder decoding xrootd frames into AbstractRequestMessage
  * objects.
  */
 public class XrootdDecoder extends AbstractXrootdDecoder
 {
+    /**
+     * This method is shared by several authn protocols.
+     */
+    public static String readAscii(ByteBuf buffer, int length)
+    {
+        String protocol = buffer.toString(buffer.readerIndex(), length, US_ASCII)
+                                .trim();
+        /* toString does not advance the index */
+        buffer.readerIndex(buffer.readerIndex() + length);
+        return protocol;
+    }
+
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out)
     {

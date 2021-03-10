@@ -29,21 +29,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
-import org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 import org.dcache.xrootd.core.XrootdException;
+import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
+import org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
 
 import static io.netty.buffer.Unpooled.wrappedBuffer;
-import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.dcache.xrootd.core.XrootdDecoder.readAscii;
 import static org.dcache.xrootd.core.XrootdEncoder.writeZeroPad;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_version;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.getClientStep;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_certreq;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_reserved;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_IOError;
+import static org.dcache.xrootd.protocol.messages.LoginResponse.AUTHN_PROTOCOL_TYPE_LEN;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_main;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_version;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
 /**
@@ -540,15 +537,12 @@ public class GSIBucketUtils {
         return builder.toString();
     }
 
-    public static String deserializeProtocol(ByteBuf buffer)
+    private static String deserializeProtocol(ByteBuf buffer)
     {
-        String protocol = buffer.toString(buffer.readerIndex(), 4, US_ASCII).trim();
-        /* toString does not advance the index */
-        buffer.readerIndex(buffer.readerIndex() + 4);
-        return protocol;
+        return readAscii(buffer, AUTHN_PROTOCOL_TYPE_LEN);
     }
 
-    public static int deserializeStep(ByteBuf buffer)
+    private static int deserializeStep(ByteBuf buffer)
     {
         return buffer.readInt();
     }

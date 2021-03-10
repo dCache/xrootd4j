@@ -152,7 +152,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
             CertUtil.computeMD5Hash(credential.getCertificate()
                                               .getIssuerX500Principal());
 
-        return "&P=" + PROTOCOL + "," +
+        return AUTHN_PROTOCOL_PREFIX + PROTOCOL + "," +
                 "v:" + GSIRequestHandler.PROTOCOL_VERSION + "," +
                 "c:" + CRYPTO_MODE + "," +
                 "ca:" + subjectHash;

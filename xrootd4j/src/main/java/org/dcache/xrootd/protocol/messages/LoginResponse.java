@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -28,6 +28,8 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
 
 public class LoginResponse extends AbstractXrootdResponse<LoginRequest>
 {
+    public static final int AUTHN_PROTOCOL_TYPE_LEN = 4;
+
     private final XrootdSessionIdentifier sessionId;
     private final String sec;
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -33,14 +33,13 @@ import org.dcache.xrootd.security.SecurityInfo;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.SEC_PROTOCOL_PREFIX;
 
 /**
  * <p>Response from third-party source server.</p>
  */
 public class InboundLoginResponse extends AbstractXrootdInboundResponse
 {
-    private static final String PROTOCOL_PREFIX = "P=";
-
     private final XrootdSessionIdentifier   sessionId;
     private final List<SecurityInfo>        protocols;
     private final Map<String, SecurityInfo> protocolMap;
@@ -59,10 +58,10 @@ public class InboundLoginResponse extends AbstractXrootdInboundResponse
 
                 String sec = buffer.toString(24, slen, US_ASCII);
                 for (String description : Splitter.on('&').trimResults().omitEmptyStrings().split(sec)) {
-                    if (!description.startsWith(PROTOCOL_PREFIX)) {
+                    if (!description.startsWith(SEC_PROTOCOL_PREFIX)) {
                         throw new XrootdException(kXR_error, "Malformed 'sec': " + sec);
                     }
-                    protocols.add(new SecurityInfo(description.substring(PROTOCOL_PREFIX.length())));
+                    protocols.add(new SecurityInfo(description.substring(SEC_PROTOCOL_PREFIX.length())));
                 }
             } else {
                 protocols = Collections.EMPTY_LIST;

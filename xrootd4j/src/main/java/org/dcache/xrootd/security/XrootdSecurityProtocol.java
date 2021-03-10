@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -24,6 +24,9 @@ import java.util.Map;
 
 public interface XrootdSecurityProtocol
 {
+    String SEC_PROTOCOL_PREFIX="P=";
+    String AUTHN_PROTOCOL_PREFIX="&" + SEC_PROTOCOL_PREFIX;
+
     /**
      *  _______________________________________________________________________
      *  BUCKET TYPES
