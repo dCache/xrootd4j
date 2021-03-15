@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -88,16 +88,22 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
         validateChecksum(response, ctx);
     }
 
-    /*
-     * TODO: revisit read implementation to see if parallel read is feasible.
-     */
     @Override
     protected void doOnReadResponse(ChannelHandlerContext ctx,
                                     InboundReadResponse response)
     {
         try {
-            int status = response.getStatus();
             XrootdTpcInfo tpcInfo = client.getInfo();
+            long fileSize = 0L;
+
+            try {
+                fileSize = tpcInfo.computeFileSize();
+            } catch (XrootdException e) {
+                handleTransferTerminated(kXR_ArgMissing, e.toString(), ctx);
+                return;
+            }
+
+            int status = response.getStatus();
             int bytesRcvd = response.getDlen();
             LOGGER.debug("Read response received for {} on {}, channel {}, "
                                          + "stream {}: status {}, "
@@ -110,8 +116,9 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
                          bytesRcvd);
 
             if (status != kXR_ok && status != kXR_oksofar) {
-                String error = String.format("Read of %s failed with status %s.",
-                                                tpcInfo.getLfn(), status);
+                String error = String.format(
+                                "Read of %s failed with status %s.",
+                                tpcInfo.getLfn(), status);
                 handleTransferTerminated(kXR_error, error, ctx);
                 return;
             }
@@ -145,7 +152,7 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
                              client.getStreamId(),
                              bytesRcvd,
                              writeOffset,
-                             tpcInfo.getAsize());
+                             fileSize);
             }
 
             if (status == kXR_oksofar) {
@@ -158,7 +165,7 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
                 return;
             }
 
-            if (writeOffset < tpcInfo.getAsize()) {
+            if (writeOffset < fileSize) {
                 sendReadRequest(ctx);
             } else if (tpcInfo.getCks() != null) {
                 sendChecksumRequest(ctx);

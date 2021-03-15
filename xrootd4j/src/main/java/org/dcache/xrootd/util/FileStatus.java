@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -40,6 +40,18 @@ public class FileStatus
         this.size = size;
         this.flags = flags;
         this.modtime = modtime;
+    }
+
+    /*
+     * Id, size, flags, mtime
+     */
+    public FileStatus(String info)
+    {
+        String[] parts = info.trim().split("[\\s]");
+        this.id = Long.parseLong(parts[0]);
+        this.size = Long.parseLong(parts[1]);
+        this.flags = Integer.parseInt(parts[2]);
+        this.modtime = Long.parseLong(parts[3]);
     }
 
     public long getSize() {
