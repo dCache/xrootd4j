@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -22,6 +22,8 @@ import io.netty.buffer.ByteBuf;
 
 import java.nio.charset.StandardCharsets;
 
+import org.dcache.xrootd.util.FileStatus;
+
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_open;
 
 /**
@@ -29,11 +31,11 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_open;
  */
 public class InboundOpenReadOnlyResponse extends AbstractXrootdInboundResponse
 {
-    private final int    resplen;
-    private final int    fhandle;
+    private final        int    resplen;
+    private final        int    fhandle;
     private final int    cpsize;  // should be 0, since we request kXR_restat
     private final int    cptype;  // should have first byte = \0, no compression
-    private final String info;
+    private final FileStatus fileStatus;
 
     public InboundOpenReadOnlyResponse(ByteBuf buffer)
     {
@@ -43,10 +45,12 @@ public class InboundOpenReadOnlyResponse extends AbstractXrootdInboundResponse
         cpsize = buffer.getInt(12);
         cptype = buffer.getInt(16);
         int len = resplen - 12;
-        if (len > 0) {
-            info = buffer.toString(20, len, StandardCharsets.US_ASCII);
+        if (resplen > 0) {
+            fileStatus = new FileStatus(buffer.toString(20,
+                                                        len,
+                                                        StandardCharsets.US_ASCII));
         } else {
-            info = null;
+            fileStatus = null;
         }
     }
 
@@ -62,8 +66,8 @@ public class InboundOpenReadOnlyResponse extends AbstractXrootdInboundResponse
         return fhandle;
     }
 
-    public String getInfo() {
-        return info;
+    public FileStatus getFileStatus() {
+        return fileStatus;
     }
 
     @Override

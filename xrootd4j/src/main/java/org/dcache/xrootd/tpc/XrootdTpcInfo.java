@@ -26,13 +26,18 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.tpc.protocol.messages.InboundRedirectResponse;
+import org.dcache.xrootd.util.FileStatus;
 import org.dcache.xrootd.util.OpaqueStringParser;
 import org.dcache.xrootd.util.ParseException;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ArgMissing;
 
 /**
  * <p>Metadata established via interaction between user client, source and
@@ -183,7 +188,7 @@ public class XrootdTpcInfo {
     /**
      * <p>Source size.</p>
      */
-    private long asize;
+    private Long asize;
 
     /**
      * <p>Status of the transfer request.</p>
@@ -218,6 +223,11 @@ public class XrootdTpcInfo {
     private String sourceToken;
 
     /**
+     * <p>The stat info received on the TPC open call.</p>
+     */
+    private FileStatus fileStatus;
+
+    /**
      * <p>Delegated proxy object</p>
      */
 
@@ -229,6 +239,11 @@ public class XrootdTpcInfo {
         this.key = key;
         this.createdTime = System.currentTimeMillis();
     }
+
+    /*
+     *  Computed.
+     */
+    private OptionalLong fileSize = OptionalLong.empty();
 
     /**
      * <p>Initializes everything from the map instance.
@@ -303,6 +318,23 @@ public class XrootdTpcInfo {
         addExternal(opaque);
 
         return this;
+    }
+
+    public long computeFileSize() throws XrootdException
+    {
+        if (!fileSize.isPresent()) {
+            if (fileStatus == null) {
+                if (asize == null) {
+                    throw new XrootdException(kXR_ArgMissing,
+                                              "Cannot read source; file size is unknown.");
+                }
+                fileSize = OptionalLong.of(asize); // asize not null here
+            } else {
+                fileSize = OptionalLong.of(fileStatus.getSize());
+            }
+        }
+
+        return fileSize.getAsLong();
     }
 
     /**
@@ -436,11 +468,6 @@ public class XrootdTpcInfo {
                         > (startTime + TimeUnit.SECONDS.toMillis(ttl));
     }
 
-    public long getAsize()
-    {
-        return asize;
-    }
-
     public String getCks()
     {
         return cks;
@@ -540,6 +567,11 @@ public class XrootdTpcInfo {
     public void setDst(String dst)
     {
         this.dst = dst;
+    }
+
+    public void setFileStatus(FileStatus fileStatus)
+    {
+        this.fileStatus = fileStatus;
     }
 
     public void setFd(int fd)
