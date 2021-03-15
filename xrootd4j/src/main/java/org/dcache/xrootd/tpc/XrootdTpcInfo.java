@@ -31,16 +31,20 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.tpc.protocol.messages.InboundRedirectResponse;
+import org.dcache.xrootd.util.FileStatus;
 import org.dcache.xrootd.util.OpaqueStringParser;
 import org.dcache.xrootd.util.ParseException;
 
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.stream.Collectors.toSet;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ArgMissing;
 import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.*;
 
 /**
@@ -263,7 +267,7 @@ public class XrootdTpcInfo
     /**
      * <p>Source size.</p>
      */
-    private long asize;
+    private Long asize;
 
     /**
      * <p>Status of the transfer request.</p>
@@ -298,12 +302,22 @@ public class XrootdTpcInfo
     private String sourceToken;
 
     /**
+     * <p>The stat info received on the TPC open call.</p>
+     */
+    private FileStatus fileStatus;
+
+    /**
      * <p>Delegated proxy object</p>
      */
     private Serializable delegatedProxy;
 
     private ServerRole serverRole;
     private ClientRole clientRole;
+
+    /*
+     *  Computed.
+     */
+    private OptionalLong fileSize = OptionalLong.empty();
 
     /**
      * The protocol to use when fetching the file, if specified by the client.
@@ -339,6 +353,27 @@ public class XrootdTpcInfo
         findSourceToken(opaque);
         addExternal(opaque);
         calculateRoles();
+    }
+
+    public long computeFileSize() throws XrootdException
+    {
+        if (!fileSize.isPresent()) {
+            if (fileStatus == null) {
+                if (asize == null) {
+                    throw new XrootdException(kXR_ArgMissing,
+                                              "Cannot read source; file size is unknown.");
+                }
+                fileSize = OptionalLong.of(asize); // asize not null here
+            } else {
+                fileSize = OptionalLong.of(fileStatus.getSize());
+            }
+
+            LOGGER.debug("computeFileSize: file status {}, oss.asize {}, "
+                                         + "computed size {}.",
+                         fileStatus, asize, fileSize.getAsLong());
+        }
+
+        return fileSize.getAsLong();
     }
 
     public ServerRole getServerRole()
@@ -565,11 +600,6 @@ public class XrootdTpcInfo
                         > (startTime + TimeUnit.SECONDS.toMillis(ttl));
     }
 
-    public long getAsize()
-    {
-        return asize;
-    }
-
     public String getCks()
     {
         return cks;
@@ -658,6 +688,11 @@ public class XrootdTpcInfo
     public void setDelegatedProxy(Serializable delegatedProxy)
     {
         this.delegatedProxy = delegatedProxy;
+    }
+
+    public void setFileStatus(FileStatus fileStatus)
+    {
+        this.fileStatus = fileStatus;
     }
 
     public void setFd(int fd)
