@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -45,6 +45,11 @@ public class TLSSessionInfo
 {
     private static final Logger LOGGER
                     = LoggerFactory.getLogger(TLSSessionInfo.class);
+
+    public static boolean isTLSOn(ChannelHandlerContext ctx)
+    {
+        return ctx.pipeline().get(SslHandler.class) != null;
+    }
 
     private static void operationComplete(String origin,
                                           Future<Channel> future)
@@ -324,7 +329,7 @@ public class TLSSessionInfo
         protected boolean transitionedToTLS(int request, ChannelHandlerContext ctx)
                         throws XrootdException
         {
-            if (ctx.pipeline().get(SslHandler.class) != null) {
+            if (isTLSOn(ctx)) {
                 return false;
             }
 

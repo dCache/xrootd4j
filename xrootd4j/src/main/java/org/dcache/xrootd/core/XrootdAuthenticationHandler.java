@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -34,6 +34,7 @@ import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
 import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
 import org.dcache.xrootd.plugins.ProxyDelegationClient;
+import org.dcache.xrootd.plugins.authn.none.NoAuthenticationHandler;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.EndSessionRequest;
 import org.dcache.xrootd.protocol.messages.ErrorResponse;
@@ -43,11 +44,13 @@ import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.dcache.xrootd.protocol.messages.XrootdRequest;
 import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.security.BufferDecrypter;
+import org.dcache.xrootd.security.RequiresTLS;
 import org.dcache.xrootd.security.SigningPolicy;
 import org.dcache.xrootd.security.TLSSessionInfo;
 import org.dcache.xrootd.util.UserNameUtils;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import static org.dcache.xrootd.security.TLSSessionInfo.isTLSOn;
 
 /**
  * Netty handler implementing Xrootd kXR_login, kXR_auth, and kXR_endsess.
@@ -268,6 +271,15 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
             _authenticationHandler
                             = _authenticationFactory.createHandler(_proxyDelegationClient);
 
+            /*
+             *  check to see if we need TLS at login.
+             */
+            if (_authenticationHandler instanceof RequiresTLS
+                            && !isTLSOn(context)) {
+                throw new XrootdException(kXR_Unsupported, "TLS is required "
+                                + "for " + _authenticationHandler.getProtocol());
+            }
+
             LoginResponse response =
                             new LoginResponse(request, _sessionId,
                                               _authenticationHandler.getProtocol());
@@ -325,10 +337,15 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
                                                                          context);
             _log.debug("kXR_auth, server has now transitioned to tls? {}.",
                        isStarted);
-        } else if (_signingPolicy.isSigningOn()) {
+        } else if (!(_authenticationHandler instanceof NoAuthenticationHandler)
+                        && !isTLSOn(context)
+                        && _signingPolicy.isSigningOn()) {
             /*
              * Add the sigver decoder to the pipeline and remove the original
              * message decoder.
+             *
+             * We only do this if we are in fact enforcing a protocol;
+             * hence the check that the handler is not the NOP placeholder.
              */
             BufferDecrypter decrypter = _authenticationHandler.getDecrypter();
             context.pipeline().addAfter("decoder",
