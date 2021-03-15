@@ -208,7 +208,7 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
                                      + "signing is on? {}; tls ? {}.",
                      signingPolicy.isSigningOn(), tlsSessionInfo.getClientTls());
         TpcSigverRequestEncoder sigverRequestEncoder = null;
-        if (!tlsSessionInfo.clientUsesTls() && signingPolicy.isSigningOn()) {
+        if (signingPolicy.isSigningOn()) {
             sigverRequestEncoder = new TpcSigverRequestEncoder(bufferHandler,
                                                                signingPolicy);
         }

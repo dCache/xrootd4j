@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -70,6 +70,11 @@ public class XrootdProtocolRequestHandler extends XrootdRequestHandler
                                              msg.getExpect());
 
         if (tlsSessionInfo.serverUsesTls()) {
+            /*
+             *  If there is/will be TLS, turn off signing by overriding
+             *  local settings.
+             */
+            signingPolicy = SigningPolicy.OFF;
             boolean isStarted = tlsSessionInfo.serverTransitionedToTLS(kXR_protocol,
                                                                         ctx);
             LOGGER.debug("kXR_protocol, server has now transitioned to tls? {}.",

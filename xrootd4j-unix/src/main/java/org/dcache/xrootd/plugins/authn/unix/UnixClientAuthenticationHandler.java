@@ -118,8 +118,7 @@ public class UnixClientAuthenticationHandler extends AbstractClientAuthnHandler
         LOGGER.debug("Getting (optional) signed hash verification encoder, "
                                      + "signing is on? {}; tls ? {}.",
                      signingPolicy.isSigningOn(), tlsSessionInfo.getClientTls());
-
-        if (!tlsSessionInfo.clientUsesTls() && signingPolicy.isSigningOn()) {
+        if (signingPolicy.isSigningOn()) {
             /*
              * Insert sigver encoder into pipeline.  Added after the encoder,
              * but for outbound processing, it gets called before the encoder.
