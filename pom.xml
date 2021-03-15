@@ -144,6 +144,11 @@
           <version>1.7.5</version>
       </dependency>
       <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>jcl-over-slf4j</artifactId>
+        <version>1.6.1</version>
+      </dependency>
+      <dependency>
           <groupId>ch.qos.logback</groupId>
           <artifactId>logback-classic</artifactId>
           <version>1.0.12</version>
@@ -347,5 +352,6 @@
     <module>xrootd4j-gsi</module>
     <module>xrootd4j-authz-archetype</module>
     <module>xrootd4j-channelhandler-archetype</module>
+    <module>xrootd4j-scitokens</module>
   </modules>
 </project>
