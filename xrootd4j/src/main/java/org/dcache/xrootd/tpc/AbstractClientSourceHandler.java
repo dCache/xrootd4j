@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -182,6 +182,7 @@ public abstract class AbstractClientSourceHandler extends
             client.setFhandle(response.getFhandle());
             client.setCpsize(response.getCpsize());
             client.setCptype(response.getCptype());
+            tpcInfo.setFileStatus(response.getFileStatus());
             sendReadRequest(ctx);
         } else {
             String error = String.format("Open of %s on %s failed with status %s.",
