@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -38,6 +38,8 @@ import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
  */
 public class SigningPolicy
 {
+    public static final SigningPolicy OFF = new SigningPolicy();
+
     private final int                   secLvl;
     private final Map<Integer, Integer> overrides;
     private final byte                  secOFrce;
