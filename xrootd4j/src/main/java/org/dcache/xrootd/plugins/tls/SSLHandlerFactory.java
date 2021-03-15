@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -18,21 +18,72 @@
  */
 package org.dcache.xrootd.plugins.tls;
 
-import javax.net.ssl.SSLContext;
+import io.netty.channel.ChannelHandler;
+import io.netty.handler.ssl.SslHandler;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+
+import java.util.List;
 import java.util.Properties;
 
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
 
+/**
+ *  Provides an SSLHandler constructed from the SSLContext established
+ *  via properties.  Each handler has a separate SSLEngine.  The handler
+ *  is always constructed in startTls mode, as it should not be added
+ *  to the pipeline until ready to send the last unprotected response
+ *  (server) or initiate the TLS handshake (client).
+ *  <p/>
+ *  Construction of the SSL Context is implementation specific, so
+ *  a subclass of this class must be provided.
+ */
 public abstract class SSLHandlerFactory implements ChannelHandlerFactory
 {
-    protected final SSLContext sslContext;
+    public static final String SERVER_TLS = "tls";
+    public static final String CLIENT_TLS = "tls-client";
 
-    protected SSLHandlerFactory(Properties properties) throws Exception
+    public static SSLHandlerFactory getHandlerFactory(String name,
+                                                      List<ChannelHandlerFactory> list)
     {
-        sslContext = buildContext(properties);
+        return (SSLHandlerFactory) list.stream()
+                                       .filter(h -> name.equalsIgnoreCase(h.getName()))
+                                       .findFirst().orElse(null);
     }
 
-    protected abstract SSLContext buildContext(Properties properties) throws
-                    Exception;
+    protected SSLContext sslContext;
+    protected boolean    startTls;
+    protected String     name;
+
+    public void initialize(Properties properties, boolean startTls) throws Exception
+    {
+        sslContext = buildContext(properties);
+        this.startTls = startTls;
+        name = startTls ? SERVER_TLS : CLIENT_TLS;
+    }
+
+    @Override
+    public String getName()
+    {
+        return name;
+    }
+
+    @Override
+    public String getDescription()
+    {
+        return "Creates and configures Netty SSLHandler for the xrootd pipeline.";
+    }
+
+    @Override
+    public ChannelHandler createHandler()
+    {
+        SSLEngine engine = sslContext.createSSLEngine();
+        return new SslHandler(engine, startTls);
+    }
+
+    /**
+     * Called by the provider during initialization.
+     */
+    protected abstract SSLContext buildContext(Properties properties) throws Exception;
 }
