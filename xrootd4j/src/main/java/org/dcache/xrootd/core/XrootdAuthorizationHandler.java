@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -65,7 +65,17 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler
     protected Void doOnStat(ChannelHandlerContext ctx, StatRequest req)
         throws XrootdException
     {
-        authorize(ctx, req, FilePerm.READ);
+        /*
+         *  A stat request may contain a file handle instead of path.
+         *  In that case, we short-circuit the authorization.
+         */
+        switch (req.getTarget()) {
+            case PATH:
+                authorize(ctx, req, FilePerm.READ);
+            case FHANDLE:
+                break;
+        }
+
         ctx.fireChannelRead(req);
         return null;
     }
