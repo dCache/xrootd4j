@@ -122,13 +122,7 @@ public class XrootdSciTokenAuthzHandler implements AuthorizationHandler
         if (authz == null) {
             LOGGER.debug("no token for {}; strict? {}.", path, strict);
 
-            /*
-             *  If the subject contains a bearer token, this means
-             *  the user has been authenticated using it, and
-             *  therefore a default exists which we provisionally
-             *  accept as satisfying the strict requirement.
-             */
-            if (!strict || validator.getTokenFromSubject(subject).isPresent()) {
+            if (!strict) {
                 return path;
             }
 
@@ -139,7 +133,7 @@ public class XrootdSciTokenAuthzHandler implements AuthorizationHandler
         /*
          *  Throws exception if not authorized.
          */
-        validator.validate(ctx, authz);
+        validator.validate(ctx, TokenValidator.stripOffPrefix(authz));
 
         return path;
     }

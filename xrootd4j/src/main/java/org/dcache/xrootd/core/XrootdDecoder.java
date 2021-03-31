@@ -36,11 +36,11 @@ public class XrootdDecoder extends AbstractXrootdDecoder
      */
     public static String readAscii(ByteBuf buffer, int length)
     {
-        String protocol = buffer.toString(buffer.readerIndex(), length, US_ASCII)
+        String ascii = buffer.toString(buffer.readerIndex(), length, US_ASCII)
                                 .trim();
         /* toString does not advance the index */
         buffer.readerIndex(buffer.readerIndex() + length);
-        return protocol;
+        return ascii;
     }
 
     @Override

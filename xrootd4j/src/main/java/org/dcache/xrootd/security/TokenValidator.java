@@ -20,14 +20,37 @@ package org.dcache.xrootd.security;
 
 import io.netty.channel.ChannelHandlerContext;
 
-import javax.security.auth.Subject;
-
-import java.util.Optional;
-
 import org.dcache.xrootd.core.XrootdException;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ArgInvalid;
 
 public interface TokenValidator
 {
+    /**
+     *  By convention, the token can be prefixed in the path URL by
+     *  this tag, which should be stripped away before processing.
+     */
+    String TOKEN_PREFIX = "Bearer%20";
+
+    static String stripOffPrefix(String token) throws XrootdException
+    {
+        String[] parts = token.split("Bearer%20");
+
+        /*
+         *  This is a loose construal: we accept the last segment following
+         *  any occurrence of the prefix as the actual token.
+         */
+        if (parts.length > 1) {
+            token = parts[parts.length-1];
+        }
+
+        if (TOKEN_PREFIX.equals(token)) {
+            throw new XrootdException(kXR_ArgInvalid, "empty token");
+        }
+
+        return token.trim();
+    }
+
     /**
      * Handles the implementation-specific authorization procedure.
      *
@@ -36,9 +59,4 @@ public interface TokenValidator
      * @throws XrootdException
      */
     void validate(ChannelHandlerContext ctx, String token) throws XrootdException;
-
-    /**
-     * Determines if a token exists in the subject and returns it if true.
-     */
-    Optional<String> getTokenFromSubject(Subject subject);
 }
