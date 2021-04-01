@@ -52,6 +52,7 @@ import org.dcache.xrootd.core.XrootdSessionIdentifier;
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
 import org.dcache.xrootd.security.SigningPolicy;
 import org.dcache.xrootd.security.TLSSessionInfo;
+import org.dcache.xrootd.tpc.XrootdTpcInfo.Delegation;
 import org.dcache.xrootd.tpc.core.XrootdClientDecoder;
 import org.dcache.xrootd.tpc.core.XrootdClientEncoder;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
@@ -461,9 +462,7 @@ public class XrootdTpcClient
          *  If delegation is not being used, forward the rendezvous key and
          *  client info.
          */
-        String protocol = (String)authnContext.get("protocol");
-        String tpcDlg = (String)authnContext.get("tpcdlg");
-        if ("gsi".equals(protocol) && !"gsi".equalsIgnoreCase(tpcDlg)) {
+        if (info.getDlgon() == Delegation.OFF) {
             if (fullPath.length() > 0) {
                 fullPath.append(OpaqueStringParser.OPAQUE_PREFIX);
             }

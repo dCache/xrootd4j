@@ -205,6 +205,26 @@ public class XrootdTpcInfo
     }
 
     /**
+     *  Delegation
+     */
+    enum Delegation
+    {
+        OFF, ON;
+
+        public static Delegation valueOf(Map<String, String> opaque) {
+            String value = opaque.get(DLGON.key);
+            if (value == null) {
+                return OFF;
+            }
+            switch(opaque.get(DLGON.key)) {
+                case "1": return ON;
+                default:
+                    return OFF;
+            }
+        }
+    }
+
+    /**
      * <p>Rendez-vous token provided by client.</p>
      */
     private final String key;
@@ -213,6 +233,8 @@ public class XrootdTpcInfo
      * <p>For eviction management.</p>
      */
     private final long createdTime;
+
+    private Delegation dlgon;
 
     /**
      * <p>User uid; used only for UNIX protocol.</p>
@@ -339,6 +361,7 @@ public class XrootdTpcInfo
     public XrootdTpcInfo(Map<String, String> opaque) throws ParseException
     {
         this(opaque.get(RENDEZVOUS_KEY.key()));
+        this.dlgon = Delegation.valueOf(opaque);
         this.lfn = opaque.get(LOGICAL_NAME.key());
         this.dst = opaque.get(DST.key());
         setSourceFromOpaque(opaque);
@@ -403,6 +426,8 @@ public class XrootdTpcInfo
         if (this.lfn == null) {
             this.lfn = slfn;
         }
+
+        this.dlgon = Delegation.valueOf(opaque);
 
         if (this.org == null) {
             this.org = opaque.get(CLIENT.key());
@@ -477,7 +502,7 @@ public class XrootdTpcInfo
         }
 
         info.src = info.srcHost + ":" + info.srcPort;
-
+        info.dlgon = dlgon;
         info.lfn = lfn;
         info.asize = asize;
         info.cks = cks;
@@ -558,7 +583,10 @@ public class XrootdTpcInfo
     @Override
     public String toString()
     {
-        StringBuilder sb = new StringBuilder().append("(key ")
+        StringBuilder sb = new StringBuilder()
+                                  .append("(dlgon ")
+                                  .append(dlgon)
+                                  .append("(key ")
                                   .append(key)
                                   .append(")(dst ")
                                   .append(dst)
@@ -673,6 +701,11 @@ public class XrootdTpcInfo
     public Long getUid()
     {
         return uid;
+    }
+
+    public Delegation getDlgon()
+    {
+        return dlgon;
     }
 
     public void setUid(Long uid)
