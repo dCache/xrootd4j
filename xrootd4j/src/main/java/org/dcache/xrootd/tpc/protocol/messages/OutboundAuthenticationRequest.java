@@ -26,6 +26,7 @@ import java.util.function.Consumer;
 
 import static org.dcache.xrootd.core.XrootdEncoder.writeZeroPad;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
+import static org.dcache.xrootd.protocol.messages.LoginResponse.AUTHN_PROTOCOL_TYPE_LEN;
 
 /**
  * Request to third-party source server.
@@ -78,7 +79,7 @@ public class OutboundAuthenticationRequest
     {
         // pad ... skip the 12 reserved bytes
         buffer.writeZero(12);
-        writeZeroPad(credType, buffer, 4);
+        writeZeroPad(credType, buffer, AUTHN_PROTOCOL_TYPE_LEN);
         buffer.writeInt(length);
         serializer.accept(buffer);
     }

@@ -469,10 +469,6 @@ public class XrootdTpcInfo
             findSourceToken(opaque);
         }
 
-        if (sourceToken == null) {
-            findSourceToken(opaque);
-        }
-
         addExternal(opaque);
         calculateRoles();
 
@@ -540,6 +536,11 @@ public class XrootdTpcInfo
 
             info.addExternal(map);
         }
+
+        /*
+         *  NB: it is possible that a default token from ZTN at login exists.
+         *  It would appear as the delegated proxy in this case.
+         */
 
         info.status = Status.READY;
         info.calculateRoles();
@@ -830,6 +831,16 @@ public class XrootdTpcInfo
 
     private void findSourceToken(Map<String, String> opaque) throws ParseException
     {
+        /*
+         * The source token should be sought in the CGI element present when
+         * doing third-party-copy using the delegation option.
+         *
+         * If the source opaque contains no authz element, we do not
+         * substitute for it the token used on the path given to the destination.
+         * However, if a login (ZTN) default exists, this will appear
+         * as the delegated proxy and may be accessed as such during
+         * authentication.
+         */
         String scgi = opaque.get(SCGI.key());
         if (scgi != null) {
             scgi = scgi.replaceAll("\\t+",

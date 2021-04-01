@@ -20,8 +20,9 @@ package org.dcache.xrootd.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.dcache.xrootd.core.XrootdDecoder.readAscii;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
+import static org.dcache.xrootd.protocol.messages.LoginResponse.AUTHN_PROTOCOL_TYPE_LEN;
 
 /**
  *  The structure of the authentication request according to the protocol:
@@ -52,12 +53,7 @@ public class AuthenticationRequest extends AbstractXrootdRequest
          */
         buffer.readerIndex(16);
 
-        credType = buffer.toString(buffer.readerIndex(), 4, US_ASCII).trim();
-
-        /*
-         * toString does not advance the index
-         */
-        buffer.readerIndex(buffer.readerIndex() + 4);
+        credType = readAscii(buffer, AUTHN_PROTOCOL_TYPE_LEN);
 
         credLen = buffer.readInt();
 
