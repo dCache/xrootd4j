@@ -22,12 +22,11 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelId;
 
 import java.io.Serializable;
-import java.util.Optional;
 
 import org.dcache.xrootd.core.XrootdException;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketData;
 import org.dcache.xrootd.plugins.authn.gsi.post49.GSIPost49ClientRequestHandler;
 import org.dcache.xrootd.plugins.authn.gsi.pre49.GSIPre49ClientRequestHandler;
-import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketData;
 import org.dcache.xrootd.tpc.AbstractClientAuthnHandler;
 import org.dcache.xrootd.tpc.XrootdTpcClient;
 import org.dcache.xrootd.tpc.XrootdTpcInfo;
@@ -36,10 +35,11 @@ import org.dcache.xrootd.tpc.protocol.messages.InboundErrorResponse;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundAuthenticationRequest;
 
 import static io.netty.channel.ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE;
+import static org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.deserializeData;
 import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.PROTOCOL;
 import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.PROTO_WITH_DELEGATION;
+import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.VERSION_KEY;
 import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import static org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.deserializeData;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
 /**
@@ -199,9 +199,8 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler
     private GSIClientRequestHandler createRequestHandler()
                     throws XrootdException
     {
-        String serverVersion = ((Optional<String>) client.getAuthnContext()
-                                                         .get("version"))
-                                                         .orElse(null);
+        String serverVersion = client.getProtocolInfo().getValue(VERSION_KEY)
+                                     .orElse(null);
 
         if (serverVersion == null) {
             throw new XrootdException(kGSErrBadProtocol,

@@ -120,6 +120,13 @@ public abstract class GSIRequestHandler
 
     public static final int SESSION_IV_LEN = 16;
 
+    /**
+     * Sec response keys
+     */
+    public static final String VERSION_KEY = "v";
+    public static final String ENCRYPTION_KEY = "c";
+    public static final String CERT_AUTH_KEY = "ca";
+
     protected static final SecureRandom RANDOM = new SecureRandom();
 
     protected static int findSessionIVLen(String cipher)

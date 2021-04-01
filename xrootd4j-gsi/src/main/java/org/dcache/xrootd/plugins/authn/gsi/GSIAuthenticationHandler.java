@@ -34,9 +34,7 @@ import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.security.BufferDecrypter;
 import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketData;
 
-import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.CRYPTO_MODE;
-import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.PROTOCOL;
-import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.PROTO_WITH_DELEGATION;
+import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.*;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
 
@@ -152,10 +150,10 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
             CertUtil.computeMD5Hash(credential.getCertificate()
                                               .getIssuerX500Principal());
 
-        return AUTHN_PROTOCOL_PREFIX + PROTOCOL + "," +
-                "v:" + GSIRequestHandler.PROTOCOL_VERSION + "," +
-                "c:" + CRYPTO_MODE + "," +
-                "ca:" + subjectHash;
+        return AUTHN_PROTOCOL_PREFIX + PROTOCOL + "," + VERSION_KEY + ":"
+                 + GSIRequestHandler.PROTOCOL_VERSION + "," + ENCRYPTION_KEY
+                + ":" + CRYPTO_MODE + "," + CERT_AUTH_KEY
+                + ":" + subjectHash;
     }
 
     @Override

@@ -50,6 +50,7 @@ import java.util.concurrent.TimeoutException;
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.core.XrootdSessionIdentifier;
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
+import org.dcache.xrootd.security.SecurityInfo;
 import org.dcache.xrootd.security.SigningPolicy;
 import org.dcache.xrootd.security.TLSSessionInfo;
 import org.dcache.xrootd.tpc.XrootdTpcInfo.Delegation;
@@ -113,7 +114,6 @@ public class XrootdTpcClient
     private final String                     userUrn;
     private final XrootdTpcInfo              info;
     private final TpcDelayedSyncWriteHandler writeHandler;
-    private final Map<String, Object>        authnContext;
     private final Map<String, ChannelHandler> authnHandlers;
     private final int                        pid;
     private final String                     uname;
@@ -121,6 +121,8 @@ public class XrootdTpcClient
     private final ScheduledExecutorService executorService;
 
     private int                           expectedRequestId;
+
+    private SecurityInfo                  protocolInfo;
     private InboundAuthenticationResponse authResponse;
 
     /*
@@ -181,7 +183,6 @@ public class XrootdTpcClient
         this.info = info;
         this.writeHandler = writeHandler;
         this.expectedRequestId = kXR_handshake;
-        this.authnContext = new HashMap<>();
         this.authnHandlers = new HashMap<>();
         this.executorService = executorService;
 
@@ -394,11 +395,6 @@ public class XrootdTpcClient
         return channelFuture;
     }
 
-    public Map<String, Object> getAuthnContext()
-    {
-        return authnContext;
-    }
-
     public Map<String, ChannelHandler> getAuthnHandlers()
     {
         return authnHandlers;
@@ -507,6 +503,11 @@ public class XrootdTpcClient
         return pval;
     }
 
+    public SecurityInfo getProtocolInfo()
+    {
+        return protocolInfo;
+    }
+
     public XrootdSessionIdentifier getSessionId()
     {
         return sessionId;
@@ -608,6 +609,11 @@ public class XrootdTpcClient
         isOpenFile = openFile;
     }
 
+    public void setProtocolInfo(SecurityInfo protocolInfo)
+    {
+        this.protocolInfo = protocolInfo;
+    }
+
     public void setPval(int pval)
     {
         this.pval = pval;
@@ -650,8 +656,8 @@ public class XrootdTpcClient
                                   .append(streamId)
                                   .append(")(userUrn ")
                                   .append(userUrn)
-                                  .append(")(authnContext ")
-                                  .append(authnContext)
+                                  .append(")(protocol info ")
+                                  .append(protocolInfo)
                                   .append(")(pid ")
                                   .append(pid)
                                   .append(")(uname ")

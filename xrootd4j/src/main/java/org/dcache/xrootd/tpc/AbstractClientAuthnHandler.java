@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -125,11 +125,7 @@ public abstract class AbstractClientAuthnHandler extends AbstractClientRequestHa
          *  another handler in the pipeline to try.
          */
         loginResponse = response;
-
-        client.getAuthnContext().put("protocol", sec.getProtocol());
-        client.getAuthnContext().put("version", sec.getValue("v"));
-        client.getAuthnContext().put("encryption", sec.getValue("c"));
-        client.getAuthnContext().put("caIdentities", sec.getValue("ca"));
+        client.setProtocolInfo(sec);
         sendAuthenticationRequest(ctx);
     }
 

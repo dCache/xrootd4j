@@ -160,15 +160,13 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler
     {
         loadClientCredential();
 
-        validateCryptoMode(((Optional<String>)client
-                                .getAuthnContext()
-                                .get("encryption"))
-                             .orElse(""));
+        validateCryptoMode(client.getProtocolInfo()
+                                 .getValue(ENCRYPTION_KEY)
+                                 .orElse(""));
 
-        String caIdentities = ((Optional<String>)client
-                        .getAuthnContext()
-                        .get("caIdentities"))
-                        .orElse("");
+        String caIdentities = client.getProtocolInfo()
+                                    .getValue(CERT_AUTH_KEY)
+                                    .orElse("");
 
         credentialManager.checkCaIdentities(caIdentities.split("[|]"));
 
