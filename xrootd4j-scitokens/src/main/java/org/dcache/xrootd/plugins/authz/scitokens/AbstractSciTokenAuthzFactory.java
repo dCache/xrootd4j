@@ -48,7 +48,7 @@ public abstract class AbstractSciTokenAuthzFactory implements AuthorizationFacto
     @Override
     public String getName()
     {
-        return XrootdSciTokenAuthzProvider.NAME;
+        return AbstractSciTokenAuthzProvider.NAME;
     }
 
     public void setStrict(boolean strict)

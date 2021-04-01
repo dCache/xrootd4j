@@ -18,8 +18,6 @@
  */
 package org.dcache.xrootd.plugins.authz.scitokens;
 
-import com.google.common.base.Strings;
-
 import java.util.Properties;
 
 import org.dcache.xrootd.plugins.AuthorizationFactory;
@@ -28,12 +26,13 @@ import org.dcache.xrootd.plugins.AuthorizationProvider;
 /**
  * Provides the specific implementation of the factory based on
  * discovery of the class from the properties.
+ *
+ * Needs to be extended to return a specific implementation of the factory.
  */
-public class XrootdSciTokenAuthzProvider implements AuthorizationProvider
+public abstract class AbstractSciTokenAuthzProvider implements AuthorizationProvider
 {
     static final String NAME = "scitokens";
 
-    private static final String FACTORY_FQN = "xrootd.plugin!scitokens.authz-factory.class";
     private static final String STRICT_PROPERTY = "xrootd.plugin!scitokens.strict";
 
     @Override
@@ -41,11 +40,8 @@ public class XrootdSciTokenAuthzProvider implements AuthorizationProvider
                     throws Exception
     {
         if (NAME.equals(plugin)) {
-            Class<?> clzz = getFactoryClass(properties);
-            String strict = properties.getProperty(STRICT_PROPERTY,
-                                                   "false");
-            AbstractSciTokenAuthzFactory factory
-                            = (AbstractSciTokenAuthzFactory) clzz.newInstance();
+            String strict = properties.getProperty(STRICT_PROPERTY,"false");
+            AbstractSciTokenAuthzFactory factory = getFactoryInstance();
             factory.setStrict(Boolean.valueOf(strict));
             return factory;
         }
@@ -53,25 +49,5 @@ public class XrootdSciTokenAuthzProvider implements AuthorizationProvider
         return null;
     }
 
-    private Class<?> getFactoryClass(Properties properties)
-                    throws ClassNotFoundException
-    {
-        String handlerImpl = properties.getProperty(FACTORY_FQN);
-
-        if (Strings.emptyToNull(handlerImpl) == null) {
-            throw new ClassNotFoundException("scitoken factory has not been "
-                                                             + "defined.");
-        }
-
-        Class<?> clzz = Thread.currentThread().getContextClassLoader()
-                              .loadClass(handlerImpl);
-
-        if (!AbstractSciTokenAuthzFactory.class.isAssignableFrom(clzz)) {
-            String fatal = "The provided token verifier class must implement "
-                            + AbstractSciTokenAuthzFactory.class;
-            throw new ClassCastException(fatal);
-        }
-
-        return clzz;
-    }
+    protected abstract AbstractSciTokenAuthzFactory getFactoryInstance();
 }
