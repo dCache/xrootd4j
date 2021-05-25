@@ -30,8 +30,6 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -709,13 +707,6 @@ public class XrootdTpcClient
                                 List<ChannelHandlerFactory> plugins,
                                 TpcSourceReadHandler readHandler)
     {
-        if (LOGGER.isTraceEnabled()) {
-            pipeline.addLast("logger", new LoggingHandler(XrootdTpcClient.class,
-                                                             LogLevel.TRACE));
-        } else if (LOGGER.isDebugEnabled()) {
-            pipeline.addLast("logger", new LoggingHandler(XrootdTpcClient.class));
-        }
-
         pipeline.addLast("decoder", new XrootdClientDecoder(this));
         pipeline.addLast("encoder", new XrootdClientEncoder(this));
 
