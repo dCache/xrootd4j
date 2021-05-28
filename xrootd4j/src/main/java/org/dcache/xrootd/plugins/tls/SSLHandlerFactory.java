@@ -18,11 +18,9 @@
  */
 package org.dcache.xrootd.plugins.tls;
 
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelHandler;
-import io.netty.handler.ssl.SslHandler;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
+import io.netty.handler.ssl.SslContext;
 
 import java.util.List;
 import java.util.Properties;
@@ -52,15 +50,15 @@ public abstract class SSLHandlerFactory implements ChannelHandlerFactory
                                        .findFirst().orElse(null);
     }
 
-    protected SSLContext sslContext;
+    protected SslContext sslContext;
     protected boolean    startTls;
     protected String     name;
 
     public void initialize(Properties properties, boolean startTls) throws Exception
     {
-        sslContext = buildContext(properties);
         this.startTls = startTls;
         name = startTls ? SERVER_TLS : CLIENT_TLS;
+        sslContext = buildContext(properties);
     }
 
     @Override
@@ -72,18 +70,17 @@ public abstract class SSLHandlerFactory implements ChannelHandlerFactory
     @Override
     public String getDescription()
     {
-        return "Creates and configures Netty SSLHandler for the xrootd pipeline.";
+        return "Creates and configures Netty SslHandler for the xrootd pipeline.";
     }
 
     @Override
     public ChannelHandler createHandler()
     {
-        SSLEngine engine = sslContext.createSSLEngine();
-        return new SslHandler(engine, startTls);
+       return sslContext.newHandler(ByteBufAllocator.DEFAULT);
     }
 
     /**
      * Called by the provider during initialization.
      */
-    protected abstract SSLContext buildContext(Properties properties) throws Exception;
+    protected abstract SslContext buildContext(Properties properties) throws Exception;
 }

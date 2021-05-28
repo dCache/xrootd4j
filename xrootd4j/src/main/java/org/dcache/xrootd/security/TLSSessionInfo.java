@@ -373,16 +373,13 @@ public class TLSSessionInfo
 
             if (activate) {
                 sslHandler = (SslHandler) serverSslHandlerFactory.createHandler();
-                sslHandler.engine().setUseClientMode(false);
                 sslHandler.engine().setNeedClientAuth(false);
                 sslHandler.engine().setWantClientAuth(false);
                 ctx.pipeline().addFirst(sslHandler);
                 LOGGER.debug("PIPELINE addFirst:  SSLHandler need auth {}, "
-                                             + "want auth {}, "
-                                             + "client mode {}.",
+                                             + "want auth {}.",
                              sslHandler.engine().getNeedClientAuth(),
-                             sslHandler.engine().getWantClientAuth(),
-                             sslHandler.engine().getUseClientMode());
+                             sslHandler.engine().getWantClientAuth());
                 sslHandler.handshakeFuture().addListener(this);
             }
 
@@ -522,14 +519,13 @@ public class TLSSessionInfo
 
             if (activate) {
                 sslHandler = (SslHandler)clientSslHandlerFactory.createHandler();
-                sslHandler.engine().setUseClientMode(true);
+                sslHandler.engine().setNeedClientAuth(false);
+                sslHandler.engine().setWantClientAuth(false);
                 ctx.pipeline().addFirst(sslHandler);
                 LOGGER.debug("PIPELINE addFirst:  SSLHandler need auth {}, "
-                                             + "want auth, {}, "
-                                             + "client mode {}.",
+                                             + "want auth, {}.",
                              sslHandler.engine().getNeedClientAuth(),
-                             sslHandler.engine().getWantClientAuth(),
-                             sslHandler.engine().getUseClientMode());
+                             sslHandler.engine().getWantClientAuth());
                 sslHandler.handshakeFuture().addListener(this);
                 LOGGER.info("TPC client initiating SSL handshake");
             }
