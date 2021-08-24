@@ -94,7 +94,7 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
     {
         try {
             XrootdTpcInfo tpcInfo = client.getInfo();
-            long fileSize = 0L;
+            long fileSize;
 
             try {
                 fileSize = tpcInfo.computeFileSize();
@@ -124,6 +124,13 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
             }
 
             long writeOffset = client.getWriteOffset();
+            long remaining = fileSize - writeOffset;
+
+            if (bytesRcvd > remaining) {
+                LOGGER.error("client received from the source "
+                                             + "server {} bytes past EOF.",
+                             bytesRcvd-remaining);
+            }
 
             if (bytesRcvd > 0) {
                 try {
@@ -179,7 +186,7 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
                              client.getStreamId());
                 handleTransferTerminated(kXR_ok, null, ctx);
             }
-        } finally {
+       } finally {
             ReferenceCountUtil.release(response);
         }
     }
@@ -223,20 +230,34 @@ public abstract class TpcSourceReadHandler extends AbstractClientSourceHandler
     protected void sendReadRequest(ChannelHandlerContext ctx)
     {
         XrootdTpcInfo tpcInfo = client.getInfo();
-        LOGGER.debug("sendReadRequest to {}, channel {}, stream {}, "
-                                     + "fhandle {}, offset {}, chunksize {}.",
-                     tpcInfo.getSrc(),
-                     ctx.channel().id(),
-                     client.getStreamId(),
-                     client.getFhandle(),
-                     client.getWriteOffset(),
-                     getChunkSize());
-        client.setExpectedResponse(kXR_read);
+        int requestBlock;
+        try {
+            long remaining = tpcInfo.computeFileSize() - client.getWriteOffset();
+
+            if (remaining < 0) {
+                throw new XrootdException(kXR_IOError,
+                                          "tpc request has written beyond EOF.");
+            }
+
+            requestBlock = (int)Math.min(getChunkSize(), remaining);
+            LOGGER.debug("sendReadRequest to {}, channel {}, stream {}, "
+                          + "fhandle {}, offset {}, requested block {}.",
+                         tpcInfo.getSrc(),
+                         ctx.channel().id(),
+                         client.getStreamId(),
+                         client.getFhandle(),
+                         client.getWriteOffset(),
+                         requestBlock);
+            client.setExpectedResponse(kXR_read);
+        } catch (XrootdException e) {
+            exceptionCaught(ctx, e);
+            return;
+        }
 
         ctx.writeAndFlush(new OutboundReadRequest(client.getStreamId(),
                                                   client.getFhandle(),
                                                   client.getWriteOffset(),
-                                                  getChunkSize()),
+                                                  requestBlock),
                           ctx.newPromise())
            .addListener(FIRE_EXCEPTION_ON_FAILURE);
         client.startTimer(ctx);
