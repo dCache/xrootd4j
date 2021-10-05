@@ -1,33 +1,45 @@
 /**
  * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
- *
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.plugins.authn.gsi;
+
+import static eu.emi.security.authn.x509.impl.CertificateUtils.Encoding.PEM;
+import static io.netty.buffer.Unpooled.wrappedBuffer;
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_DecryptErr;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_error;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_cipher;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_main;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_puk;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_rtag;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_signed_rtag;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_x509;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_x509_req;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kGSErrBadRndmTag;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kGSErrCreateBucket;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kGSErrDecodeBuffer;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kGSErrError;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_cert;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_sigpxy;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGS_pxyreq;
 
 import eu.emi.security.authn.x509.impl.CertificateUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -43,32 +55,27 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import org.dcache.xrootd.core.XrootdException;
-import org.dcache.xrootd.security.XrootdSecurityProtocol.*;
-
-import static eu.emi.security.authn.x509.impl.CertificateUtils.Encoding.PEM;
-import static io.netty.buffer.Unpooled.wrappedBuffer;
-import static java.nio.charset.StandardCharsets.US_ASCII;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_DecryptErr;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_error;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.*;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Shared settings and functionality for processing both client and server
  * GSI authentication requests.
  */
-public abstract class GSIRequestHandler
-{
+public abstract class GSIRequestHandler {
+
     protected static Logger LOGGER
-                    = LoggerFactory.getLogger(GSIRequestHandler.class);
+          = LoggerFactory.getLogger(GSIRequestHandler.class);
 
     public static final String PROTOCOL = "gsi";
 
     public static final int PROTO_WITH_DELEGATION = 10400;
-    public static final int PROTO_PRE_DELEGATION  = 10300;
-    public static final int PROTOCOL_VERSION      = PROTO_WITH_DELEGATION;
+    public static final int PROTO_PRE_DELEGATION = 10300;
+    public static final int PROTOCOL_VERSION = PROTO_WITH_DELEGATION;
 
     public static final String CRYPTO_MODE = "ssl";
     public static final String CRYPTO_MODE_NO_PAD = "sslnopad";
@@ -90,9 +97,9 @@ public abstract class GSIRequestHandler
      * Sync cipher mode supported by the server. It currently must match the
      * SUPPORTED_CIPHER_ALGORITHM advertised by the server
      */
-    public static final String SYNC_CIPHER_MODE_PADDED   = "AES/CBC/PKCS5Padding";
+    public static final String SYNC_CIPHER_MODE_PADDED = "AES/CBC/PKCS5Padding";
     public static final String SYNC_CIPHER_MODE_UNPADDED = "AES/CBC/NoPadding";
-    public static final String SYNC_CIPHER_NAME          = "AES";
+    public static final String SYNC_CIPHER_NAME = "AES";
 
     /**
      * For use in encoding/decoding X509 public keys.
@@ -105,7 +112,7 @@ public abstract class GSIRequestHandler
      * Blocksize in bytes
      */
     public static final int SYNC_CIPHER_BLOCKSIZE = 16;
-    public static final int CHALLENGE_BYTES       = 8;
+    public static final int CHALLENGE_BYTES = 8;
 
     /**
      * Maximum request time skew.  Request is considered invalid if it
@@ -130,15 +137,14 @@ public abstract class GSIRequestHandler
     protected static final SecureRandom RANDOM = new SecureRandom();
 
     protected static int findSessionIVLen(String cipher)
-                    throws XrootdException
-    {
+          throws XrootdException {
         int index = cipher.indexOf(SESSION_IV_DELIM);
         if (index == cipher.length() - 1) {
             throw new XrootdException(kGSErrError,
-                                      "malformed cipher " + cipher);
+                  "malformed cipher " + cipher);
         }
 
-        return index < 0 ? 0 : Integer.valueOf(cipher.substring(index+1));
+        return index < 0 ? 0 : Integer.valueOf(cipher.substring(index + 1));
     }
 
     /**
@@ -146,8 +152,7 @@ public abstract class GSIRequestHandler
      * communication
      * @return challenge string
      */
-    public static String generateChallengeString()
-    {
+    public static String generateChallengeString() {
         byte[] challengeBytes = new byte[CHALLENGE_BYTES];
 
         /*
@@ -169,15 +174,14 @@ public abstract class GSIRequestHandler
 
     protected final GSICredentialManager credentialManager;
 
-    protected DHSession       dhSession;
-    protected RSASession      rsaSession;
+    protected DHSession dhSession;
+    protected RSASession rsaSession;
     protected DHBufferHandler bufferHandler;
-    protected String          challenge = "";
-    protected long            lastRequest;
-    protected boolean         noPadding;
+    protected String challenge = "";
+    protected long lastRequest;
+    protected boolean noPadding;
 
-    protected GSIRequestHandler(GSICredentialManager credentialManager)
-    {
+    protected GSIRequestHandler(GSICredentialManager credentialManager) {
         this.credentialManager = credentialManager;
         rsaSession = new RSASession();
     }
@@ -199,24 +203,23 @@ public abstract class GSIRequestHandler
      * @return the main bucket as a nested bucket buffer
      */
     protected NestedBucketBuffer
-        decryptMainBucketWithSessionKey(Map<BucketType, GSIBucket> receivedBuckets,
-                                        String step)
-                    throws NoSuchPaddingException,
-                    InvalidAlgorithmParameterException,
-                    NoSuchAlgorithmException, IllegalBlockSizeException,
-                    BadPaddingException, NoSuchProviderException,
-                    InvalidKeyException, IOException, XrootdException
-    {
+    decryptMainBucketWithSessionKey(Map<BucketType, GSIBucket> receivedBuckets,
+          String step)
+          throws NoSuchPaddingException,
+          InvalidAlgorithmParameterException,
+          NoSuchAlgorithmException, IllegalBlockSizeException,
+          BadPaddingException, NoSuchProviderException,
+          InvalidKeyException, IOException, XrootdException {
         LOGGER.debug("Decrypting main bucket with session key.");
         RawBucket encryptedBucket = (RawBucket) receivedBuckets.get(kXRS_main);
         byte[] encrypted = encryptedBucket.getContent();
         byte[] decrypted = dhSession.decrypt(SYNC_CIPHER_MODE_PADDED,
-                                             SYNC_CIPHER_NAME,
-                                             SYNC_CIPHER_BLOCKSIZE,
-                                             encrypted);
+              SYNC_CIPHER_NAME,
+              SYNC_CIPHER_BLOCKSIZE,
+              encrypted);
         ByteBuf buffer = wrappedBuffer(decrypted);
         NestedBucketBuffer nested
-                        = GSIBucketUtils.deserializeNested(kXRS_main, buffer);
+              = GSIBucketUtils.deserializeNested(kXRS_main, buffer);
 
         if (LOGGER.isTraceEnabled()) {
             StringBuilder builder = new StringBuilder();
@@ -233,8 +236,7 @@ public abstract class GSIRequestHandler
      * @return encoded DH parameters, either signed or unsigned.
      */
     protected byte[] dhParams(boolean sign) throws IOException, BadPaddingException,
-                    IllegalBlockSizeException
-    {
+          IllegalBlockSizeException {
         LOGGER.debug("Getting encoded dh paramters (signed: {}).", sign);
 
         byte[] cipher = dhSession.getEncodedDHMaterial().getBytes();
@@ -255,8 +257,7 @@ public abstract class GSIRequestHandler
      * @return the cert chain
      */
     protected X509Certificate[] extractChain(Map<BucketType, GSIBucket> nestedBuckets)
-                    throws XrootdException, IOException
-    {
+          throws XrootdException, IOException {
         LOGGER.debug("Extracting X509Certificate chain.");
         GSIBucket clientX509Bucket = nestedBuckets.get(kXRS_x509);
 
@@ -267,14 +268,14 @@ public abstract class GSIRequestHandler
         String clientX509 = ((StringBucket) clientX509Bucket).getContent();
 
         ByteArrayInputStream stream
-                        = new ByteArrayInputStream(clientX509.getBytes(US_ASCII));
+              = new ByteArrayInputStream(clientX509.getBytes(US_ASCII));
         X509Certificate[] proxyCertChain =
-                        CertificateUtils.loadCertificateChain(stream, PEM);
+              CertificateUtils.loadCertificateChain(stream, PEM);
         if (proxyCertChain.length == 0) {
             throw new IllegalArgumentException("Could not parse x509 " +
-                                                               "certificate "
-                                                               + "from input "
-                                                               + "stream!");
+                  "certificate "
+                  + "from input "
+                  + "stream!");
         }
 
         return proxyCertChain;
@@ -294,38 +295,37 @@ public abstract class GSIRequestHandler
      * @param bucketType  kXRS_cipher or kXRS_puk.
      */
     protected void finalizeSessionKey(Map<BucketType, GSIBucket> receivedBuckets,
-                                      BucketType bucketType)
-                    throws IOException, GeneralSecurityException, XrootdException
-    {
+          BucketType bucketType)
+          throws IOException, GeneralSecurityException, XrootdException {
         LOGGER.debug("Finalizing session key using bucket type {}.",
-                     bucketType.name());
+              bucketType.name());
 
         StringBucket dhMessage = null;
 
-        switch(bucketType) {
+        switch (bucketType) {
             case kXRS_puk:
                 dhMessage = (StringBucket) receivedBuckets.get(kXRS_puk);
                 LOGGER.debug("DH message (params) from kXRS_puk: {}.",
-                             dhMessage.getContent());
+                      dhMessage.getContent());
                 break;
             case kXRS_cipher:
-                RawBucket encryptedBucket = (RawBucket)receivedBuckets.get(kXRS_cipher);
-                byte [] encrypted = encryptedBucket.getContent();
+                RawBucket encryptedBucket = (RawBucket) receivedBuckets.get(kXRS_cipher);
+                byte[] encrypted = encryptedBucket.getContent();
                 LOGGER.debug("Decrypting cipher bucket using public key, "
-                                             + "buffer length {}.",
-                             encrypted.length);
-                byte [] decrypted = rsaSession.decrypt(encrypted);
+                            + "buffer length {}.",
+                      encrypted.length);
+                byte[] decrypted = rsaSession.decrypt(encrypted);
                 ByteBuf buffer = wrappedBuffer(decrypted);
                 dhMessage = StringBucket.deserialize(kXRS_cipher, buffer);
                 LOGGER.debug("DH message (params) from kXRS_cipher "
-                                             + "after decryption: {}.",
-                             dhMessage.getContent());
+                            + "after decryption: {}.",
+                      dhMessage.getContent());
                 break;
             default:
                 throw new XrootdException(kGSErrCreateBucket, "Unexpected bucketType "
-                                                            + bucketType + " in "
-                                                            + "finalizeSessionKey: "
-                                                            + bucketType.name());
+                      + bucketType + " in "
+                      + "finalizeSessionKey: "
+                      + bucketType.name());
         }
 
         dhSession.finaliseKeyAgreement(dhMessage.getContent());
@@ -335,15 +335,14 @@ public abstract class GSIRequestHandler
          * requires it.
          */
         bufferHandler = new DHBufferHandler(dhSession,
-                                            getSyncCipherMode(),
-                                            SYNC_CIPHER_NAME,
-                                            SYNC_CIPHER_BLOCKSIZE);
+              getSyncCipherMode(),
+              SYNC_CIPHER_NAME,
+              SYNC_CIPHER_BLOCKSIZE);
 
         LOGGER.debug("Constructed buffer handler for signed hash use.");
     }
 
-    protected boolean isRequestExpired()
-    {
+    protected boolean isRequestExpired() {
         if (lastRequest == 0L) {
             lastRequest = System.currentTimeMillis();
             return false;
@@ -360,32 +359,31 @@ public abstract class GSIRequestHandler
      * the bucket needs to be encrypted.  This is indicated by the switch logic
      * on the step parameter.
      *
-     * @return  main bucket either encrypted or not, depending on step
+     * @return main bucket either encrypted or not, depending on step
      */
     protected GSIBucket
-        postProcessMainBucket(Map<BucketType, GSIBucket> buckets,
-                              Optional<String> serializedX509,
-                              int step)
-                    throws BadPaddingException, IllegalBlockSizeException,
-                    NoSuchProviderException, NoSuchPaddingException,
-                    NoSuchAlgorithmException, InvalidKeyException,
-                    InvalidAlgorithmParameterException, XrootdException,
-                    IOException
-    {
+    postProcessMainBucket(Map<BucketType, GSIBucket> buckets,
+          Optional<String> serializedX509,
+          int step)
+          throws BadPaddingException, IllegalBlockSizeException,
+          NoSuchProviderException, NoSuchPaddingException,
+          NoSuchAlgorithmException, InvalidKeyException,
+          InvalidAlgorithmParameterException, XrootdException,
+          IOException {
         LOGGER.debug("Post-processing main bucket.");
         challenge = GSIRequestHandler.generateChallengeString();
         byte[] signedRtag = signRtagChallenge(buckets);
 
         RawBucket signedRtagBucket =
-                        new RawBucket(BucketType.kXRS_signed_rtag, signedRtag);
+              new RawBucket(BucketType.kXRS_signed_rtag, signedRtag);
         StringBucket randomTagBucket = new StringBucket(kXRS_rtag, challenge);
 
         BucketType x509Type = step == kXGS_pxyreq ? kXRS_x509_req : kXRS_x509;
 
         StringBucket x509Bucket = serializedX509.isPresent() ?
-                        new StringBucket(x509Type, serializedX509.get()) : null;
+              new StringBucket(x509Type, serializedX509.get()) : null;
 
-        switch(step) {
+        switch (step) {
             /*
              * This step requires that it be signed using the session key.
              */
@@ -394,9 +392,9 @@ public abstract class GSIRequestHandler
             case kXGC_cert:
                 LOGGER.debug("Building encrypted main bucket.");
                 return buildEncryptedMainBucket(step,
-                                                signedRtagBucket,
-                                                randomTagBucket,
-                                                x509Bucket);
+                      signedRtagBucket,
+                      randomTagBucket,
+                      x509Bucket);
             default:
                 LOGGER.debug("Building unencrypted main bucket.");
                 Map<BucketType, GSIBucket> nestedBuckets = new EnumMap<>(BucketType.class);
@@ -406,9 +404,9 @@ public abstract class GSIRequestHandler
                     nestedBuckets.put(x509Bucket.getType(), x509Bucket);
                 }
                 return new NestedBucketBuffer(kXRS_main,
-                                              PROTOCOL,
-                                              step,
-                                              nestedBuckets);
+                      PROTOCOL,
+                      step,
+                      nestedBuckets);
         }
     }
 
@@ -418,39 +416,36 @@ public abstract class GSIRequestHandler
      * @return the extracted and verified certificate chain
      */
     protected X509Certificate[]
-        processRSAVerification(Map<BucketType, GSIBucket> nestedBuckets,
-                               Optional<PublicKey> toMatch)
-                    throws InvalidKeyException, IOException, XrootdException
-    {
+    processRSAVerification(Map<BucketType, GSIBucket> nestedBuckets,
+          Optional<PublicKey> toMatch)
+          throws InvalidKeyException, IOException, XrootdException {
         LOGGER.debug("Processing RSA cert chain verification; "
-                                     + "previous key to match? {}.",
-                     toMatch.isPresent());
+                    + "previous key to match? {}.",
+              toMatch.isPresent());
         X509Certificate[] proxyCertChain = extractChain(nestedBuckets);
         credentialManager.getCertChainValidator().validate(proxyCertChain);
         X509Certificate certificate = proxyCertChain[0];
         if (toMatch.isPresent() &&
-                        !toMatch.get().equals(certificate.getPublicKey())) {
+              !toMatch.get().equals(certificate.getPublicKey())) {
             throw new InvalidKeyException(
-                            "Error in cryptographic operations; received "
-                                            + "two different public keys.");
+                  "Error in cryptographic operations; received "
+                        + "two different public keys.");
         }
 
         return proxyCertChain;
     }
 
-    protected void updateLastRequest()
-    {
+    protected void updateLastRequest() {
         lastRequest = System.currentTimeMillis();
     }
 
     /*
      *  Checks that the sender can support the algorithm used by dCache.
      */
-    protected String validateCiphers(String[] algorithms) throws XrootdException
-    {
+    protected String validateCiphers(String[] algorithms) throws XrootdException {
         LOGGER.debug("Validating cipher algorithm.");
         String selectedCipher = null;
-        for (String algorithm: algorithms) {
+        for (String algorithm : algorithms) {
             LOGGER.debug("checking cipher algorithm {}.", algorithm);
             int ivIndex = algorithm.indexOf(SESSION_IV_DELIM);
             String cipher;
@@ -468,7 +463,7 @@ public abstract class GSIRequestHandler
 
         if (selectedCipher == null) {
             throw new XrootdException(kXR_error, "all sender ciphers are "
-                            + "unsupported: " + Arrays.asList(algorithms));
+                  + "unsupported: " + Arrays.asList(algorithms));
         }
 
         LOGGER.debug("Selected cipher algorithm {}", selectedCipher);
@@ -479,8 +474,7 @@ public abstract class GSIRequestHandler
     /*
      *  Checks that the sender can support the crypto mode used by dCache.
      */
-    protected void validateCryptoMode(String cryptoMode) throws XrootdException
-    {
+    protected void validateCryptoMode(String cryptoMode) throws XrootdException {
         LOGGER.debug("Validating crypto mode.");
         if (!cryptoMode.equalsIgnoreCase(CRYPTO_MODE)) {
             if (cryptoMode.equalsIgnoreCase(CRYPTO_MODE_NO_PAD)) {
@@ -495,11 +489,10 @@ public abstract class GSIRequestHandler
      *  Checks that the sender can support the digest used by dCache.
      */
     protected String validateDigests(String[] digests)
-                    throws XrootdException
-    {
+          throws XrootdException {
         LOGGER.debug("Validating cipher digests.");
         String selectedDigest = null;
-        for (String digest: digests) {
+        for (String digest : digests) {
             if (SUPPORTED_DIGESTS.contains(digest)) {
                 selectedDigest = digest;
                 break;
@@ -508,7 +501,7 @@ public abstract class GSIRequestHandler
 
         if (selectedDigest == null) {
             throw new XrootdException(kXR_error, "all sender digests are "
-                            + "unsupported: " + Arrays.asList(digests));
+                  + "unsupported: " + Arrays.asList(digests));
         }
 
         return selectedDigest;
@@ -521,9 +514,8 @@ public abstract class GSIRequestHandler
      * previously generated.
      */
     protected void verifySignedRTag(Map<BucketType, GSIBucket> nestedBuckets)
-                    throws XrootdException, BadPaddingException,
-                    IllegalBlockSizeException, IOException
-    {
+          throws XrootdException, BadPaddingException,
+          IllegalBlockSizeException, IOException {
         GSIBucket signedRTagBucket = nestedBuckets.get(kXRS_signed_rtag);
         byte[] signedRTag = ((RawBucket) signedRTagBucket).getContent();
 
@@ -533,16 +525,16 @@ public abstract class GSIRequestHandler
         // check that the challenge sent in the previous step matches
         if (!challenge.equals(rTagString)) {
             LOGGER.error("The challenge is {}, the serialized rTag is {}." +
-                                         "signature of challenge tag has been "
-                                         + "proven wrong!!",
-                         challenge, rTagString);
+                        "signature of challenge tag has been "
+                        + "proven wrong!!",
+                  challenge, rTagString);
             throw new XrootdException(kGSErrBadRndmTag,
-                                      "Sender did not present correct" +
-                                                      "challenge response!");
+                  "Sender did not present correct" +
+                        "challenge response!");
         }
 
         LOGGER.debug("signature of challenge tag ok. Challenge: " +
-                                     "{}, rTagString: {}", challenge, rTagString);
+              "{}, rTagString: {}", challenge, rTagString);
     }
 
     /*
@@ -550,16 +542,15 @@ public abstract class GSIRequestHandler
      * Assumes session key has been finalized.
      */
     private RawBucket buildEncryptedMainBucket(int step,
-                                               GSIBucket... buckets)
-                    throws XrootdException, NoSuchPaddingException,
-                    InvalidAlgorithmParameterException,
-                    NoSuchAlgorithmException, IllegalBlockSizeException,
-                    BadPaddingException, NoSuchProviderException,
-                    InvalidKeyException
-    {
+          GSIBucket... buckets)
+          throws XrootdException, NoSuchPaddingException,
+          InvalidAlgorithmParameterException,
+          NoSuchAlgorithmException, IllegalBlockSizeException,
+          BadPaddingException, NoSuchProviderException,
+          InvalidKeyException {
         if (dhSession == null) {
             throw new XrootdException(kXR_DecryptErr, "trying to encrypt message "
-                            + "without session key.");
+                  + "without session key.");
         }
 
         /*
@@ -572,19 +563,19 @@ public abstract class GSIRequestHandler
         buffer.writeBytes(bytes);
         buffer.writeZero(4 - bytes.length);
         buffer.writeInt(step);
-        for (GSIBucket bucket: buckets) {
+        for (GSIBucket bucket : buckets) {
             if (bucket != null) {
                 bucket.serialize(buffer);
             }
         }
         buffer.writeInt(BucketType.kXRS_none.getCode());
-        byte [] raw = new byte[buffer.readableBytes()];
+        byte[] raw = new byte[buffer.readableBytes()];
         buffer.getBytes(0, raw);
         buffer.release();
-        byte [] encrypted = dhSession.encrypt(SYNC_CIPHER_MODE_PADDED,
-                                              SYNC_CIPHER_NAME,
-                                              SYNC_CIPHER_BLOCKSIZE,
-                                              raw);
+        byte[] encrypted = dhSession.encrypt(SYNC_CIPHER_MODE_PADDED,
+              SYNC_CIPHER_NAME,
+              SYNC_CIPHER_BLOCKSIZE,
+              raw);
         return new RawBucket(kXRS_main, encrypted);
     }
 
@@ -594,13 +585,12 @@ public abstract class GSIRequestHandler
      *         initialized with the local private key).
      */
     private byte[] signRtagChallenge(Map<BucketType, GSIBucket> nestedBuckets)
-                    throws BadPaddingException, IllegalBlockSizeException,
-                    IOException
-    {
+          throws BadPaddingException, IllegalBlockSizeException,
+          IOException {
         StringBucket rtagBucket = (StringBucket) nestedBuckets.get(kXRS_rtag);
         byte[] rtag = rtagBucket.getContent().getBytes();
         LOGGER.debug("Signing sender's random challenge tag of length {}.",
-                     rtag.length);
+              rtag.length);
         return rsaSession.encrypt(rtag);
     }
 }

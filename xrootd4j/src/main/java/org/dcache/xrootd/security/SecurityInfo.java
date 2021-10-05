@@ -1,43 +1,39 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
- *
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.security;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ArgMissing;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
 import org.dcache.xrootd.core.XrootdException;
-
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ArgMissing;
 
 /**
  * Utility class for holding security requirement information.
  */
-public class SecurityInfo
-{
+public class SecurityInfo {
+
     private final String protocol;
-    private final Map<String,String> data;
+    private final Map<String, String> data;
     private final String description;
 
-    public SecurityInfo(String description) throws XrootdException
-    {
+    public SecurityInfo(String description) throws XrootdException {
         this.description = description;
         int comma = description.indexOf(',');
         if (comma == -1) {
@@ -48,7 +44,7 @@ public class SecurityInfo
             data = new HashMap<>();
             String keyValueData = description.substring(comma + 1);
             String[] kvPairs = keyValueData.split(",");
-            for (String pair: kvPairs) {
+            for (String pair : kvPairs) {
                 String[] keyValue = pair.split(":");
                 if (keyValue.length == 2) {
                     data.put(keyValue[0], keyValue[1]);
@@ -63,19 +59,16 @@ public class SecurityInfo
         }
     }
 
-    public String getProtocol()
-    {
+    public String getProtocol() {
         return protocol;
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return description;
     }
 
-    public Optional<String> getValue(String key)
-    {
+    public Optional<String> getValue(String key) {
         return Optional.ofNullable(data.get(key));
     }
 
@@ -85,8 +78,7 @@ public class SecurityInfo
      * @return the corresponding value
      * @throws XrootdException if key is not defined
      */
-    public String getRequiredValue(String key) throws XrootdException
-    {
+    public String getRequiredValue(String key) throws XrootdException {
         String value = data.get(key);
         if (value == null) {
             throw new XrootdException(kXR_ArgMissing, "missing '" + key + "' in sec");

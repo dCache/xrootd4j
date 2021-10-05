@@ -1,39 +1,22 @@
 /**
  * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
- *
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
-import org.bouncycastle.asn1.ASN1InputStream;
-import org.bouncycastle.asn1.pkcs.DHParameter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.KeyAgreement;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-import javax.crypto.interfaces.DHPublicKey;
-import javax.crypto.spec.DHParameterSpec;
-import javax.crypto.spec.DHPublicKeySpec;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
+import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.RANDOM;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -48,8 +31,21 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PublicKey;
 import java.util.Arrays;
-
-import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.RANDOM;
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyAgreement;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.interfaces.DHPublicKey;
+import javax.crypto.spec.DHParameterSpec;
+import javax.crypto.spec.DHPublicKeySpec;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.pkcs.DHParameter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class represents a Diffie-Hellman (DH) session. After the DH key agreement
@@ -60,8 +56,8 @@ import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.RANDOM;
  * @author tzangerl
  *
  */
-public class DHSession
-{
+public class DHSession {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(DHSession.class);
 
     private static final String DH_ALGORITHM_NAME = "DH";
@@ -74,17 +70,17 @@ public class DHSession
     // This specific number set was created by using Openssl and passes
     // its validity tests and is therefore considered to be safe.
     private static final String DH_PRIME =
-                    ( "00:a8:37:9d:6f:ff:e8:63:a0:b1:47:0c:26:dd:1a:"
-                    + "45:0b:e2:03:9a:f0:83:b1:ba:5b:fa:1d:2f:5b:2a:"
-                    + "89:08:02:d8:c4:d4:66:8d:14:8d:35:bb:24:b1:af:"
-                    + "1a:d3:75:c7:c0:3b:61:aa:85:3f:56:69:ae:f2:67:"
-                    + "da:20:87:5d:93" ).replaceAll("[:\\s]+", "");
+          ("00:a8:37:9d:6f:ff:e8:63:a0:b1:47:0c:26:dd:1a:"
+                + "45:0b:e2:03:9a:f0:83:b1:ba:5b:fa:1d:2f:5b:2a:"
+                + "89:08:02:d8:c4:d4:66:8d:14:8d:35:bb:24:b1:af:"
+                + "1a:d3:75:c7:c0:3b:61:aa:85:3f:56:69:ae:f2:67:"
+                + "da:20:87:5d:93").replaceAll("[:\\s]+", "");
 
     // the 512 bit DH parameter set used for all DH sessions, consisting
     // of the prime above and the generator value of 2
     // These default values are only used when dCache acts as the server
     static final DHParameterSpec DH_PARAMETERS = new DHParameterSpec(
-            new BigInteger(DH_PRIME, 16), BigInteger.valueOf(2));
+          new BigInteger(DH_PRIME, 16), BigInteger.valueOf(2));
     private DHParameterSpec _dhParameterSpec;
     private KeyPair _localDHKeyPair;
     private KeyAgreement _keyAgreement;
@@ -100,9 +96,8 @@ public class DHSession
      * @throws NoSuchProviderException Bouncy castle provider does not exist
      */
     public DHSession(boolean isServer, int sessionIVLen)
-        throws InvalidAlgorithmParameterException, NoSuchAlgorithmException,
-            InvalidKeyException, NoSuchProviderException
-    {
+          throws InvalidAlgorithmParameterException, NoSuchAlgorithmException,
+          InvalidKeyException, NoSuchProviderException {
         if (isServer) {
             _dhParameterSpec = DH_PARAMETERS;
             initialize();
@@ -118,46 +113,43 @@ public class DHSession
     }
 
     private void initialize()
-                    throws InvalidAlgorithmParameterException, NoSuchAlgorithmException,
-                    InvalidKeyException, NoSuchProviderException
-    {
+          throws InvalidAlgorithmParameterException, NoSuchAlgorithmException,
+          InvalidKeyException, NoSuchProviderException {
         KeyPairGenerator kpairGen =
-                        KeyPairGenerator.getInstance(DH_ALGORITHM_NAME, "BC");
+              KeyPairGenerator.getInstance(DH_ALGORITHM_NAME, "BC");
         kpairGen.initialize(_dhParameterSpec);
         _localDHKeyPair = kpairGen.generateKeyPair();
         _keyAgreement = KeyAgreement.getInstance(DH_ALGORITHM_NAME, "BC");
         _keyAgreement.init(_localDHKeyPair.getPrivate());
     }
 
-    public String getEncodedDHMaterial() throws IOException
-    {
+    public String getEncodedDHMaterial() throws IOException {
         String dhparams =
-            CertUtil.toPEM(toDER(_dhParameterSpec), DH_HEADER, DH_FOOTER);
+              CertUtil.toPEM(toDER(_dhParameterSpec), DH_HEADER, DH_FOOTER);
         DHPublicKey pubkey = (DHPublicKey) _localDHKeyPair.getPublic();
 
         return dhparams + '\n' + DH_PUBKEY_HEADER +
-                        pubkey.getY().toString(16) + DH_PUBKEY_FOOTER;
+              pubkey.getY().toString(16) + DH_PUBKEY_FOOTER;
     }
 
     public void finaliseKeyAgreement(String dhmessage) throws IOException,
-            GeneralSecurityException, IllegalStateException
-    {
+          GeneralSecurityException, IllegalStateException {
         int delimitingIndex = dhmessage.indexOf(DH_PUBKEY_HEADER);
 
         if (delimitingIndex < 0 || delimitingIndex >= dhmessage.length()) {
             throw new IllegalArgumentException("Illegal DH message: "
-                    + dhmessage);
+                  + dhmessage);
         }
 
         String dhparams = dhmessage.substring(0, delimitingIndex);
         String remotePubKeyString = dhmessage.substring(delimitingIndex);
 
         DHParameterSpec params = fromDER(CertUtil.fromPEM(dhparams,
-                                                          DH_HEADER,
-                                                          DH_FOOTER));
+              DH_HEADER,
+              DH_FOOTER));
 
         LOGGER.debug("Remote endpoint sent: P = {}, G = {}, L = {},",
-                     params.getP(), params.getG(), params.getL());
+              params.getP(), params.getG(), params.getL());
 
         if (_keyAgreement == null) {
             int l = params.getL();
@@ -166,19 +158,19 @@ public class DHSession
              * seems to be required for the key pair generation to work.
              */
             _dhParameterSpec = new DHParameterSpec(params.getP(), params.getG(),
-                                                   l == 0 ? params.getP().bitLength() : l);
+                  l == 0 ? params.getP().bitLength() : l);
             initialize();
         } else if (!(_dhParameterSpec.getP().equals(params.getP())
-                        && _dhParameterSpec.getG().equals(params.getG()))) {
+              && _dhParameterSpec.getG().equals(params.getG()))) {
             throw new GeneralSecurityException(
-                    "remote DH parameters differ from local ones");
+                  "remote DH parameters differ from local ones");
         }
 
         removeCharFromString(remotePubKeyString, '\n');
 
         int envLength = DH_PUBKEY_HEADER.length();
         remotePubKeyString = remotePubKeyString.substring(envLength,
-                remotePubKeyString.length() - envLength);
+              remotePubKeyString.length() - envLength);
 
         // parse hex String into a BigInt
         BigInteger remoteY = new BigInteger(remotePubKeyString, 16);
@@ -186,22 +178,21 @@ public class DHSession
         // convert into a public key
         KeyFactory keyfac = KeyFactory.getInstance(DH_ALGORITHM_NAME, "BC");
         PublicKey remotePubKey = keyfac.generatePublic(new DHPublicKeySpec(
-                remoteY, params.getP(), params.getG()));
+              remoteY, params.getP(), params.getG()));
 
         // finalise DH key agreement
         _keyAgreement.doPhase(remotePubKey, true);
     }
 
     public byte[] decrypt(String cipherSpec,
-                          String keySpec,
-                          int blocksize,
-                          byte[] encrypted)
-        throws InvalidKeyException,
-               IllegalStateException, NoSuchAlgorithmException,
-               NoSuchPaddingException, IllegalBlockSizeException,
-               BadPaddingException, InvalidAlgorithmParameterException,
-               NoSuchProviderException
-    {
+          String keySpec,
+          int blocksize,
+          byte[] encrypted)
+          throws InvalidKeyException,
+          IllegalStateException, NoSuchAlgorithmException,
+          NoSuchPaddingException, IllegalBlockSizeException,
+          BadPaddingException, InvalidAlgorithmParameterException,
+          NoSuchProviderException {
         StringBuilder builder = null;
 
         if (LOGGER.isTraceEnabled()) {
@@ -213,10 +204,10 @@ public class DHSession
         encrypted = getIVFromMessagePrefix(encrypted, blocksize);
 
         byte[] decrypted = translate(cipherSpec,
-                                     keySpec,
-                                     blocksize,
-                                     encrypted,
-                                     Cipher.DECRYPT_MODE);
+              keySpec,
+              blocksize,
+              encrypted,
+              Cipher.DECRYPT_MODE);
 
         if (LOGGER.isTraceEnabled()) {
             builder = new StringBuilder();
@@ -227,27 +218,24 @@ public class DHSession
         return decrypted;
     }
 
-    public void setPaddedKey(boolean paddedKey)
-    {
+    public void setPaddedKey(boolean paddedKey) {
         this.paddedKey = paddedKey;
     }
 
-    public void setSessionIVLen(int len)
-    {
+    public void setSessionIVLen(int len) {
         LOGGER.debug("Setting sessionIVLen to {}.", len);
         _sessionIVLen = len;
     }
 
     public byte[] encrypt(String cipherSpec,
-                          String keySpec,
-                          int blocksize,
-                          byte[] unencrypted)
-        throws InvalidKeyException,
-               IllegalStateException, NoSuchAlgorithmException,
-               NoSuchPaddingException, IllegalBlockSizeException,
-               BadPaddingException, InvalidAlgorithmParameterException,
-               NoSuchProviderException
-    {
+          String keySpec,
+          int blocksize,
+          byte[] unencrypted)
+          throws InvalidKeyException,
+          IllegalStateException, NoSuchAlgorithmException,
+          NoSuchPaddingException, IllegalBlockSizeException,
+          BadPaddingException, InvalidAlgorithmParameterException,
+          NoSuchProviderException {
         StringBuilder builder = null;
 
         if (LOGGER.isTraceEnabled()) {
@@ -259,10 +247,10 @@ public class DHSession
         refreshIV(blocksize);
         unencrypted = prefixedBuffer(unencrypted);
         byte[] encrypted = translate(cipherSpec,
-                                     keySpec,
-                                     blocksize,
-                                     unencrypted,
-                                     Cipher.ENCRYPT_MODE);
+              keySpec,
+              blocksize,
+              unencrypted,
+              Cipher.ENCRYPT_MODE);
 
         LOGGER.trace("encrypted:");
         if (LOGGER.isTraceEnabled()) {
@@ -274,8 +262,7 @@ public class DHSession
         return encrypted;
     }
 
-    private byte[] getIVFromMessagePrefix(byte[] encrypted, int blocksize)
-    {
+    private byte[] getIVFromMessagePrefix(byte[] encrypted, int blocksize) {
         StringBuilder builder = null;
 
         if (_sessionIVLen == 0) {
@@ -298,20 +285,19 @@ public class DHSession
             LOGGER.trace("initialization vector:\n{}", builder.toString());
         }
 
-        byte[] extracted = new byte[encrypted.length-_sessionIVLen];
+        byte[] extracted = new byte[encrypted.length - _sessionIVLen];
         System.arraycopy(encrypted, _sessionIVLen, extracted,
-                         0,encrypted.length-_sessionIVLen);
+              0, encrypted.length - _sessionIVLen);
 
         return extracted;
     }
 
-    private byte[] prefixedBuffer(byte[] in)
-    {
+    private byte[] prefixedBuffer(byte[] in) {
         if (_sessionIVLen == 0) {
             return in;
         }
 
-        byte[] out = new byte[IV.length+in.length];
+        byte[] out = new byte[IV.length + in.length];
 
         System.arraycopy(IV, 0, out, 0, IV.length);
         System.arraycopy(in, 0, out, IV.length, in.length);
@@ -319,16 +305,15 @@ public class DHSession
         return out;
     }
 
-    private void refreshIV(int blocksize)
-    {
+    private void refreshIV(int blocksize) {
         IV = new byte[blocksize];
         if (_sessionIVLen > 0) {
             for (int i = 0; i < _sessionIVLen; ++i) {
                 while (true) {
                     byte next = (byte) RANDOM.nextInt(Byte.MAX_VALUE);
                     if ((next >= '.' && next <= '9') ||
-                                    (next >= 'A' && next <= 'Z') ||
-                                    (next >= 'a' && next <= 'z')) {
+                          (next >= 'A' && next <= 'Z') ||
+                          (next >= 'a' && next <= 'z')) {
                         IV[i] = next;
                         break;
                     }
@@ -338,18 +323,17 @@ public class DHSession
     }
 
     private byte[] translate(String cipherSpec,
-                             String keySpec,
-                             int blocksize,
-                             byte[] buffer,
-                             int mode)
-        throws InvalidKeyException,
-               IllegalStateException, NoSuchAlgorithmException,
-               NoSuchPaddingException, IllegalBlockSizeException,
-               BadPaddingException, InvalidAlgorithmParameterException,
-               NoSuchProviderException
-    {
+          String keySpec,
+          int blocksize,
+          byte[] buffer,
+          int mode)
+          throws InvalidKeyException,
+          IllegalStateException, NoSuchAlgorithmException,
+          NoSuchPaddingException, IllegalBlockSizeException,
+          BadPaddingException, InvalidAlgorithmParameterException,
+          NoSuchProviderException {
         IvParameterSpec paramSpec = new IvParameterSpec(IV);
-        Cipher cipher = Cipher.getInstance(cipherSpec,"BC");
+        Cipher cipher = Cipher.getInstance(cipherSpec, "BC");
 
         byte[] encoded;
 
@@ -364,8 +348,8 @@ public class DHSession
              */
             LOGGER.info("Using unpadded (TlsPremasterSecret) DH secret generation.");
             encoded = _keyAgreement
-                            .generateSecret("TlsPremasterSecret")
-                            .getEncoded();
+                  .generateSecret("TlsPremasterSecret")
+                  .getEncoded();
         }
 
         /**
@@ -388,15 +372,15 @@ public class DHSession
                 GSIBucketUtils.dumpBytes(oldB, defective);
                 GSIBucketUtils.dumpBytes(newB, encoded);
                 LOGGER.trace("OLD:\n{}\nNEW:\n{}",
-                             oldB.toString(), newB.toString());
+                      oldB.toString(), newB.toString());
             }
         }
 
         /* need a 128-bit key, that's the way to get it */
         SecretKey sessionKey = new SecretKeySpec(encoded,
-                                                 0,
-                                                 blocksize,
-                                                 keySpec);
+              0,
+              blocksize,
+              keySpec);
         cipher.init(mode, sessionKey, paramSpec);
         return cipher.doFinal(buffer);
     }
@@ -410,8 +394,7 @@ public class DHSession
      *            the char to be removed
      * @return the resulting string
      */
-    private static String removeCharFromString(String s, char c)
-    {
+    private static String removeCharFromString(String s, char c) {
         return s.replaceAll(String.valueOf(c), "");
     }
 
@@ -421,8 +404,7 @@ public class DHSession
      * @return the DHParameterSpec object
      * @throws IOException if the deserialisation goes wrong
      */
-    private static DHParameterSpec fromDER(byte[] der) throws IOException
-    {
+    private static DHParameterSpec fromDER(byte[] der) throws IOException {
         ByteArrayInputStream inStream = new ByteArrayInputStream(der);
         ASN1InputStream derInputStream = new ASN1InputStream(inStream);
         DHParameter dhparam = DHParameter.getInstance(derInputStream.readObject());
@@ -434,13 +416,12 @@ public class DHSession
      * @param paramspec the DH parameter object
      * @return the DER-encoded byte sequence of the DH Parameter object
      */
-    private static byte[] toDER(DHParameterSpec paramspec) throws IOException
-    {
+    private static byte[] toDER(DHParameterSpec paramspec) throws IOException {
         DHParameter derParams = new DHParameter(paramspec.getP(), // Prime
-                                                                  // (public
-                                                                  // key)
-                paramspec.getG(), // generator
-                paramspec.getP().bitLength()); // keylength of Prime
+              // (public
+              // key)
+              paramspec.getG(), // generator
+              paramspec.getP().bitLength()); // keylength of Prime
 
         return derParams.getEncoded("DER");
     }

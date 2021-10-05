@@ -3,74 +3,65 @@
  *
  * This file is part of xrootd4j.
  *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
  *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.plugins.authn.gsi.pre49;
 
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_puk;
+
 import eu.emi.security.authn.x509.X509Credential;
 import io.netty.channel.ChannelHandlerContext;
-
 import java.util.Optional;
-
 import org.dcache.xrootd.core.XrootdException;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketData;
 import org.dcache.xrootd.plugins.authn.gsi.GSIClientRequestHandler;
 import org.dcache.xrootd.plugins.authn.gsi.GSICredentialManager;
-import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketData;
 import org.dcache.xrootd.tpc.XrootdTpcClient;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundErrorResponse;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundAuthenticationRequest;
 
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_puk;
+public class GSIPre49ClientRequestHandler extends GSIClientRequestHandler {
 
-public class GSIPre49ClientRequestHandler extends GSIClientRequestHandler
-{
     public GSIPre49ClientRequestHandler(GSICredentialManager credentialManager,
-                                        XrootdTpcClient client)
-    {
+          XrootdTpcClient client) {
         super(credentialManager, client);
     }
 
     @Override
-    public int getProtocolVersion()
-    {
+    public int getProtocolVersion() {
         return PROTO_PRE_DELEGATION;
     }
 
     public OutboundAuthenticationRequest handleCertStep(InboundAuthenticationResponse response,
-                                                        BucketData data,
-                                                        ChannelHandlerContext ctx)
-                    throws XrootdException
-    {
+          BucketData data,
+          ChannelHandlerContext ctx)
+          throws XrootdException {
         return handleCertStep(response,
-                              data,
-                              ctx,
-                              kXRS_puk,
-                              false,
-                              Optional.empty(),
-                              Optional.empty());
+              data,
+              ctx,
+              kXRS_puk,
+              false,
+              Optional.empty(),
+              Optional.empty());
     }
 
     @Override
-    protected X509Credential getClientCredential()
-    {
+    protected X509Credential getClientCredential() {
         return credentialManager.getProxy();
     }
 
     @Override
-    protected Optional<Integer> getClientOpts()
-    {
+    protected Optional<Integer> getClientOpts() {
         return Optional.empty();
     }
 
@@ -81,14 +72,13 @@ public class GSIPre49ClientRequestHandler extends GSIClientRequestHandler
 
     @Override
     protected void handleAuthenticationError(InboundErrorResponse response)
-                    throws XrootdException {
+          throws XrootdException {
         throw new XrootdException(response.getError(),
-                                  response.getErrorMessage());
+              response.getErrorMessage());
     }
 
     @Override
-    protected void loadClientCredential()
-    {
+    protected void loadClientCredential() {
         /*
          *  NOP
          *
@@ -99,8 +89,7 @@ public class GSIPre49ClientRequestHandler extends GSIClientRequestHandler
     }
 
     @Override
-    protected boolean usePadded()
-    {
+    protected boolean usePadded() {
         return false;
     }
 }

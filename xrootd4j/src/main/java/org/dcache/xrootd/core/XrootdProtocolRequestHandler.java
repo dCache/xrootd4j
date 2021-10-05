@@ -3,71 +3,64 @@
  *
  * This file is part of xrootd4j.
  *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
  *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.core;
-
-import io.netty.channel.ChannelHandlerContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Map;
-
-import org.dcache.xrootd.protocol.messages.ProtocolRequest;
-import org.dcache.xrootd.protocol.messages.ProtocolResponse;
-import org.dcache.xrootd.protocol.messages.XrootdResponse;
-import org.dcache.xrootd.security.SigningPolicy;
-import org.dcache.xrootd.security.TLSSessionInfo;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_TLSRequired;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
 
-public class XrootdProtocolRequestHandler extends XrootdRequestHandler
-{
-    private static final Logger         LOGGER
-                    = LoggerFactory.getLogger(XrootdProtocolRequestHandler.class);
+import io.netty.channel.ChannelHandlerContext;
+import java.util.Map;
+import org.dcache.xrootd.protocol.messages.ProtocolRequest;
+import org.dcache.xrootd.protocol.messages.ProtocolResponse;
+import org.dcache.xrootd.protocol.messages.XrootdResponse;
+import org.dcache.xrootd.security.SigningPolicy;
+import org.dcache.xrootd.security.TLSSessionInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-    protected            SigningPolicy  signingPolicy;
-    protected            TLSSessionInfo tlsSessionInfo;
+public class XrootdProtocolRequestHandler extends XrootdRequestHandler {
 
-    public void setSigningPolicy(SigningPolicy signingPolicy)
-    {
+    private static final Logger LOGGER
+          = LoggerFactory.getLogger(XrootdProtocolRequestHandler.class);
+
+    protected SigningPolicy signingPolicy;
+    protected TLSSessionInfo tlsSessionInfo;
+
+    public void setSigningPolicy(SigningPolicy signingPolicy) {
         this.signingPolicy = signingPolicy;
     }
 
-    public void setTlsSessionInfo(TLSSessionInfo tlsSessionInfo)
-    {
+    public void setTlsSessionInfo(TLSSessionInfo tlsSessionInfo) {
         this.tlsSessionInfo = tlsSessionInfo;
     }
 
     @Override
     protected XrootdResponse<ProtocolRequest> doOnProtocolRequest(ChannelHandlerContext ctx,
-                                                                  ProtocolRequest msg)
-                    throws XrootdException
-    {
+          ProtocolRequest msg)
+          throws XrootdException {
         if (tlsSessionInfo == null) {
             throw new XrootdException(kXR_ServerError, "incomplete server "
-                            + "information on protocol request");
+                  + "information on protocol request");
         }
 
         LOGGER.debug("doOnProtocolRequest, version {}, expect {}, option {}.",
-                    msg.getVersion(), msg.getExpect(), msg.getOption());
+              msg.getVersion(), msg.getExpect(), msg.getOption());
 
         tlsSessionInfo.setLocalTlsActivation(msg.getVersion(),
-                                             msg.getOption(),
-                                             msg.getExpect());
+              msg.getOption(),
+              msg.getExpect());
 
         if (tlsSessionInfo.serverUsesTls()) {
             /*
@@ -76,19 +69,19 @@ public class XrootdProtocolRequestHandler extends XrootdRequestHandler
              */
             signingPolicy = SigningPolicy.OFF;
             boolean isStarted = tlsSessionInfo.serverTransitionedToTLS(kXR_protocol,
-                                                                        ctx);
+                  ctx);
             LOGGER.debug("kXR_protocol, server has now transitioned to tls? {}.",
-                         isStarted);
+                  isStarted);
         }
 
         LOGGER.debug("Sending protocol message with server flags {}, "
-                                     + "signing policy {}.",
-                     tlsSessionInfo.getLocalServerProtocolFlags(), signingPolicy);
+                    + "signing policy {}.",
+              tlsSessionInfo.getLocalServerProtocolFlags(), signingPolicy);
 
         return new ProtocolResponse(msg,
-                                    tlsSessionInfo.getLocalServerProtocolFlags()
-                                                  .getFlags(),
-                                    signingPolicy);
+              tlsSessionInfo.getLocalServerProtocolFlags()
+                    .getFlags(),
+              signingPolicy);
     }
 
     /**
@@ -104,8 +97,7 @@ public class XrootdProtocolRequestHandler extends XrootdRequestHandler
      * @throws XrootdException
      */
     protected void enforceClientTlsIfDestinationRequiresItForTpc(Map<String, String> opaque)
-                    throws XrootdException
-    {
+          throws XrootdException {
         if (!opaque.containsKey("tpc.org") && !opaque.containsKey("tpc.src")) {
             LOGGER.debug("server is not TPC destination; no TLS TPC check.");
             return;
@@ -115,12 +107,12 @@ public class XrootdProtocolRequestHandler extends XrootdRequestHandler
         String tpr = opaque.get("tpc.tpr");
 
         LOGGER.debug("server requires tls for tpc {}; "
-                                   + "incoming client is TLS capable {}; "
-                                   + "tpc.spr {}, tpc.tpr {}.",
-                   tlsSessionInfo.getLocalServerProtocolFlags()
-                                 .requiresTLSForTPC(),
-                   tlsSessionInfo.isIncomingClientTLSCapable(),
-                   spr, tpr);
+                    + "incoming client is TLS capable {}; "
+                    + "tpc.spr {}, tpc.tpr {}.",
+              tlsSessionInfo.getLocalServerProtocolFlags()
+                    .requiresTLSForTPC(),
+              tlsSessionInfo.isIncomingClientTLSCapable(),
+              spr, tpr);
         /*
          *  Fail if destination server requires TLS for TPC and either
          *  (a) the client is not TLS capable, or
@@ -132,12 +124,12 @@ public class XrootdProtocolRequestHandler extends XrootdRequestHandler
         if (tlsSessionInfo.getLocalServerProtocolFlags().requiresTLSForTPC()) {
             if (!tlsSessionInfo.isIncomingClientTLSCapable()) {
                 throw new XrootdException(kXR_TLSRequired,
-                                          "Server accepts only secure connections for TPC.");
+                      "Server accepts only secure connections for TPC.");
             }
 
             if (!"xroots".equals(tpr)) {
                 throw new XrootdException(kXR_TLSRequired,
-                                          "Wrong protocol expressed for TPC destination.");
+                      "Wrong protocol expressed for TPC destination.");
             }
         }
     }

@@ -1,72 +1,64 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
- *
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.protocol.messages;
 
+import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import io.netty.buffer.ByteBuf;
 
-public abstract class GenericReadRequestMessage extends AbstractXrootdRequest
-{
-    public static class EmbeddedReadRequest
-    {
+public abstract class GenericReadRequestMessage extends AbstractXrootdRequest {
+
+    public static class EmbeddedReadRequest {
+
         private final int fh;
         private final int len;
         private final long offs;
 
-        EmbeddedReadRequest(int fh, int len, long offs)
-        {
+        EmbeddedReadRequest(int fh, int len, long offs) {
             this.fh = fh;
             this.len = len;
             this.offs = offs;
         }
 
-        public int getFileHandle()
-        {
+        public int getFileHandle() {
             return fh;
         }
 
-        public int BytesToRead()
-        {
+        public int BytesToRead() {
             return len;
         }
 
-        public long getOffset()
-        {
+        public long getOffset() {
             return offs;
         }
 
         @Override
-        public String toString()
-        {
+        public String toString() {
             return String.format("(%d,%d,%d)", fh, len, offs);
         }
     }
 
     private static final Logger LOGGER =
-        LoggerFactory.getLogger(GenericReadRequestMessage.class);
+          LoggerFactory.getLogger(GenericReadRequestMessage.class);
 
     private final int pathid;
     private final EmbeddedReadRequest[] readList;
 
-    public GenericReadRequestMessage(ByteBuf buffer, int requestId)
-    {
+    public GenericReadRequestMessage(ByteBuf buffer, int requestId) {
         super(buffer, requestId);
 
         int alen = buffer.getInt(20);
@@ -80,7 +72,8 @@ public abstract class GenericReadRequestMessage extends AbstractXrootdRequest
                 pathid = -1;
             } else if (alen % 16 != 8) {
                 pathid = -1;
-                LOGGER.warn("invalid readv request: data doesn't start with 8 byte prefix (pathid)");
+                LOGGER.warn(
+                      "invalid readv request: data doesn't start with 8 byte prefix (pathid)");
             } else {
                 pathid = buffer.getUnsignedByte(24);
                 prefix = 8;
@@ -93,24 +86,21 @@ public abstract class GenericReadRequestMessage extends AbstractXrootdRequest
             for (int i = 0; i < numberOfListEntries; i++) {
                 int j = 24 + prefix + i * 16;
                 readList[i] = new EmbeddedReadRequest(buffer.getInt(j),
-                                                      buffer.getInt(j + 4),
-                                                      buffer.getLong(j + 8));
+                      buffer.getInt(j + 4),
+                      buffer.getLong(j + 8));
             }
         }
     }
 
-    public int getPathID()
-    {
+    public int getPathID() {
         return pathid;
     }
 
-    protected int getSizeOfList()
-    {
+    protected int getSizeOfList() {
         return readList.length;
     }
 
-    protected EmbeddedReadRequest[] getReadRequestList()
-    {
+    protected EmbeddedReadRequest[] getReadRequestList() {
         return readList;
     }
 }

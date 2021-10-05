@@ -1,43 +1,38 @@
 /**
  * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
- *
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.plugins.authz.scitokens;
 
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
+
 import io.netty.channel.ChannelHandlerContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.security.auth.Subject;
-
 import java.net.InetSocketAddress;
 import java.util.Map;
-
+import javax.security.auth.Subject;
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.plugins.AuthorizationHandler;
 import org.dcache.xrootd.protocol.XrootdProtocol.FilePerm;
 import org.dcache.xrootd.security.TokenValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
+public class XrootdSciTokenAuthzHandler implements AuthorizationHandler {
 
-public class XrootdSciTokenAuthzHandler implements AuthorizationHandler
-{
     protected static final Logger LOGGER
-                    = LoggerFactory.getLogger(XrootdSciTokenAuthzHandler.class);
+          = LoggerFactory.getLogger(XrootdSciTokenAuthzHandler.class);
 
     /**
      * The path query name to which the SciToken value is assigned.
@@ -78,7 +73,7 @@ public class XrootdSciTokenAuthzHandler implements AuthorizationHandler
      */
     protected final boolean strict;
 
-    protected final TokenValidator        validator;
+    protected final TokenValidator validator;
     protected final ChannelHandlerContext ctx;
 
     /**
@@ -90,9 +85,8 @@ public class XrootdSciTokenAuthzHandler implements AuthorizationHandler
      * @param ctx      of current call
      */
     public XrootdSciTokenAuthzHandler(TokenValidator validator,
-                                      boolean strict,
-                                      ChannelHandlerContext ctx)
-    {
+          boolean strict,
+          ChannelHandlerContext ctx) {
         this.validator = validator;
         this.strict = strict;
         this.ctx = ctx;
@@ -100,17 +94,16 @@ public class XrootdSciTokenAuthzHandler implements AuthorizationHandler
 
     @Override
     public String authorize(Subject subject,
-                            InetSocketAddress localAddress,
-                            InetSocketAddress remoteAddress,
-                            String path,
-                            Map<String, String> opaque,
-                            int request,
-                            FilePerm mode)
-                    throws XrootdException, SecurityException
-    {
+          InetSocketAddress localAddress,
+          InetSocketAddress remoteAddress,
+          String path,
+          Map<String, String> opaque,
+          int request,
+          FilePerm mode)
+          throws XrootdException, SecurityException {
         LOGGER.trace("authorize: {}, {}, {}, {}, {}, {}, {}.",
-                    subject, localAddress, remoteAddress,
-                    path, opaque, request, mode);
+              subject, localAddress, remoteAddress,
+              path, opaque, request, mode);
 
         String tpcStage = opaque.get(TPC_STAGE);
         if (TPC_PLACEMENT.equals(tpcStage)) {
@@ -127,7 +120,7 @@ public class XrootdSciTokenAuthzHandler implements AuthorizationHandler
             }
 
             throw new XrootdException(kXR_InvalidRequest,
-                                      "user provided no bearer token.");
+                  "user provided no bearer token.");
         }
 
         /*

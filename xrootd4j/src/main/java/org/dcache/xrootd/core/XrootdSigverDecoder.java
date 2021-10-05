@@ -1,32 +1,31 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
  *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.core;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_DecryptErr;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_SigVerErr;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_write;
+import static org.dcache.xrootd.protocol.messages.SigverRequest.SIGVER_VERSION;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_nodata;
 
 import com.google.common.base.Strings;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
@@ -35,36 +34,31 @@ import java.security.NoSuchProviderException;
 import java.util.Arrays;
 import java.util.Formatter;
 import java.util.List;
-
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import org.dcache.xrootd.protocol.messages.ErrorResponse;
 import org.dcache.xrootd.protocol.messages.SigverRequest;
 import org.dcache.xrootd.protocol.messages.XrootdRequest;
 import org.dcache.xrootd.security.BufferDecrypter;
 import org.dcache.xrootd.security.SigningPolicy;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_DecryptErr;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_SigVerErr;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_write;
-import static org.dcache.xrootd.protocol.messages.SigverRequest.SIGVER_VERSION;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_nodata;
-
 /**
- * <p>A FrameDecoder decoding xrootd frames into AbstractRequestMessage
+ * A FrameDecoder decoding xrootd frames into AbstractRequestMessage
  * objects. Provides signed hash verification capabilities.</p>
  *
- * <p>Maintains the last seqno used on this TCP connection, as
+ * Maintains the last seqno used on this TCP connection, as
  *    well as the last sigver request.  When the next request
  *    arrives, verifies that its hash matches the signature of
  *    the sigver request.  If the protocol requires generalized
  *    encryption (session key), the signature is first decrypted
  *    using the provided module.</p>
  *
- * <p>Must be substituted for the vanilla message decoder.</p>
+ * Must be substituted for the vanilla message decoder.</p>
  */
-public class XrootdSigverDecoder extends AbstractXrootdDecoder
-{
-    private static String printHex(byte[] array)
-    {
+public class XrootdSigverDecoder extends AbstractXrootdDecoder {
+
+    private static String printHex(byte[] array) {
         Formatter formatter = new Formatter();
         for (byte b : array) {
             formatter.format("%02x", b);
@@ -73,21 +67,19 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
     }
 
     private final BufferDecrypter decryptionHandler;
-    private final SigningPolicy   signingPolicy;
+    private final SigningPolicy signingPolicy;
 
     private SigverRequest currentSigverRequest;
-    private long          lastSeqNo = -1L;
+    private long lastSeqNo = -1L;
 
     public XrootdSigverDecoder(SigningPolicy signingPolicy,
-                               BufferDecrypter decryptionHandler)
-    {
+          BufferDecrypter decryptionHandler) {
         this.signingPolicy = signingPolicy;
         this.decryptionHandler = decryptionHandler;
     }
 
     @Override
-    protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out)
-    {
+    protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
         int length = verifyMessageLength(in);
 
         if (length < 0) {
@@ -104,7 +96,7 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
 
         try {
             if (request instanceof SigverRequest) {
-                setSigver((SigverRequest)request);
+                setSigver((SigverRequest) request);
                 /*
                  *  No need to pass it downstream.
                  */
@@ -115,87 +107,85 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
 
             if (signingPolicy.requiresSigning(request)) {
                 verifySignedHash(request.getStreamId(),
-                                 requestId,
-                                 frame,
-                                 ctx);
+                      requestId,
+                      frame,
+                      ctx);
             }
         } catch (XrootdException e) {
             ErrorResponse<?> response
-                            = new ErrorResponse<>(request,
-                                                  e.getError(),
-                                                  Strings.nullToEmpty(e.getMessage()));
+                  = new ErrorResponse<>(request,
+                  e.getError(),
+                  Strings.nullToEmpty(e.getMessage()));
             ctx.writeAndFlush(response)
-               .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+                  .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
             return;
         }
 
         out.add(request);
     }
 
-    private void setSigver(SigverRequest request) throws XrootdException
-    {
+    private void setSigver(SigverRequest request) throws XrootdException {
         if (request.getSeqno() <= lastSeqNo) {
             throw new XrootdException(kXR_SigVerErr,
-                                      "signed hash verification:"
-                                                      + " bad sequence number.");
+                  "signed hash verification:"
+                        + " bad sequence number.");
         }
 
         if (request.getVersion() != SIGVER_VERSION) {
             throw new XrootdException(kXR_SigVerErr,
-                                      "signed hash verification:"
-                                                      + " unsupported version number.");
+                  "signed hash verification:"
+                        + " unsupported version number.");
         }
 
         if (request.isRSAKey()) {
             throw new XrootdException(kXR_SigVerErr,
-                                      "signed hash verification:"
-                                                      + " unsupported use of RSA key.");
+                  "signed hash verification:"
+                        + " unsupported use of RSA key.");
         }
 
         if (!request.isSHA256()) {
             throw new XrootdException(kXR_SigVerErr,
-                                      "signed hash verification:"
-                                                      + " unsupported crypto hash.");
+                  "signed hash verification:"
+                        + " unsupported crypto hash.");
         }
 
         currentSigverRequest = request;
     }
 
     private void verifySignedHash(int streamId,
-                                  int requestId,
-                                  ByteBuf frame,
-                                  ChannelHandlerContext ctx)
-                    throws XrootdException
-    {
+          int requestId,
+          ByteBuf frame,
+          ChannelHandlerContext ctx)
+          throws XrootdException {
         boolean forceSigning = signingPolicy.isForceSigning();
 
         LOGGER.debug("calling verify signed hash for request {} on stream {}, "
-                                     + "force {}.",
-                     requestId, streamId, forceSigning);
+                    + "force {}.",
+              requestId, streamId, forceSigning);
 
         if (currentSigverRequest == null) {
             if (decryptionHandler != null || forceSigning) {
                 throw new XrootdException(kXR_SigVerErr,
-                                          "signed hash verification: "
-                                                          + "did not receive preceding "
-                                                          + "sigver request.");
+                      "signed hash verification: "
+                            + "did not receive preceding "
+                            + "sigver request.");
             }
 
             LOGGER.debug("skipping verify signed hash for request {} on stream {}.",
-                         requestId, streamId);
+                  requestId, streamId);
             return;
         }
 
         if (currentSigverRequest.getStreamId() != streamId) {
             throw new XrootdException(kXR_SigVerErr,
-                                      "signed hash verification:"
-                                                      + " stream id mismatch.");
+                  "signed hash verification:"
+                        + " stream id mismatch.");
         }
 
         if (currentSigverRequest.getExpectrid() != requestId) {
             throw new XrootdException(kXR_SigVerErr,
-                                      "signed hash verification:"
-                                                      + " request id mismatch.");
+                  "signed hash verification:"
+                        + " request id mismatch.");
         }
 
         byte[] received = null;
@@ -205,12 +195,12 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
                 currentSigverRequest.decrypt(decryptionHandler);
                 received = currentSigverRequest.getSignature();
             } catch (NoSuchPaddingException
-                            | InvalidAlgorithmParameterException
-                            | NoSuchAlgorithmException
-                            | IllegalBlockSizeException
-                            | BadPaddingException
-                            | NoSuchProviderException
-                            | InvalidKeyException e) {
+                  | InvalidAlgorithmParameterException
+                  | NoSuchAlgorithmException
+                  | IllegalBlockSizeException
+                  | BadPaddingException
+                  | NoSuchProviderException
+                  | InvalidKeyException e) {
                 throw new XrootdException(kXR_DecryptErr, e.toString());
             }
         } else if (forceSigning) {
@@ -219,45 +209,43 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
 
         if (received != null) {
             byte[] contents = extractContents(requestId,
-                                              currentSigverRequest.getFlags(),
-                                              frame);
+                  currentSigverRequest.getFlags(),
+                  frame);
             compareHashes(received,
-                          generateHash(currentSigverRequest.getSeqno(),
-                                       contents,
-                                       ctx));
+                  generateHash(currentSigverRequest.getSeqno(),
+                        contents,
+                        ctx));
         }
 
         LOGGER.debug("verify signed hash for request {} on stream {}, "
-                                     + "force {}, succeeded.",
-                     requestId, streamId, forceSigning);
+                    + "force {}, succeeded.",
+              requestId, streamId, forceSigning);
         updateSeqNo();
     }
 
     private void compareHashes(byte[] received, byte[] generated)
-                    throws XrootdException
-    {
+          throws XrootdException {
         if (received.length != generated.length) {
             LOGGER.info("compareHashes, different lengths:\n\treceived {}\n\tgenerated {}",
-                         printHex(received),
-                         printHex(generated));
+                  printHex(received),
+                  printHex(generated));
             throw new XrootdException(kXR_SigVerErr, "signed hash verification:"
-                            + " received hash length does not match generated hash.");
+                  + " received hash length does not match generated hash.");
         }
 
         if (!Arrays.equals(received, generated)) {
             LOGGER.info("compareHashes, do not match:\n\treceived {}\n\tgenerated {}",
-                         printHex(received),
-                         printHex(generated));
+                  printHex(received),
+                  printHex(generated));
             throw new XrootdException(kXR_SigVerErr, "signed hash verification:"
-                            + " received hash does not match generated hash.");
+                  + " received hash does not match generated hash.");
         }
     }
 
     private byte[] extractContents(int requestId,
-                                   int flags,
-                                   ByteBuf frame)
-                    throws XrootdException
-    {
+          int flags,
+          ByteBuf frame)
+          throws XrootdException {
         int len;
 
         /*
@@ -267,9 +255,9 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
         if (requestId == kXR_write) {
             if (flags != kXR_nodata) {
                 throw new XrootdException(kXR_SigVerErr,
-                                          "signed hash verification:"
-                                                          + " kXR_nodata not set, "
-                                                          + "cannot verify write request.");
+                      "signed hash verification:"
+                            + " kXR_nodata not set, "
+                            + "cannot verify write request.");
             }
             len = 24;
         } else {
@@ -292,10 +280,9 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
      *  contains the raw bytes of the request.
      */
     private byte[] generateHash(long seqno,
-                                byte[] payload,
-                                ChannelHandlerContext ctx)
-                    throws XrootdException
-    {
+          byte[] payload,
+          ChannelHandlerContext ctx)
+          throws XrootdException {
         ByteBuf buffer = ctx.alloc().buffer(8 + payload.length);
         try {
             buffer.writeLong(seqno);
@@ -312,8 +299,7 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
         }
     }
 
-    private void updateSeqNo()
-    {
+    private void updateSeqNo() {
         lastSeqNo = currentSigverRequest.getSeqno();
         currentSigverRequest = null;
     }

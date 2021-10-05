@@ -1,22 +1,23 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
- *
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.protocol.messages;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asynresp;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_attn;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFuture;
@@ -27,40 +28,32 @@ import io.netty.util.AbstractReferenceCounted;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.ReferenceCounted;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asynresp;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_attn;
-
 public class AsyncResponse<T extends XrootdRequest>
-        extends AbstractReferenceCounted
-        implements XrootdResponse<T>
-{
+      extends AbstractReferenceCounted
+      implements XrootdResponse<T> {
+
     private final XrootdResponse<T> response;
 
-    public AsyncResponse(XrootdResponse<T> response)
-    {
+    public AsyncResponse(XrootdResponse<T> response) {
         this.response = response;
     }
 
     @Override
-    public int getStatus()
-    {
+    public int getStatus() {
         return response.getStatus();
     }
 
-    public XrootdResponse<T> getResponse()
-    {
+    public XrootdResponse<T> getResponse() {
         return response;
     }
 
     @Override
-    public T getRequest()
-    {
+    public T getRequest() {
         return response.getRequest();
     }
 
     @Override
-    public int getDataLength()
-    {
+    public int getDataLength() {
         /* First 8 bytes are the header of kXR_attn and the next
          * 8 bytes are the header of the payload.
          */
@@ -68,8 +61,7 @@ public class AsyncResponse<T extends XrootdRequest>
     }
 
     @Override
-    public void writeTo(ChannelHandlerContext ctx, final ChannelPromise promise)
-    {
+    public void writeTo(ChannelHandlerContext ctx, final ChannelPromise promise) {
         try {
             int dlen = getDataLength();
             ByteBuf header = ctx.alloc().buffer(8 + dlen);
@@ -85,31 +77,27 @@ public class AsyncResponse<T extends XrootdRequest>
                 return;
             }
             ctx.write(header).addListener(
-                    new ChannelFutureListener()
-                    {
-                        @Override
-                        public void operationComplete(ChannelFuture future) throws Exception
-                        {
-                            if (!future.isSuccess()) {
-                                promise.tryFailure(future.cause());
-                            }
-                        }
-                    });
+                  new ChannelFutureListener() {
+                      @Override
+                      public void operationComplete(ChannelFuture future) throws Exception {
+                          if (!future.isSuccess()) {
+                              promise.tryFailure(future.cause());
+                          }
+                      }
+                  });
 
             ChannelPromise channelPromise = ctx.newPromise();
             channelPromise.addListener(
-                    new ChannelFutureListener()
-                    {
-                        @Override
-                        public void operationComplete(ChannelFuture future) throws Exception
-                        {
-                            if (future.isSuccess()) {
-                                promise.trySuccess();
-                            } else {
-                                promise.tryFailure(future.cause());
-                            }
-                        }
-                    });
+                  new ChannelFutureListener() {
+                      @Override
+                      public void operationComplete(ChannelFuture future) throws Exception {
+                          if (future.isSuccess()) {
+                              promise.trySuccess();
+                          } else {
+                              promise.tryFailure(future.cause());
+                          }
+                      }
+                  });
             ReferenceCountUtil.retain(response).writeTo(ctx, channelPromise);
         } finally {
             release();
@@ -117,15 +105,13 @@ public class AsyncResponse<T extends XrootdRequest>
     }
 
     @Override
-    public ReferenceCounted touch(Object hint)
-    {
+    public ReferenceCounted touch(Object hint) {
         ReferenceCountUtil.touch(response, hint);
         return this;
     }
 
     @Override
-    protected void deallocate()
-    {
+    protected void deallocate() {
         ReferenceCountUtil.release(response);
     }
 }

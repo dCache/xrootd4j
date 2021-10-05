@@ -1,73 +1,84 @@
 /**
  * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
- *
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.security;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.PROTOCOL_TLS_VERSION;
+import static org.dcache.xrootd.protocol.XrootdProtocol.PROTOCOL_VERSION;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ExpBind;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ExpGPF;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ExpGPFA;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ExpLogin;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ExpNone;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ExpTPC;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_TLSRequired;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ableTLS;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_bind;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_secreqs;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_wantTLS;
+import static org.dcache.xrootd.security.TLSSessionInfo.TlsActivation.DATA;
+import static org.dcache.xrootd.security.TLSSessionInfo.TlsActivation.LOGIN;
+import static org.dcache.xrootd.security.TLSSessionInfo.TlsActivation.NONE;
+import static org.dcache.xrootd.security.TLSSessionInfo.TlsActivation.TPC;
+import static org.dcache.xrootd.util.ServerProtocolFlags.TlsMode.OFF;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.FutureListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.plugins.tls.SSLHandlerFactory;
 import org.dcache.xrootd.tpc.XrootdTpcInfo;
 import org.dcache.xrootd.util.ServerProtocolFlags;
 import org.dcache.xrootd.util.ServerProtocolFlags.TlsMode;
-
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import static org.dcache.xrootd.security.TLSSessionInfo.TlsActivation.*;
-import static org.dcache.xrootd.util.ServerProtocolFlags.TlsMode.OFF;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *  Used by both the server and the TPC client to determine when TLS
  *  should be activated.  Automatically adds the SSLHandler to the
  *  pipeline when activate is true.
  */
-public class TLSSessionInfo
-{
-    private static final Logger LOGGER
-                    = LoggerFactory.getLogger(TLSSessionInfo.class);
+public class TLSSessionInfo {
 
-    public static boolean isTLSOn(ChannelHandlerContext ctx)
-    {
+    private static final Logger LOGGER
+          = LoggerFactory.getLogger(TLSSessionInfo.class);
+
+    public static boolean isTLSOn(ChannelHandlerContext ctx) {
         return ctx.pipeline().get(SslHandler.class) != null;
     }
 
     private static void operationComplete(String origin,
-                                          Future<Channel> future)
-    {
+          Future<Channel> future) {
         if (future.isSuccess()) {
             LOGGER.debug("{}: TLS handshake completed.", origin);
         } else {
             LOGGER.warn("{}: TLS handshake failed: {}.", origin,
-                        String.valueOf(future.cause()));
+                  String.valueOf(future.cause()));
         }
     }
 
-    enum ClientTls
-    {
+    enum ClientTls {
         REQUIRES, ABLE, NONE;
 
-        static ClientTls getMode(int version, int options)
-        {
+        static ClientTls getMode(int version, int options) {
             if (version < PROTOCOL_TLS_VERSION) {
                 return NONE;
             }
@@ -84,12 +95,10 @@ public class TLSSessionInfo
         }
     }
 
-    enum TlsActivation
-    {
+    enum TlsActivation {
         NONE, LOGIN, SESSION, DATA, GPF, TPC;
 
-        public static TlsActivation valueOf(ServerProtocolFlags flags)
-        {
+        public static TlsActivation valueOf(ServerProtocolFlags flags) {
             if (flags.getMode() == OFF) {
                 return NONE;
             }
@@ -110,8 +119,8 @@ public class TLSSessionInfo
         }
     }
 
-    abstract class TlsSession implements FutureListener<Channel>
-    {
+    abstract class TlsSession implements FutureListener<Channel> {
+
         /**
          *   Server settings.
          */
@@ -127,14 +136,12 @@ public class TLSSessionInfo
         /**
          *   For the Netty pipeline.
          */
-        protected SslHandler        sslHandler;
+        protected SslHandler sslHandler;
 
-        protected TlsSession()
-        {
+        protected TlsSession() {
         }
 
-        protected TlsSession(ServerProtocolFlags serverFlags)
-        {
+        protected TlsSession(ServerProtocolFlags serverFlags) {
             this.serverFlags = new ServerProtocolFlags(serverFlags);
         }
 
@@ -144,8 +151,7 @@ public class TLSSessionInfo
          *
          *   @param other to clone
          */
-        protected TlsSession(TlsSession other)
-        {
+        protected TlsSession(TlsSession other) {
             this.serverFlags = new ServerProtocolFlags(other.serverFlags);
             this.version = other.version;
             this.options = other.options;
@@ -153,14 +159,13 @@ public class TLSSessionInfo
         }
 
         protected void setClientFlags(int version,
-                                   int options,
-                                   int expect)
-        {
+              int options,
+              int expect) {
             this.version = version;
             this.options = options;
             this.expect = expect;
             LOGGER.debug("Client version {}, options {}, expect {}.",
-                        version, options, expect);
+                  version, options, expect);
         }
 
         /**
@@ -171,27 +176,24 @@ public class TLSSessionInfo
         protected abstract void configure() throws XrootdException;
 
         protected abstract boolean transitionedToTLS(int request,
-                                                  ChannelHandlerContext ctx)
-                        throws XrootdException;
+              ChannelHandlerContext ctx)
+              throws XrootdException;
     }
 
     /**
      *   For local door or pool.
      */
-    class ServerTlsSession extends TlsSession
-    {
-        protected ServerTlsSession(ServerProtocolFlags localServerFlags)
-        {
+    class ServerTlsSession extends TlsSession {
+
+        protected ServerTlsSession(ServerProtocolFlags localServerFlags) {
             super(localServerFlags);
         }
 
-        protected ServerTlsSession(TlsSession other)
-        {
+        protected ServerTlsSession(TlsSession other) {
             super(other);
         }
 
-        protected void configure() throws XrootdException
-        {
+        protected void configure() throws XrootdException {
             ClientTls clientTls = ClientTls.getMode(version, options);
 
             if (clientTls == ClientTls.NONE) {
@@ -213,8 +215,8 @@ public class TLSSessionInfo
                  */
                 if (serverFlags.getMode() == TlsMode.STRICT) {
                     throw new XrootdException(kXR_TLSRequired,
-                                              "Server accepts only secure "
-                                                    + "connections.");
+                          "Server accepts only secure "
+                                + "connections.");
                 }
 
                 serverFlags.setMode(OFF);
@@ -226,9 +228,9 @@ public class TLSSessionInfo
                 LOGGER.debug("TLS is OFF.");
                 if (clientTls == ClientTls.REQUIRES) {
                     throw new XrootdException(kXR_TLSRequired,
-                                              "Server is not able to "
-                                                              + "accept secure "
-                                                              + "connections.");
+                          "Server is not able to "
+                                + "accept secure "
+                                + "connections.");
                 }
                 return;
             }
@@ -241,12 +243,11 @@ public class TLSSessionInfo
                 serverFlags.setRequiresTLSForLogin(true);
                 serverFlags.setGoToTLS(true);
                 LOGGER.debug("setLocalTlsActivation, activation is now {}.",
-                             LOGIN);
+                      LOGIN);
                 return;
             }
 
-            switch (expect)
-            {
+            switch (expect) {
                 case kXR_ExpNone:
                     LOGGER.debug("setLocalTlsActivation, no expect flags.");
                     /*
@@ -262,35 +263,35 @@ public class TLSSessionInfo
                 case kXR_ExpBind:
                     if (serverFlags.requiresTLSForData()) {
                         LOGGER.debug("setLocalTlsActivation, requires TLS for "
-                                                     + "data, client kXR_ExpBind.");
+                              + "data, client kXR_ExpBind.");
                         serverFlags.setGoToTLS(true);
                     }
                     break;
                 case kXR_ExpGPF:
                     if (serverFlags.requiresTLSForLogin()) {
                         LOGGER.debug("setLocalTlsActivation, requires TLS for "
-                                                     + "login, client kXR_ExpGPF.");
+                              + "login, client kXR_ExpGPF.");
                         serverFlags.setGoToTLS(true);
                     }
                     break;
                 case kXR_ExpGPFA:
                     if (serverFlags.requiresTLSForGPFA()) {
                         LOGGER.debug("setLocalTlsActivation, requires TLS for "
-                                                     + "GPFA, client kXR_ExpGPFA.");
+                              + "GPFA, client kXR_ExpGPFA.");
                         serverFlags.setGoToTLS(true);
                     }
                     break;
                 case kXR_ExpLogin:
                     if (serverFlags.requiresTLSForLogin()) {
                         LOGGER.debug("setLocalTlsActivation, requires TLS for "
-                                                     + "login, client kXR_ExpLogin.");
+                              + "login, client kXR_ExpLogin.");
                         serverFlags.setGoToTLS(true);
                     }
                     break;
                 case kXR_ExpTPC:
                     if (serverFlags.requiresTLSForLogin()) {
                         LOGGER.debug("setLocalTlsActivation, requires TLS for "
-                                                     + "login, client kXR_ExpTPC.");
+                              + "login, client kXR_ExpTPC.");
                         serverFlags.setGoToTLS(true);
                         break;
                     }
@@ -311,9 +312,9 @@ public class TLSSessionInfo
                     if (serverFlags.requiresTLSForTPC()) {
                         serverFlags.setRequiresTLSForSession(true);
                         LOGGER.debug("setLocalTlsActivation, requires TLS for "
-                                                     + "TPC, client kXR_ExpTPC; "
-                                                     + "setting TLS for session "
-                                                     + "to true.");
+                              + "TPC, client kXR_ExpTPC; "
+                              + "setting TLS for session "
+                              + "to true.");
                     }
                     break;
                 default:
@@ -327,17 +328,16 @@ public class TLSSessionInfo
         }
 
         protected boolean transitionedToTLS(int request, ChannelHandlerContext ctx)
-                        throws XrootdException
-        {
+              throws XrootdException {
             if (isTLSOn(ctx)) {
                 return false;
             }
 
             TlsActivation tlsActivation
-                            = TlsActivation.valueOf(serverFlags);
+                  = TlsActivation.valueOf(serverFlags);
 
             LOGGER.debug("transitionedToTLS, server tlsActivation: {}.",
-                         tlsActivation);
+                  tlsActivation);
 
             /*
              *  TPC is not strong enough to warrant activation.
@@ -350,15 +350,14 @@ public class TLSSessionInfo
 
             if (serverSslHandlerFactory == null) {
                 throw new XrootdException(kXR_ServerError,
-                                          "no ssl handler factory "
-                                                          + "set on server.");
+                      "no ssl handler factory "
+                            + "set on server.");
             }
 
             boolean activate = serverFlags.goToTLS();
 
             if (!activate) {
-                switch (request)
-                {
+                switch (request) {
                     case kXR_protocol:
                         activate = tlsActivation == LOGIN;
                         break;
@@ -377,9 +376,9 @@ public class TLSSessionInfo
                 sslHandler.engine().setWantClientAuth(false);
                 ctx.pipeline().addFirst(sslHandler);
                 LOGGER.debug("PIPELINE addFirst:  SSLHandler need auth {}, "
-                                             + "want auth {}.",
-                             sslHandler.engine().getNeedClientAuth(),
-                             sslHandler.engine().getWantClientAuth());
+                            + "want auth {}.",
+                      sslHandler.engine().getNeedClientAuth(),
+                      sslHandler.engine().getWantClientAuth());
                 sslHandler.handshakeFuture().addListener(this);
             }
 
@@ -387,8 +386,7 @@ public class TLSSessionInfo
         }
 
         @Override
-        public void operationComplete(Future<Channel> future)
-        {
+        public void operationComplete(Future<Channel> future) {
             TLSSessionInfo.operationComplete("Server", future);
         }
     }
@@ -396,8 +394,8 @@ public class TLSSessionInfo
     /**
      *   For the TPC client.
      */
-    class ClientTlsSession extends TlsSession
-    {
+    class ClientTlsSession extends TlsSession {
+
         /**
          *  The TPC client only sets kXR_wantTLS when the client has
          *  expressed 'xroots' as the source server protocol (= tpc.spr)
@@ -408,13 +406,11 @@ public class TLSSessionInfo
          */
         protected final boolean requiresTLS;
 
-        protected ClientTlsSession(XrootdTpcInfo info)
-        {
+        protected ClientTlsSession(XrootdTpcInfo info) {
             requiresTLS = info.isTls();
         }
 
-        protected void configure()
-        {
+        protected void configure() {
             version = PROTOCOL_VERSION;
 
             /*
@@ -443,14 +439,12 @@ public class TLSSessionInfo
             }
         }
 
-        protected void setSourceServerFlags(int flags)
-        {
+        protected void setSourceServerFlags(int flags) {
             serverFlags = new ServerProtocolFlags(flags);
         }
 
         protected boolean transitionedToTLS(int request, ChannelHandlerContext ctx)
-                        throws XrootdException
-        {
+              throws XrootdException {
             /*
              *  REVISIT
              *
@@ -477,8 +471,8 @@ public class TLSSessionInfo
             if (!serverFlags.supportsTLS()) {
                 if (requiresTLS) {
                     throw new XrootdException(kXR_TLSRequired,
-                                              "Source is not able to "
-                                                + "accept secure connections.");
+                          "Source is not able to "
+                                + "accept secure connections.");
                 }
 
                 return false;
@@ -486,25 +480,24 @@ public class TLSSessionInfo
 
             if (clientSslHandlerFactory == null) {
                 throw new XrootdException(kXR_ServerError,
-                                          "no ssl handler factory set on "
-                                                          + "third-party "
-                                                          + "client.");
+                      "no ssl handler factory set on "
+                            + "third-party "
+                            + "client.");
 
             }
 
             boolean activate = serverFlags.goToTLS();
 
             TlsActivation tlsActivation
-                            = TlsActivation.valueOf(serverFlags);
+                  = TlsActivation.valueOf(serverFlags);
 
             if (!activate) {
-                switch (request)
-                {
+                switch (request) {
                     case kXR_login:
                         activate = tlsActivation == LOGIN;
                         break;
                     case kXR_bind:
-                        activate = tlsActivation  == DATA;
+                        activate = tlsActivation == DATA;
                         break;
                     default:
                         /*
@@ -512,20 +505,20 @@ public class TLSSessionInfo
                          *  source server sufficient to trigger TLS.
                          */
                         activate = !(tlsActivation == TPC
-                                        || tlsActivation == NONE);
+                              || tlsActivation == NONE);
                         break;
                 }
             }
 
             if (activate) {
-                sslHandler = (SslHandler)clientSslHandlerFactory.createHandler();
+                sslHandler = (SslHandler) clientSslHandlerFactory.createHandler();
                 sslHandler.engine().setNeedClientAuth(false);
                 sslHandler.engine().setWantClientAuth(false);
                 ctx.pipeline().addFirst(sslHandler);
                 LOGGER.debug("PIPELINE addFirst:  SSLHandler need auth {}, "
-                                             + "want auth, {}.",
-                             sslHandler.engine().getNeedClientAuth(),
-                             sslHandler.engine().getWantClientAuth());
+                            + "want auth, {}.",
+                      sslHandler.engine().getNeedClientAuth(),
+                      sslHandler.engine().getWantClientAuth());
                 sslHandler.handshakeFuture().addListener(this);
                 LOGGER.info("TPC client initiating SSL handshake");
             }
@@ -534,8 +527,7 @@ public class TLSSessionInfo
         }
 
         @Override
-        public void operationComplete(Future<Channel> future)
-        {
+        public void operationComplete(Future<Channel> future) {
             TLSSessionInfo.operationComplete("TPC client", future);
         }
     }
@@ -564,16 +556,14 @@ public class TLSSessionInfo
      */
     private SSLHandlerFactory clientSslHandlerFactory;
 
-    public TLSSessionInfo(ServerProtocolFlags serverFlags)
-    {
+    public TLSSessionInfo(ServerProtocolFlags serverFlags) {
         serverSession = new ServerTlsSession(serverFlags);
     }
 
     /**
      * @param other to clone from
      */
-    public TLSSessionInfo(TLSSessionInfo other)
-    {
+    public TLSSessionInfo(TLSSessionInfo other) {
         serverSession = new ServerTlsSession(other.serverSession);
         clientSslHandlerFactory = other.clientSslHandlerFactory;
         serverSslHandlerFactory = other.serverSslHandlerFactory;
@@ -588,33 +578,29 @@ public class TLSSessionInfo
      * @return whether the SSLHandler was added the pipeline.
      */
     public boolean clientTransitionedToTLS(int request,
-                                           ChannelHandlerContext ctx)
-                    throws XrootdException
-    {
+          ChannelHandlerContext ctx)
+          throws XrootdException {
         boolean response = tpcClientSession.transitionedToTLS(request, ctx);
         LOGGER.debug("client transitioned to TLS ? {}.", response);
         return response;
     }
 
-    public boolean clientUsesTls()
-    {
+    public boolean clientUsesTls() {
         ClientTls clientTls = ClientTls.getMode(tpcClientSession.version,
-                                                tpcClientSession.options);
+              tpcClientSession.options);
         boolean response = (clientTls != ClientTls.NONE);
         LOGGER.debug("client uses TLS ? {}.", response);
         return response;
     }
 
-    public void createClientSession(XrootdTpcInfo info)
-    {
+    public void createClientSession(XrootdTpcInfo info) {
         tpcClientSession = new ClientTlsSession(info);
         tpcClientSession.configure();
     }
 
-    public boolean isIncomingClientTLSCapable()
-    {
+    public boolean isIncomingClientTLSCapable() {
         ClientTls clientTls = ClientTls.getMode(serverSession.version,
-                                                serverSession.options);
+              serverSession.options);
         boolean response = clientTls != ClientTls.NONE;
         LOGGER.debug("isClientTLSCapable ? {}.", response);
         return response;
@@ -625,27 +611,23 @@ public class TLSSessionInfo
      *
      * @param sourceServerFlags from the protocol response
      */
-    public void setSourceServerFlags(int sourceServerFlags)
-    {
+    public void setSourceServerFlags(int sourceServerFlags) {
         LOGGER.debug("setSourceServerFlags {}.", sourceServerFlags);
         tpcClientSession.setSourceServerFlags(sourceServerFlags);
     }
 
-    public int[] getClientFlags()
-    {
+    public int[] getClientFlags() {
         return new int[]{tpcClientSession.version,
-                         tpcClientSession.options,
-                         tpcClientSession.expect};
+              tpcClientSession.options,
+              tpcClientSession.expect};
     }
 
-    public String getClientTls()
-    {
+    public String getClientTls() {
         return ClientTls.getMode(tpcClientSession.version,
-                                 tpcClientSession.options).name();
+              tpcClientSession.options).name();
     }
 
-    public ServerProtocolFlags getLocalServerProtocolFlags()
-    {
+    public ServerProtocolFlags getLocalServerProtocolFlags() {
         return serverSession.serverFlags;
     }
 
@@ -658,24 +640,21 @@ public class TLSSessionInfo
      * @return whether the SSLHandler was added the pipeline.
      */
     public boolean serverTransitionedToTLS(int request,
-                                           ChannelHandlerContext ctx)
-                    throws XrootdException
-    {
+          ChannelHandlerContext ctx)
+          throws XrootdException {
         boolean response = serverSession.transitionedToTLS(request, ctx);
         LOGGER.debug("server transitioned to TLS ? {}.", response);
         return response;
     }
 
-    public boolean serverUsesTls()
-    {
+    public boolean serverUsesTls() {
         boolean response = TlsActivation.valueOf(serverSession.serverFlags)
-                        != NONE;
+              != NONE;
         LOGGER.debug("server uses TLS ? {}.", response);
         return response;
     }
 
-    public void setClientSslHandlerFactory(SSLHandlerFactory sslHandlerFactory)
-    {
+    public void setClientSslHandlerFactory(SSLHandlerFactory sslHandlerFactory) {
         this.clientSslHandlerFactory = sslHandlerFactory;
     }
 
@@ -690,18 +669,16 @@ public class TLSSessionInfo
      *
      */
     public void setLocalTlsActivation(int version,
-                                      int clientOptions,
-                                      int clientExpect)
-                    throws XrootdException
-    {
+          int clientOptions,
+          int clientExpect)
+          throws XrootdException {
         LOGGER.debug("setLocalTlsActivation {}, {}, {}.",
-                     version, clientExpect, clientOptions);
+              version, clientExpect, clientOptions);
         serverSession.setClientFlags(version, clientOptions, clientExpect);
         serverSession.configure();
     }
 
-    public void setServerSslHandlerFactory(SSLHandlerFactory serverSslHandlerFactory)
-    {
+    public void setServerSslHandlerFactory(SSLHandlerFactory serverSslHandlerFactory) {
         this.serverSslHandlerFactory = serverSslHandlerFactory;
     }
 }

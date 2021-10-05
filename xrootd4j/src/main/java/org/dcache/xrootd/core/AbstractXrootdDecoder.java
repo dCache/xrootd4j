@@ -1,28 +1,47 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
- *
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.core;
 
+import static org.dcache.xrootd.protocol.XrootdProtocol.CLIENT_REQUEST_LEN;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_close;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_dirlist;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_endsess;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_locate;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mkdir;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mv;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_open;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_prepare;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_query;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_read;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_readv;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_rm;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_rmdir;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_set;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_sigver;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_stat;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_statx;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_sync;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_write;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.ByteToMessageDecoder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
 import org.dcache.xrootd.protocol.messages.DirListRequest;
@@ -47,8 +66,8 @@ import org.dcache.xrootd.protocol.messages.SyncRequest;
 import org.dcache.xrootd.protocol.messages.UnknownRequest;
 import org.dcache.xrootd.protocol.messages.WriteRequest;
 import org.dcache.xrootd.protocol.messages.XrootdRequest;
-
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Base class for frame decoders.
@@ -56,13 +75,12 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.*;
  * TODO: Implement zero-copy handling of write requests by splitting
  * the request into fragments.
  */
-public abstract class AbstractXrootdDecoder extends ByteToMessageDecoder
-{
-    protected static final Logger LOGGER =
-                    LoggerFactory.getLogger(AbstractXrootdDecoder.class);
+public abstract class AbstractXrootdDecoder extends ByteToMessageDecoder {
 
-    protected XrootdRequest getRequest(ByteBuf frame)
-    {
+    protected static final Logger LOGGER =
+          LoggerFactory.getLogger(AbstractXrootdDecoder.class);
+
+    protected XrootdRequest getRequest(ByteBuf frame) {
         int requestId = frame.getUnsignedShort(2);
 
         switch (requestId) {
@@ -104,7 +122,7 @@ public abstract class AbstractXrootdDecoder extends ByteToMessageDecoder
                 return new AuthenticationRequest(frame);
             case kXR_endsess:
                 return new EndSessionRequest(frame);
-            case kXR_locate :
+            case kXR_locate:
                 return new LocateRequest(frame);
             case kXR_query:
                 return new QueryRequest(frame);
@@ -115,8 +133,7 @@ public abstract class AbstractXrootdDecoder extends ByteToMessageDecoder
         }
     }
 
-    protected int verifyMessageLength(ByteBuf in)
-    {
+    protected int verifyMessageLength(ByteBuf in) {
         int readable = in.readableBytes();
 
         /* All other requests have a common framing format with a
@@ -131,7 +148,7 @@ public abstract class AbstractXrootdDecoder extends ByteToMessageDecoder
 
         if (headerFrameLength < 0) {
             LOGGER.error("Received illegal frame length in xrootd header: {}."
-                                          + " Closing channel.", headerFrameLength);
+                  + " Closing channel.", headerFrameLength);
             return -1;
         }
 

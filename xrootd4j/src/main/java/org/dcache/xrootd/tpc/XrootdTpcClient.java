@@ -3,20 +3,31 @@
  *
  * This file is part of xrootd4j.
  *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
  *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.tpc;
+
+import static io.netty.channel.ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ArgInvalid;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_FSError;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_IOError;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_close;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_endsess;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_handshake;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
+import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.AUTHZ;
+import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.CLIENT;
+import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.RENDEZVOUS_KEY;
 
 import com.google.common.base.Strings;
 import io.netty.bootstrap.Bootstrap;
@@ -30,9 +41,6 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.Date;
@@ -44,7 +52,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.core.XrootdSessionIdentifier;
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
@@ -60,25 +67,23 @@ import org.dcache.xrootd.tpc.protocol.messages.OutboundEndSessionRequest;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundHandshakeRequest;
 import org.dcache.xrootd.util.OpaqueStringParser;
 import org.dcache.xrootd.util.ParseException;
-
-import static io.netty.channel.ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE;
-import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.*;
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * <p>Internal third-party copy client responsible for reading the
+ * Internal third-party copy client responsible for reading the
  *    source file and writing it to the local server.</p>
  *
- * <p>A TpcClient is responsible for a single file transfer.
+ * A TpcClient is responsible for a single file transfer.
  *    It has its own channel/pipeline, and its lifecycle ends with the
  *    completion of the transfer, whereupon it is disconnected.</p>
  *
- * <p>A client is bound to its channel handlers through injection.</p>
+ * A client is bound to its channel handlers through injection.</p>
  */
-public class XrootdTpcClient
-{
-    private static final Logger              LOGGER
-                    = LoggerFactory.getLogger(XrootdTpcClient.class);
+public class XrootdTpcClient {
+
+    private static final Logger LOGGER
+          = LoggerFactory.getLogger(XrootdTpcClient.class);
 
     private static final int DISCONNECT_TIMEOUT_IN_SECONDS = 5;
     private static final int DEFAULT_RESPONSE_TIMEOUT_IN_SECONDS = 30;
@@ -92,8 +97,7 @@ public class XrootdTpcClient
      *
      * @return "pid" for the TPC client
      */
-    private static synchronized int getClientPid()
-    {
+    private static synchronized int getClientPid() {
         return ThreadLocalRandom.current().nextInt(99999);
     }
 
@@ -108,19 +112,19 @@ public class XrootdTpcClient
         return lastId++;
     }
 
-    private final int                        streamId;
-    private final String                     userUrn;
-    private final XrootdTpcInfo              info;
+    private final int streamId;
+    private final String userUrn;
+    private final XrootdTpcInfo info;
     private final TpcDelayedSyncWriteHandler writeHandler;
     private final Map<String, ChannelHandler> authnHandlers;
-    private final int                        pid;
-    private final String                     uname;
+    private final int pid;
+    private final String uname;
 
     private final ScheduledExecutorService executorService;
 
-    private int                           expectedRequestId;
+    private int expectedRequestId;
 
-    private SecurityInfo                  protocolInfo;
+    private SecurityInfo protocolInfo;
     private InboundAuthenticationResponse authResponse;
 
     /*
@@ -147,9 +151,9 @@ public class XrootdTpcClient
     /*
      * Open
      */
-    private int     cpsize;
-    private int     cptype;
-    private int     fhandle;
+    private int cpsize;
+    private int cptype;
+    private int fhandle;
     private boolean isOpenFile;
 
     /*
@@ -160,7 +164,7 @@ public class XrootdTpcClient
     /*
      * Netty
      */
-    private ChannelFuture              channelFuture;
+    private ChannelFuture channelFuture;
 
     private int errno;
     private String error;
@@ -173,10 +177,9 @@ public class XrootdTpcClient
     private ScheduledFuture timerTask;
 
     public XrootdTpcClient(String userUrn,
-                           XrootdTpcInfo info,
-                           TpcDelayedSyncWriteHandler writeHandler,
-                           ScheduledExecutorService executorService)
-    {
+          XrootdTpcInfo info,
+          TpcDelayedSyncWriteHandler writeHandler,
+          ScheduledExecutorService executorService) {
         this.streamId = getNextStreamId();
         this.info = info;
         this.writeHandler = writeHandler;
@@ -206,46 +209,43 @@ public class XrootdTpcClient
         timeOfFirstRedirect = 0;
     }
 
-    public synchronized boolean canRedirect()
-    {
+    public synchronized boolean canRedirect() {
         if (redirects >= 256 &&
-                System.currentTimeMillis() - timeOfFirstRedirect
-                            >= TimeUnit.MINUTES.toMillis(10)) {
-                return false;
+              System.currentTimeMillis() - timeOfFirstRedirect
+                    >= TimeUnit.MINUTES.toMillis(10)) {
+            return false;
         }
 
         return true;
     }
 
-    public void configureRedirects(XrootdTpcClient preceding)
-    {
+    public void configureRedirects(XrootdTpcClient preceding) {
         this.redirects = preceding.redirects + 1;
         this.timeOfFirstRedirect = preceding.timeOfFirstRedirect <= 0 ?
-                        System.currentTimeMillis() :
-                        preceding.timeOfFirstRedirect;
+              System.currentTimeMillis() :
+              preceding.timeOfFirstRedirect;
         this.responseTimeout = preceding.responseTimeout;
     }
 
     public synchronized void connect(final NioEventLoopGroup group,
-                        final List<ChannelHandlerFactory> plugins,
-                        final TpcSourceReadHandler readHandler)
-                    throws InterruptedException
-    {
+          final List<ChannelHandlerFactory> plugins,
+          final TpcSourceReadHandler readHandler)
+          throws InterruptedException {
         Bootstrap b = new Bootstrap();
         b.group(group)
-         .channel(NioSocketChannel.class)
-         .option(ChannelOption.TCP_NODELAY, true)
-         .option(ChannelOption.SO_KEEPALIVE, true)
-         .handler(new ChannelInitializer<Channel>() {
-             @Override
-             protected void initChannel(Channel ch) throws Exception {
-                 injectHandlers(ch.pipeline(), plugins, readHandler);
-             }
-         });
+              .channel(NioSocketChannel.class)
+              .option(ChannelOption.TCP_NODELAY, true)
+              .option(ChannelOption.SO_KEEPALIVE, true)
+              .handler(new ChannelInitializer<Channel>() {
+                  @Override
+                  protected void initChannel(Channel ch) throws Exception {
+                      injectHandlers(ch.pipeline(), plugins, readHandler);
+                  }
+              });
 
         try {
             channelFuture = b.connect(info.getSrcHost(),
-                                      info.getSrcPort()).sync();
+                  info.getSrcPort()).sync();
         } catch (Exception t) {
             /*
              *  For some reason, doing the following:
@@ -263,7 +263,7 @@ public class XrootdTpcClient
              */
             setError(t);
             if (t instanceof RuntimeException) {
-                throw (RuntimeException)t;
+                throw (RuntimeException) t;
             }
             return;
         }
@@ -275,16 +275,15 @@ public class XrootdTpcClient
         sendHandshakeRequest(channelFuture.channel().pipeline().lastContext());
 
         LOGGER.info("Third-party client started for {}, channel {}. stream {}.",
-                     info.getSrc(),
-                     channelFuture.channel().id(),
-                     streamId);
+              info.getSrc(),
+              channelFuture.channel().id(),
+              streamId);
     }
 
     /**
-     * <p>Blocking call, returns when client is no longer running.</p>
+     * Blocking call, returns when client is no longer running.</p>
      */
-    public synchronized void disconnect()
-    {
+    public synchronized void disconnect() {
         if (!isRunning) {
             return;
         }
@@ -300,52 +299,48 @@ public class XrootdTpcClient
         notifyAll();
 
         LOGGER.info("Third-party client stopped, for {}, channel {}, stream {}.",
-                     info.getSrc(), id, streamId);
+              info.getSrc(), id, streamId);
     }
 
-    public void doClose(ChannelHandlerContext ctx)
-    {
+    public void doClose(ChannelHandlerContext ctx) {
         LOGGER.debug("sendCloseRequest to {}, channel {}, stream {}, fhandle {}.",
-                     info.getSrc(),
-                     ctx.channel().id(),
-                     streamId,
-                     fhandle);
+              info.getSrc(),
+              ctx.channel().id(),
+              streamId,
+              fhandle);
         expectedRequestId = kXR_close;
         ctx.writeAndFlush(new OutboundCloseRequest(streamId, fhandle),
-                          ctx.newPromise())
-           .addListener(FIRE_EXCEPTION_ON_FAILURE);
+                    ctx.newPromise())
+              .addListener(FIRE_EXCEPTION_ON_FAILURE);
     }
 
-    public void doEndsession(ChannelHandlerContext ctx)
-    {
+    public void doEndsession(ChannelHandlerContext ctx) {
         if (sessionId != null) {
             LOGGER.debug("sendEndSessionRequest to {}, channel {}, stream {}, "
-                                         + "session {}.",
-                         info.getSrc(),
-                         ctx.channel().id(),
-                         streamId,
-                         sessionId);
+                        + "session {}.",
+                  info.getSrc(),
+                  ctx.channel().id(),
+                  streamId,
+                  sessionId);
             expectedRequestId = kXR_endsess;
             ctx.writeAndFlush(new OutboundEndSessionRequest(streamId, sessionId),
-                              ctx.newPromise())
-               .addListener(FIRE_EXCEPTION_ON_FAILURE);
+                        ctx.newPromise())
+                  .addListener(FIRE_EXCEPTION_ON_FAILURE);
             sessionId = null;
         } else {
             LOGGER.debug("sendEndSessionRequest to {}, channel {}, stream {}, session was null.",
-                        info.getSrc(),
-                        ctx.channel().id(),
-                        streamId);
+                  info.getSrc(),
+                  ctx.channel().id(),
+                  streamId);
             disconnect();
         }
     }
 
-    public ScheduledExecutorService getExecutor()
-    {
+    public ScheduledExecutorService getExecutor() {
         return executorService;
     }
 
-    public synchronized void shutDown(ChannelHandlerContext ctx)
-    {
+    public synchronized void shutDown(ChannelHandlerContext ctx) {
         if (!isRunning) {
             return;
         }
@@ -363,8 +358,8 @@ public class XrootdTpcClient
          * endsession request, so this timed delay guarantees shutdown.
          */
         executorService.schedule(() -> disconnect(),
-                                 DISCONNECT_TIMEOUT_IN_SECONDS,
-                                 TimeUnit.SECONDS);
+              DISCONNECT_TIMEOUT_IN_SECONDS,
+              TimeUnit.SECONDS);
     }
 
     public synchronized void startTimer(final ChannelHandlerContext ctx) {
@@ -373,12 +368,12 @@ public class XrootdTpcClient
          */
         stopTimer();
         timerTask = executorService.schedule(() ->
-                                             {
-                                                 setError(getTimeoutException());
-                                                 shutDown(ctx);
-                                             },
-                                             responseTimeout,
-                                             TimeUnit.SECONDS);
+              {
+                  setError(getTimeoutException());
+                  shutDown(ctx);
+              },
+              responseTimeout,
+              TimeUnit.SECONDS);
     }
 
     public synchronized void stopTimer() {
@@ -388,58 +383,47 @@ public class XrootdTpcClient
         }
     }
 
-    public ChannelFuture getChannelFuture()
-    {
+    public ChannelFuture getChannelFuture() {
         return channelFuture;
     }
 
-    public Map<String, ChannelHandler> getAuthnHandlers()
-    {
+    public Map<String, ChannelHandler> getAuthnHandlers() {
         return authnHandlers;
     }
 
-    public InboundAuthenticationResponse getAuthResponse()
-    {
+    public InboundAuthenticationResponse getAuthResponse() {
         return authResponse;
     }
 
-    public int getCpsize()
-    {
+    public int getCpsize() {
         return cpsize;
     }
 
-    public int getCptype()
-    {
+    public int getCptype() {
         return cptype;
     }
 
-    public int getErrno()
-    {
+    public int getErrno() {
         return errno;
     }
 
-    public String getError()
-    {
+    public String getError() {
         return error;
     }
 
-    public int getExpectedResponse()
-    {
+    public int getExpectedResponse() {
         return expectedRequestId;
     }
 
-    public int getFhandle()
-    {
+    public int getFhandle() {
         return fhandle;
     }
 
-    public int getFlag()
-    {
+    public int getFlag() {
         return flag;
     }
 
-    public String getFullpath()
-    {
+    public String getFullpath() {
         StringBuilder fullPath = new StringBuilder();
 
         /*
@@ -448,8 +432,8 @@ public class XrootdTpcClient
         String sourceToken = info.getSourceToken();
         if (sourceToken != null) {
             fullPath.append(AUTHZ.key())
-                    .append(OpaqueStringParser.OPAQUE_SEPARATOR)
-                    .append(sourceToken);
+                  .append(OpaqueStringParser.OPAQUE_SEPARATOR)
+                  .append(sourceToken);
         }
 
         /*
@@ -461,12 +445,12 @@ public class XrootdTpcClient
                 fullPath.append(OpaqueStringParser.OPAQUE_PREFIX);
             }
             fullPath.append(CLIENT.key())
-                    .append(OpaqueStringParser.OPAQUE_SEPARATOR)
-                    .append(userUrn)
-                    .append(OpaqueStringParser.OPAQUE_PREFIX)
-                    .append(RENDEZVOUS_KEY.key())
-                    .append(OpaqueStringParser.OPAQUE_SEPARATOR)
-                    .append(info.getKey());
+                  .append(OpaqueStringParser.OPAQUE_SEPARATOR)
+                  .append(userUrn)
+                  .append(OpaqueStringParser.OPAQUE_PREFIX)
+                  .append(RENDEZVOUS_KEY.key())
+                  .append(OpaqueStringParser.OPAQUE_SEPARATOR)
+                  .append(info.getKey());
         }
 
         String external = info.getExternal();
@@ -486,92 +470,75 @@ public class XrootdTpcClient
         return fullPath.toString();
     }
 
-    public XrootdTpcInfo getInfo()
-    {
+    public XrootdTpcInfo getInfo() {
         return info;
     }
 
-    public int getPid()
-    {
+    public int getPid() {
         return pid;
     }
 
-    public int getPval()
-    {
+    public int getPval() {
         return pval;
     }
 
-    public SecurityInfo getProtocolInfo()
-    {
+    public SecurityInfo getProtocolInfo() {
         return protocolInfo;
     }
 
-    public XrootdSessionIdentifier getSessionId()
-    {
+    public XrootdSessionIdentifier getSessionId() {
         return sessionId;
     }
 
-    public SigningPolicy getSigningPolicy()
-    {
+    public SigningPolicy getSigningPolicy() {
         return signingPolicy;
     }
 
-    public int getStreamId()
-    {
+    public int getStreamId() {
         return streamId;
     }
 
-    public TLSSessionInfo getTlsSessionInfo()
-    {
+    public TLSSessionInfo getTlsSessionInfo() {
         return tlsSessionInfo;
     }
 
-    public String getUname()
-    {
+    public String getUname() {
         return uname;
     }
 
-    public String getUserUrn()
-    {
+    public String getUserUrn() {
         return this.userUrn;
     }
 
-    public TpcDelayedSyncWriteHandler getWriteHandler()
-    {
+    public TpcDelayedSyncWriteHandler getWriteHandler() {
         return writeHandler;
     }
 
-    public long getWriteOffset()
-    {
+    public long getWriteOffset() {
         return writeOffset;
     }
 
-    public boolean isOpenFile()
-    {
+    public boolean isOpenFile() {
         return isOpenFile;
     }
 
-    public void setAuthResponse(InboundAuthenticationResponse authResponse)
-    {
+    public void setAuthResponse(InboundAuthenticationResponse authResponse) {
         this.authResponse = authResponse;
     }
 
-    public void setCpsize(int cpsize)
-    {
+    public void setCpsize(int cpsize) {
         this.cpsize = cpsize;
     }
 
-    public void setCptype(int cptype)
-    {
+    public void setCptype(int cptype) {
         this.cptype = cptype;
     }
 
-    public void setError(Throwable t)
-    {
+    public void setError(Throwable t) {
         error = t.getMessage();
 
         if (t instanceof XrootdException) {
-            errno = ((XrootdException)t).getError();
+            errno = ((XrootdException) t).getError();
         } else if (t instanceof UnknownHostException) {
             error = "Invalid address: " + error;
             errno = kXR_FSError;
@@ -587,33 +554,27 @@ public class XrootdTpcClient
     }
 
 
-    public void setExpectedResponse(int expectedRequestId)
-    {
+    public void setExpectedResponse(int expectedRequestId) {
         this.expectedRequestId = expectedRequestId;
     }
 
-    public void setFhandle(int fhandle)
-    {
+    public void setFhandle(int fhandle) {
         this.fhandle = fhandle;
     }
 
-    public void setFlag(int flag)
-    {
+    public void setFlag(int flag) {
         this.flag = flag;
     }
 
-    public void setOpenFile(boolean openFile)
-    {
+    public void setOpenFile(boolean openFile) {
         isOpenFile = openFile;
     }
 
-    public void setProtocolInfo(SecurityInfo protocolInfo)
-    {
+    public void setProtocolInfo(SecurityInfo protocolInfo) {
         this.protocolInfo = protocolInfo;
     }
 
-    public void setPval(int pval)
-    {
+    public void setPval(int pval) {
         this.pval = pval;
     }
 
@@ -621,92 +582,86 @@ public class XrootdTpcClient
         this.responseTimeout = responseTimeout;
     }
 
-    public void setSessionId(XrootdSessionIdentifier sessionId)
-    {
+    public void setSessionId(XrootdSessionIdentifier sessionId) {
         this.sessionId = sessionId;
     }
 
-    public void setSigningPolicy(SigningPolicy signingPolicy)
-    {
+    public void setSigningPolicy(SigningPolicy signingPolicy) {
         this.signingPolicy = signingPolicy;
     }
 
-    public void setTlsSessionInfo(TLSSessionInfo tlsSessionInfo)
-    {
+    public void setTlsSessionInfo(TLSSessionInfo tlsSessionInfo) {
         this.tlsSessionInfo = tlsSessionInfo;
     }
 
-    public void setWriteOffset(long writeOffset)
-    {
+    public void setWriteOffset(long writeOffset) {
         this.writeOffset = writeOffset;
     }
 
-    public String toString()
-    {
+    public String toString() {
         return new StringBuilder().append("(RUNNING ")
-                                  .append(isRunning)
-                                  .append(")[info ")
-                                  .append(info)
-                                  .append("](channelId ")
-                                  .append(channelFuture == null ? "?" :
-                                          channelFuture.channel().id())
-                                  .append(")(streamId ")
-                                  .append(streamId)
-                                  .append(")(userUrn ")
-                                  .append(userUrn)
-                                  .append(")(protocol info ")
-                                  .append(protocolInfo)
-                                  .append(")(pid ")
-                                  .append(pid)
-                                  .append(")(uname ")
-                                  .append(uname)
-                                  .append(")(fullpath ")
-                                  .append(getFullpath())
-                                  .append(")(expectedRequestId ")
-                                  .append(expectedRequestId)
-                                  .append(")(pval ")
-                                  .append(pval)
-                                  .append(")(flag ")
-                                  .append(flag)
-                                  .append(")(sessionId ")
-                                  .append(sessionId)
-                                  .append(")")
-                                  .append(signingPolicy)
-                                  .append(")(tls ")
-                                  .append(tlsSessionInfo != null ?
-                                          tlsSessionInfo.getClientTls() : "NONE")
-                                  .append("(cpsize ")
-                                  .append(cpsize)
-                                  .append(")(cptype ")
-                                  .append(cptype)
-                                  .append(")(fhandle ")
-                                  .append(fhandle)
-                                  .append(")(isOpenFile ")
-                                  .append(isOpenFile)
-                                  .append(")(writeOffset ")
-                                  .append(writeOffset)
-                                  .append(")(errno ")
-                                  .append(errno)
-                                  .append(")(error ")
-                                  .append(error)
-                                  .append(")(redirects ")
-                                  .append(redirects)
-                                  .append(")(last redirect ")
-                                  .append(new Date(timeOfFirstRedirect))
-                                  .append(")")
-                                  .toString();
+              .append(isRunning)
+              .append(")[info ")
+              .append(info)
+              .append("](channelId ")
+              .append(channelFuture == null ? "?" :
+                    channelFuture.channel().id())
+              .append(")(streamId ")
+              .append(streamId)
+              .append(")(userUrn ")
+              .append(userUrn)
+              .append(")(protocol info ")
+              .append(protocolInfo)
+              .append(")(pid ")
+              .append(pid)
+              .append(")(uname ")
+              .append(uname)
+              .append(")(fullpath ")
+              .append(getFullpath())
+              .append(")(expectedRequestId ")
+              .append(expectedRequestId)
+              .append(")(pval ")
+              .append(pval)
+              .append(")(flag ")
+              .append(flag)
+              .append(")(sessionId ")
+              .append(sessionId)
+              .append(")")
+              .append(signingPolicy)
+              .append(")(tls ")
+              .append(tlsSessionInfo != null ?
+                    tlsSessionInfo.getClientTls() : "NONE")
+              .append("(cpsize ")
+              .append(cpsize)
+              .append(")(cptype ")
+              .append(cptype)
+              .append(")(fhandle ")
+              .append(fhandle)
+              .append(")(isOpenFile ")
+              .append(isOpenFile)
+              .append(")(writeOffset ")
+              .append(writeOffset)
+              .append(")(errno ")
+              .append(errno)
+              .append(")(error ")
+              .append(error)
+              .append(")(redirects ")
+              .append(redirects)
+              .append(")(last redirect ")
+              .append(new Date(timeOfFirstRedirect))
+              .append(")")
+              .toString();
     }
 
     private TimeoutException getTimeoutException() {
         return new TimeoutException("No response from server after "
-                                                    + responseTimeout
-                                                    + " seconds.");
+              + responseTimeout
+              + " seconds.");
     }
 
     private void injectHandlers(ChannelPipeline pipeline,
-                                List<ChannelHandlerFactory> plugins,
-                                TpcSourceReadHandler readHandler)
-    {
+          List<ChannelHandlerFactory> plugins,
+          TpcSourceReadHandler readHandler) {
         pipeline.addLast("decoder", new XrootdClientDecoder(this));
         pipeline.addLast("encoder", new XrootdClientEncoder(this));
 
@@ -723,14 +678,13 @@ public class XrootdTpcClient
         for (ChannelHandlerFactory factory : plugins) {
             ChannelHandler authHandler = factory.createHandler();
             if (authHandler instanceof AbstractClientRequestHandler) {
-                ((AbstractClientRequestHandler)authHandler).setClient(this);
+                ((AbstractClientRequestHandler) authHandler).setClient(this);
             }
             authnHandlers.put(factory.getName(), authHandler);
         }
     }
 
-    private void sendHandshakeRequest(ChannelHandlerContext ctx)
-    {
+    private void sendHandshakeRequest(ChannelHandlerContext ctx) {
         /*
          *  Create the client's tls session.
          *  It will be configured when the protocol response is received.
@@ -738,9 +692,9 @@ public class XrootdTpcClient
         tlsSessionInfo.createClientSession(getInfo());
 
         LOGGER.debug("sendHandshakeRequest to {}, channel {}, stream {}.",
-                     info.getSrc(), ctx.channel().id(), streamId);
+              info.getSrc(), ctx.channel().id(), streamId);
         ctx.writeAndFlush(new OutboundHandshakeRequest(),
-                          ctx.newPromise())
-           .addListener(FIRE_EXCEPTION_ON_FAILURE);
+                    ctx.newPromise())
+              .addListener(FIRE_EXCEPTION_ON_FAILURE);
     }
 }

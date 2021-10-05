@@ -1,32 +1,22 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
  *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
 import com.google.common.base.Throwables;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.codec.binary.StringUtils;
-import org.bouncycastle.openssl.PEMParser;
-import org.bouncycastle.openssl.PEMWriter;
-import org.bouncycastle.pkcs.PKCS10CertificationRequest;
-
-import javax.security.auth.x500.X500Principal;
-
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -38,6 +28,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.security.auth.x500.X500Principal;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.binary.StringUtils;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.PEMWriter;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 
 /**
  *
@@ -47,10 +43,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author tzangerl
  *
  */
-public class CertUtil
-{
-    private static final Map<X500Principal,String> _hashCache =
-        new ConcurrentHashMap<>();
+public class CertUtil {
+
+    private static final Map<X500Principal, String> _hashCache =
+          new ConcurrentHashMap<>();
 
     /**
      * Rebuild the cert chain by adding the new cert in first position.
@@ -59,8 +55,7 @@ public class CertUtil
      * @return new chain
      */
     public static List<X509Certificate> prepend(X509Certificate certificate,
-                                                X509Certificate[] chain)
-    {
+          X509Certificate[] chain) {
         List<X509Certificate> newChain = new ArrayList<>();
         newChain.add(certificate);
 
@@ -79,11 +74,11 @@ public class CertUtil
      * @param footer the footer to be striped off
      * @return the content in DER format
      */
-    public static byte[] fromPEM(String pem, String header, String footer)
-    {
+    public static byte[] fromPEM(String pem, String header, String footer) {
         if (!pem.startsWith(header)) {
-            throw new IllegalArgumentException("The provided PEM string doesn't start with '" + header
-                                               + "'");
+            throw new IllegalArgumentException(
+                  "The provided PEM string doesn't start with '" + header
+                        + "'");
         }
 
         // strip header
@@ -94,8 +89,9 @@ public class CertUtil
 
         // remove footer
         if (!sb.subSequence(sb.length() - footer.length(), sb.length()).equals(
-                                                                               footer)) {
-            throw new IllegalArgumentException("The provided PEM string doesn't end with '" + footer + "'");
+              footer)) {
+            throw new IllegalArgumentException(
+                  "The provided PEM string doesn't end with '" + footer + "'");
         }
         sb.delete(sb.indexOf(footer), sb.length());
 
@@ -109,8 +105,7 @@ public class CertUtil
      * @param certificate the certificate to be encoded
      * @return the PEM-encoded String
      */
-    public static String certToPEM(X509Certificate certificate)
-    {
+    public static String certToPEM(X509Certificate certificate) {
         try {
             StringWriter output = new StringWriter();
             PEMWriter writer = new PEMWriter(output);
@@ -122,8 +117,7 @@ public class CertUtil
         }
     }
 
-    public static String chainToPEM(Iterable<X509Certificate> certificates)
-    {
+    public static String chainToPEM(Iterable<X509Certificate> certificates) {
         try {
             StringWriter output = new StringWriter();
             PEMWriter writer = new PEMWriter(output);
@@ -137,10 +131,9 @@ public class CertUtil
         }
     }
 
-    private PKCS10CertificationRequest fromPEM(String data) throws IOException
-    {
+    private PKCS10CertificationRequest fromPEM(String data) throws IOException {
         PEMParser reader = new PEMParser(new StringReader(data));
-        return (PKCS10CertificationRequest)reader.readObject();
+        return (PKCS10CertificationRequest) reader.readObject();
     }
 
     /**
@@ -151,8 +144,7 @@ public class CertUtil
      * @param footer the footer line
      * @return the PEM-encoded String
      */
-    public static String toPEM(byte[] der, String header, String footer)
-    {
+    public static String toPEM(byte[] der, String header, String footer) {
         StringBuilder result = new StringBuilder(header);
 
         // make sure the header line ends with a new line char
@@ -161,7 +153,7 @@ public class CertUtil
         }
 
         String base64 =
-            StringUtils.newStringUtf8(Base64.encodeBase64(der));
+              StringUtils.newStringUtf8(Base64.encodeBase64(der));
 
         //
         // PEM requires that each line of the BASE64-encoded data is
@@ -195,8 +187,7 @@ public class CertUtil
      * @param principal the principal (either issuer or subject)
      * @return the 8-digit hexadecimal hash string
      */
-    public static String computeMD5Hash(X500Principal principal)
-    {
+    public static String computeMD5Hash(X500Principal principal) {
         MessageDigest md;
         try {
             md = MessageDigest.getInstance("MD5", "BC");
@@ -222,8 +213,7 @@ public class CertUtil
      * @param principal the principal (subject or issuer)
      * @return the 8-digit hexadecimal hash
      */
-    public static String computeHash(MessageDigest md, X500Principal principal)
-    {
+    public static String computeHash(MessageDigest md, X500Principal principal) {
         String principalHash;
 
         if (_hashCache.containsKey(principal)) {
@@ -233,12 +223,11 @@ public class CertUtil
             md.update(principal.getEncoded());
             byte[] md5hash = md.digest();
 
-
             // take the first 4 bytes in little Endian
-            int shortHash =   (0xff & md5hash[3]) << 24
-                | (0xff & md5hash[2]) << 16
-                | (0xff & md5hash[1]) << 8
-                | (0xff & md5hash[0]);
+            int shortHash = (0xff & md5hash[3]) << 24
+                  | (0xff & md5hash[2]) << 16
+                  | (0xff & md5hash[1]) << 8
+                  | (0xff & md5hash[0]);
 
             /*
              *  Convert to hex. An 8-digit hex string is required.
@@ -258,8 +247,7 @@ public class CertUtil
      * @param c the char to be removed
      * @return the resulting stringbuilder
      */
-    private static StringBuilder removeChar(StringBuilder sb, char c)
-    {
+    private static StringBuilder removeChar(StringBuilder sb, char c) {
         int index;
         while ((index = sb.indexOf("\n")) > -1) {
             sb.deleteCharAt(index);

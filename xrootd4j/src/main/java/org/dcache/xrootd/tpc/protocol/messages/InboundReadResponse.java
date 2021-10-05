@@ -1,51 +1,46 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
- *
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.tpc.protocol.messages;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.util.ReferenceCounted;
-
-import java.nio.ByteBuffer;
-
-import org.dcache.xrootd.util.ByteBuffersProvider;
-
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_read;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.util.ReferenceCounted;
+import java.nio.ByteBuffer;
+import org.dcache.xrootd.util.ByteBuffersProvider;
+
 /**
- * <p>Response from third-party source server.</p>
+ * Response from third-party source server.</p>
  *
- * <p>The implementation of the {@link ByteBuffersProvider} interface
+ * The implementation of the {@link ByteBuffersProvider} interface
  *    assimilates this response with an incoming client write request.</p>
  *
- * <p>The third-party client in effect acts as a pipe between the
+ * The third-party client in effect acts as a pipe between the
  *    remote read of the file and the local write. Merging that functionality
  *    into a single object allows us to bypass an extra buffer copy.</p>
  */
 public class InboundReadResponse extends AbstractXrootdInboundResponse
-                implements ByteBuffersProvider
-{
-    private final      ByteBuf data;
-    private final      int     dlen;
-    private            long    writeOffset;
+      implements ByteBuffersProvider {
 
-    public InboundReadResponse(ByteBuf buffer)
-    {
+    private final ByteBuf data;
+    private final int dlen;
+    private long writeOffset;
+
+    public InboundReadResponse(ByteBuf buffer) {
         super(buffer);
         dlen = buffer.getInt(4);
         data = buffer.alloc().ioBuffer(dlen);
@@ -62,19 +57,16 @@ public class InboundReadResponse extends AbstractXrootdInboundResponse
     }
 
     @Override
-    public long getWriteOffset()
-    {
+    public long getWriteOffset() {
         return writeOffset;
     }
 
-    public void setWriteOffset(long writeOffset)
-    {
+    public void setWriteOffset(long writeOffset) {
         this.writeOffset = writeOffset;
     }
 
     @Override
-    public ByteBuffer[] toByteBuffers()
-    {
+    public ByteBuffer[] toByteBuffers() {
         return (data.nioBufferCount() == -1 ? data.copy() : data).nioBuffers();
     }
 
@@ -84,29 +76,25 @@ public class InboundReadResponse extends AbstractXrootdInboundResponse
     }
 
     @Override
-    public ReferenceCounted retain()
-    {
+    public ReferenceCounted retain() {
         data.retain();
         return this;
     }
 
     @Override
-    public ReferenceCounted retain(int i)
-    {
+    public ReferenceCounted retain(int i) {
         data.retain(i);
         return this;
     }
 
     @Override
-    public ReferenceCounted touch()
-    {
+    public ReferenceCounted touch() {
         data.touch();
         return this;
     }
 
     @Override
-    public ReferenceCounted touch(Object o)
-    {
+    public ReferenceCounted touch(Object o) {
         data.touch(o);
         return this;
     }

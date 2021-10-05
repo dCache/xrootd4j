@@ -1,27 +1,39 @@
 /**
  * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
- *
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.tpc;
 
-import com.google.common.base.Strings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.google.common.base.Preconditions.checkState;
+import static java.util.stream.Collectors.toSet;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ArgMissing;
+import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.AUTHZ;
+import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.CHECKSUM;
+import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.CLIENT;
+import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.DLG;
+import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.DLGON;
+import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.DST;
+import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.LOGICAL_NAME;
+import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.RENDEZVOUS_KEY;
+import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.SCGI;
+import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.SIZE_IN_BYTES;
+import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.SPR;
+import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.SRC;
+import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.TIME_TO_LIVE;
 
+import com.google.common.base.Strings;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -34,32 +46,27 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.tpc.protocol.messages.InboundRedirectResponse;
 import org.dcache.xrootd.util.FileStatus;
 import org.dcache.xrootd.util.OpaqueStringParser;
 import org.dcache.xrootd.util.ParseException;
-
-import static com.google.common.base.Preconditions.checkState;
-import static java.util.stream.Collectors.toSet;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ArgMissing;
-import static org.dcache.xrootd.tpc.XrootdTpcInfo.Cgi.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * <p>Metadata established via interaction between user client, source and
+ * Metadata established via interaction between user client, source and
  *    destination in a third-party copy, occurring prior to the launching
  *    of an internal third-party copy operation.</p>
  *
- * <p>Used to verify and coordinate the open and close requests.</p>
+ * Used to verify and coordinate the open and close requests.</p>
  */
-public class XrootdTpcInfo
-{
+public class XrootdTpcInfo {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(XrootdTpcInfo.class);
 
-    public enum Cgi
-    {
+    public enum Cgi {
         STAGE("tpc.stage"),
         RENDEZVOUS_KEY("tpc.key"),
         SRC("tpc.src"),
@@ -96,75 +103,64 @@ public class XrootdTpcInfo
         AUTHZ("authz");
 
         private static final Set<String> KEYS = EnumSet.allOf(Cgi.class)
-                                                       .stream()
-                                                       .map(Cgi::key)
-                                                       .collect(toSet());
+              .stream()
+              .map(Cgi::key)
+              .collect(toSet());
 
         private String key;
 
-        Cgi(String key)
-        {
+        Cgi(String key) {
             this.key = key;
         }
 
-        public String key()
-        {
+        public String key() {
             return key;
         }
 
-        static Set<String> keys()
-        {
+        static Set<String> keys() {
             return KEYS;
         }
     }
 
-    public enum CksumType
-    {
+    public enum CksumType {
         ADLER32("adler32"),
         CRC32("crc32"),
         MD5("md5");
 
         private String key;
 
-        CksumType(String key)
-        {
+        CksumType(String key) {
             this.key = key;
         }
 
-        public String key()
-        {
+        public String key() {
             return key;
         }
     }
 
-    public enum TpcStage
-    {
+    public enum TpcStage {
         PLACEMENT("placement"),
         COPY("copy");
 
         private String key;
 
-        TpcStage(String key)
-        {
+        TpcStage(String key) {
             this.key = key;
         }
 
-        public String key()
-        {
+        public String key() {
             return key;
         }
     }
 
-    public enum Status
-    {
+    public enum Status {
         PENDING, READY, CANCELLED, ERROR
     }
 
     /**
      * The server has the following TPC role when processing this request.
      */
-    public enum ServerRole
-    {
+    public enum ServerRole {
         /** The request is not part of an Xrootd-TPC transfer. */
         NON_TPC,
 
@@ -184,8 +180,7 @@ public class XrootdTpcInfo
     /**
      * The client has the following TPC role when making this request.
      */
-    public enum ClientRole
-    {
+    public enum ClientRole {
         /** The client is not making a TPC request. */
         NON_TPC,
 
@@ -207,8 +202,7 @@ public class XrootdTpcInfo
     /**
      *  Delegation
      */
-    enum Delegation
-    {
+    enum Delegation {
         OFF, ON;
 
         public static Delegation valueOf(Map<String, String> opaque) {
@@ -216,8 +210,9 @@ public class XrootdTpcInfo
             if (value == null) {
                 return OFF;
             }
-            switch(opaque.get(DLGON.key)) {
-                case "1": return ON;
+            switch (opaque.get(DLGON.key)) {
+                case "1":
+                    return ON;
                 default:
                     return OFF;
             }
@@ -225,111 +220,111 @@ public class XrootdTpcInfo
     }
 
     /**
-     * <p>Rendez-vous token provided by client.</p>
+     * Rendez-vous token provided by client.</p>
      */
     private final String key;
 
     /**
-     * <p>For eviction management.</p>
+     * For eviction management.</p>
      */
     private final long createdTime;
 
     private Delegation dlgon;
 
     /**
-     * <p>User uid; used only for UNIX protocol.</p>
+     * User uid; used only for UNIX protocol.</p>
      */
     private Long uid;
 
     /**
-     * <p>User primary gid; used only for UNIX protocol.</p>
+     * User primary gid; used only for UNIX protocol.</p>
      */
     private Long gid;
 
     /**
-     * <p>The client identifier, in the form [user].[pid]@[hostname]</p>
+     * The client identifier, in the form [user].[pid]@[hostname]</p>
      */
     private String org;
 
     /**
-     * <p>The host:port of the destination server.</p>
+     * The host:port of the destination server.</p>
      */
     private String dst;
 
     /**
-     * <p>The host:port of the source server.</p>
+     * The host:port of the source server.</p>
      */
     private String src;
 
     /**
-     * <p>The hostname of the source server.</p>
+     * The hostname of the source server.</p>
      */
     private String srcHost;
 
     /**
-     * <p>The port of the source server.</p>
+     * The port of the source server.</p>
      */
     private Integer srcPort;
 
     /**
-     * <p>The logical file name.</p>
+     * The logical file name.</p>
      */
     private String lfn;
 
     /**
-     * <p>Time to live (in seconds).</p>
+     * Time to live (in seconds).</p>
      */
     private Long ttl;
 
     /**
-     * <p>Checksum type requested.</p>
+     * Checksum type requested.</p>
      */
     private String cks;
 
     /**
-     * <p>Source size.</p>
+     * Source size.</p>
      */
     private Long asize;
 
     /**
-     * <p>Status of the transfer request.</p>
+     * Status of the transfer request.</p>
      */
     private Status status;
 
     /**
-     * <p>dCache-assigned file descriptor.</p>
+     * dCache-assigned file descriptor.</p>
      */
     private int fd;
 
     /**
-     * <p>Set by the client to establish the point after which
+     * Set by the client to establish the point after which
      *    the destination server must request an open within the
      *    alotted time to live.</p>
      */
     private long startTime;
 
     /**
-     * <p>External (non xrootd-tpc) opaque key-values.</p>
+     * External (non xrootd-tpc) opaque key-values.</p>
      */
     private String external;
 
     /**
-     * <p>Possibly returned by a redirect.</p>
+     * Possibly returned by a redirect.</p>
      */
     private String loginToken;
 
     /**
-     * <p>Source authorization token.</p>
+     * Source authorization token.</p>
      */
     private String sourceToken;
 
     /**
-     * <p>The stat info received on the TPC open call.</p>
+     * The stat info received on the TPC open call.</p>
      */
     private FileStatus fileStatus;
 
     /**
-     * <p>Delegated proxy object</p>
+     * Delegated proxy object</p>
      */
     private Serializable delegatedProxy;
 
@@ -346,20 +341,18 @@ public class XrootdTpcInfo
      */
     private Optional<String> sourceProtocol = Optional.empty();
 
-    public XrootdTpcInfo(String key)
-    {
+    public XrootdTpcInfo(String key) {
         this.key = key;
         this.createdTime = System.currentTimeMillis();
         calculateRoles();
     }
 
     /**
-     * <p>Initializes everything from the map instance.
+     * Initializes everything from the map instance.
      *    Calling this constructor implies a READY status.</p>
      *    Ttl is not relevant.
      */
-    public XrootdTpcInfo(Map<String, String> opaque) throws ParseException
-    {
+    public XrootdTpcInfo(Map<String, String> opaque) throws ParseException {
         this(opaque.get(RENDEZVOUS_KEY.key()));
         this.dlgon = Delegation.valueOf(opaque);
         this.lfn = opaque.get(LOGICAL_NAME.key());
@@ -378,13 +371,12 @@ public class XrootdTpcInfo
         calculateRoles();
     }
 
-    public long computeFileSize() throws XrootdException
-    {
+    public long computeFileSize() throws XrootdException {
         if (!fileSize.isPresent()) {
             if (fileStatus == null) {
                 if (asize == null) {
                     throw new XrootdException(kXR_ArgMissing,
-                                              "Cannot read source; file size is unknown.");
+                          "Cannot read source; file size is unknown.");
                 }
                 fileSize = OptionalLong.of(asize); // asize not null here
             } else {
@@ -392,37 +384,34 @@ public class XrootdTpcInfo
             }
 
             LOGGER.debug("computeFileSize: file status {}, oss.asize {}, "
-                                         + "computed size {}.",
-                         fileStatus, asize, fileSize.getAsLong());
+                        + "computed size {}.",
+                  fileStatus, asize, fileSize.getAsLong());
         }
 
         return fileSize.getAsLong();
     }
 
-    public ServerRole getServerRole()
-    {
+    public ServerRole getServerRole() {
         return serverRole;
     }
 
-    public ClientRole getClientRole()
-    {
+    public ClientRole getClientRole() {
         return clientRole;
     }
 
-    public boolean isTpcRequest()
-    {
+    public boolean isTpcRequest() {
         return clientRole != ClientRole.NON_TPC;
     }
 
     /**
-     * <p>Used in a two-phase sequence (client, server),
+     * Used in a two-phase sequence (client, server),
      *    to add information incrementally.</p>
      *
-     * <p>Will not overwrite existing non-null values.</p>
+     * Will not overwrite existing non-null values.</p>
      */
     public synchronized XrootdTpcInfo addInfoFromOpaque(String slfn,
-                                                        Map<String, String> opaque)
-                    throws ParseException {
+          Map<String, String> opaque)
+          throws ParseException {
         if (this.lfn == null) {
             this.lfn = slfn;
         }
@@ -476,14 +465,14 @@ public class XrootdTpcInfo
     }
 
     /**
-     * <p>Saves relevant fields which should remain the same,
+     * Saves relevant fields which should remain the same,
      *    and constructs new source endpoint info.</p>
      *
      * @param response received from source.
      * @return new info object which can be used to instantiate new client.
      */
     public XrootdTpcInfo copyForRedirect(InboundRedirectResponse response)
-                    throws ParseException {
+          throws ParseException {
         XrootdTpcInfo info = new XrootdTpcInfo(key);
 
         URL url = response.getUrl();
@@ -548,13 +537,11 @@ public class XrootdTpcInfo
         return info;
     }
 
-    public boolean isTls()
-    {
+    public boolean isTls() {
         return sourceProtocol.filter("xroots"::equals).isPresent();
     }
 
-    public synchronized Status verify(String dst, String slfn, String org)
-    {
+    public synchronized Status verify(String dst, String slfn, String org) {
         if (this.status == Status.ERROR) {
             return this.status;
         }
@@ -567,9 +554,9 @@ public class XrootdTpcInfo
         }
 
         if (dst.equals(this.dst)
-                        && slfn.equals(this.lfn)
-                        && org.equals(this.org)
-                        && !isExpired()) {
+              && slfn.equals(this.lfn)
+              && org.equals(this.org)
+              && !isExpired()) {
             this.status = Status.READY;
         } else {
             /*
@@ -582,167 +569,142 @@ public class XrootdTpcInfo
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder()
-                                  .append("(dlgon ")
-                                  .append(dlgon)
-                                  .append("(key ")
-                                  .append(key)
-                                  .append(")(dst ")
-                                  .append(dst)
-                                  .append(")(src ")
-                                  .append(srcHost)
-                                  .append(":")
-                                  .append(srcPort)
-                                  .append(")(org ")
-                                  .append(org)
-                                  .append(")(lfn ")
-                                  .append(lfn)
-                                  .append(")(ttl ")
-                                  .append(ttl)
-                                  .append(")(cks ")
-                                  .append(cks)
-                                  .append(")(asize ")
-                                  .append(asize)
-                                  .append(")(fhandle ")
-                                  .append(fd)
-                                  .append(')');
+              .append("(dlgon ")
+              .append(dlgon)
+              .append("(key ")
+              .append(key)
+              .append(")(dst ")
+              .append(dst)
+              .append(")(src ")
+              .append(srcHost)
+              .append(":")
+              .append(srcPort)
+              .append(")(org ")
+              .append(org)
+              .append(")(lfn ")
+              .append(lfn)
+              .append(")(ttl ")
+              .append(ttl)
+              .append(")(cks ")
+              .append(cks)
+              .append(")(asize ")
+              .append(asize)
+              .append(")(fhandle ")
+              .append(fd)
+              .append(')');
 
         sourceProtocol.ifPresent(p -> sb.append("(spr ").append(p).append(')'));
 
         return sb.append("(status ")
-                .append(status)
-                .append(")(token ")
-                .append(loginToken)
-                .append(")(source token ")
-                .append(sourceToken)
-                .append(")(external [")
-                .append(external)
-                .append("])")
-                .toString();
+              .append(status)
+              .append(")(token ")
+              .append(loginToken)
+              .append(")(source token ")
+              .append(sourceToken)
+              .append(")(external [")
+              .append(external)
+              .append("])")
+              .toString();
     }
 
-    public boolean isExpired()
-    {
+    public boolean isExpired() {
         return ttl != null && System.currentTimeMillis()
-                        > (startTime + TimeUnit.SECONDS.toMillis(ttl));
+              > (startTime + TimeUnit.SECONDS.toMillis(ttl));
     }
 
-    public String getCks()
-    {
+    public String getCks() {
         return cks;
     }
 
-    public long getCreatedTime()
-    {
+    public long getCreatedTime() {
         return createdTime;
     }
 
-    public Serializable getDelegatedProxy()
-    {
+    public Serializable getDelegatedProxy() {
         return delegatedProxy;
     }
 
-    public String getSourceToken()
-    {
+    public String getSourceToken() {
         return sourceToken;
     }
 
-    public String getExternal()
-    {
+    public String getExternal() {
         return external;
     }
 
-    public int getFd()
-    {
+    public int getFd() {
         return fd;
     }
 
-    public Long getGid()
-    {
+    public Long getGid() {
         return gid;
     }
 
-    public String getKey()
-    {
+    public String getKey() {
         return key;
     }
 
-    public String getLfn()
-    {
+    public String getLfn() {
         return lfn;
     }
 
-    public String getLoginToken()
-    {
+    public String getLoginToken() {
         return loginToken;
     }
 
-    public String getSrc()
-    {
+    public String getSrc() {
         return src;
     }
 
-    public String getSrcHost()
-    {
+    public String getSrcHost() {
         return srcHost;
     }
 
-    public Integer getSrcPort()
-    {
+    public Integer getSrcPort() {
         return srcPort;
     }
 
-    public synchronized Status getStatus()
-    {
+    public synchronized Status getStatus() {
         return status;
     }
 
-    public Long getUid()
-    {
+    public Long getUid() {
         return uid;
     }
 
-    public Delegation getDlgon()
-    {
+    public Delegation getDlgon() {
         return dlgon;
     }
 
-    public void setUid(Long uid)
-    {
+    public void setUid(Long uid) {
         this.uid = uid;
     }
 
-    public void setGid(Long gid)
-    {
+    public void setGid(Long gid) {
         this.gid = gid;
     }
 
-    public void setDelegatedProxy(Serializable delegatedProxy)
-    {
+    public void setDelegatedProxy(Serializable delegatedProxy) {
         this.delegatedProxy = delegatedProxy;
     }
 
-    public void setFileStatus(FileStatus fileStatus)
-    {
+    public void setFileStatus(FileStatus fileStatus) {
         this.fileStatus = fileStatus;
     }
 
-    public void setFd(int fd)
-    {
+    public void setFd(int fd) {
         this.fd = fd;
     }
 
-    public synchronized void setStatus(Status status)
-    {
+    public synchronized void setStatus(Status status) {
         this.status = status;
     }
 
-    private void addExternal(Map<String,String> opaque)
-    {
+    private void addExternal(Map<String, String> opaque) {
         Map<String, String> external = new HashMap<>();
-        for (Entry<String, String> entry: opaque.entrySet()) {
+        for (Entry<String, String> entry : opaque.entrySet()) {
             if (!Cgi.keys().contains(entry.getKey())) {
                 external.put(entry.getKey(), entry.getValue());
             }
@@ -750,8 +712,7 @@ public class XrootdTpcInfo
         this.external = OpaqueStringParser.buildOpaqueString(external);
     }
 
-    private void setSourceFromOpaque(Map<String, String> map)
-    {
+    private void setSourceFromOpaque(Map<String, String> map) {
         src = map.get(DLG.key());
         if (src == null) {
             src = map.get(SRC.key());
@@ -780,28 +741,26 @@ public class XrootdTpcInfo
      * @return The URL of the source.
      * @throws IllegalStateException if tpc.src is not defined.
      */
-    public URI getSourceURL(String destinationPath)
-    {
+    public URI getSourceURL(String destinationPath) {
         checkState(src != null, "'tpc.src' element is missing");
 
         int port = (srcPort == null || srcPort == XrootdProtocol.DEFAULT_PORT)
-                ? -1
-                : srcPort;
+              ? -1
+              : srcPort;
 
         String sourcePath = lfn == null ? destinationPath : lfn;
         String scheme = sourceProtocol.orElse("xroot");
 
         try {
             return new URI(scheme, null, srcHost, port,
-                    sourcePath.startsWith("/") ? sourcePath : ("/" + sourcePath),
-                    null, null);
+                  sourcePath.startsWith("/") ? sourcePath : ("/" + sourcePath),
+                  null, null);
         } catch (URISyntaxException e) {
             throw new RuntimeException(e.toString(), e);
         }
     }
 
-    private void calculateRoles()
-    {
+    private void calculateRoles() {
         if (org != null) {
             clientRole = ClientRole.TPC_DESTINATION;
         } else if (src != null || dst != null) {
@@ -819,18 +778,18 @@ public class XrootdTpcInfo
         }
 
         if ((serverRole == ServerRole.TPC_DESTINATION && clientRole != ClientRole.TPC_ORCHESTRATOR)
-               ||
-            (serverRole == ServerRole.TPC_SOURCE && clientRole != ClientRole.TPC_ORCHESTRATOR && clientRole != ClientRole.TPC_DESTINATION)
-               ||
-            (serverRole == ServerRole.NON_TPC && clientRole != ClientRole.NON_TPC)
-           ) {
+              ||
+              (serverRole == ServerRole.TPC_SOURCE && clientRole != ClientRole.TPC_ORCHESTRATOR
+                    && clientRole != ClientRole.TPC_DESTINATION)
+              ||
+              (serverRole == ServerRole.NON_TPC && clientRole != ClientRole.NON_TPC)
+        ) {
             LOGGER.warn("Inconsistent xrootd-TPC roles ServerRole={} ClientRole={}",
-                    serverRole, clientRole);
+                  serverRole, clientRole);
         }
     }
 
-    private void findSourceToken(Map<String, String> opaque) throws ParseException
-    {
+    private void findSourceToken(Map<String, String> opaque) throws ParseException {
         /*
          * The source token should be sought in the CGI element present when
          * doing third-party-copy using the delegation option.
@@ -844,9 +803,9 @@ public class XrootdTpcInfo
         String scgi = opaque.get(SCGI.key());
         if (scgi != null) {
             scgi = scgi.replaceAll("\\t+",
-                                   String.valueOf(OpaqueStringParser.OPAQUE_PREFIX));
+                  String.valueOf(OpaqueStringParser.OPAQUE_PREFIX));
             Map<String, String> sourceOpaque
-                            = OpaqueStringParser.getOpaqueMap(scgi);
+                  = OpaqueStringParser.getOpaqueMap(scgi);
             sourceToken = sourceOpaque.get(AUTHZ.key());
         }
     }

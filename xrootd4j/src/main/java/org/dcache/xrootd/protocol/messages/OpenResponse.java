@@ -1,40 +1,36 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
- *
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.protocol.messages;
 
-import io.netty.buffer.ByteBuf;
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
+import io.netty.buffer.ByteBuf;
 import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.util.FileStatus;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
+public class OpenResponse extends AbstractXrootdResponse<OpenRequest> {
 
-public class OpenResponse extends AbstractXrootdResponse<OpenRequest>
-{
     private final int fileHandle;
     private final Integer cpsize;
     private final String cptype;
     private final FileStatus fs;
 
     public OpenResponse(OpenRequest request, int fileHandle,
-                        Integer cpsize, String cptype, FileStatus fs)
-    {
+          Integer cpsize, String cptype, FileStatus fs) {
         super(request, XrootdProtocol.kXR_ok);
         this.fileHandle = fileHandle;
         this.cpsize = cpsize;
@@ -42,27 +38,23 @@ public class OpenResponse extends AbstractXrootdResponse<OpenRequest>
         this.fs = fs;
     }
 
-    public int getFileHandle()
-    {
+    public int getFileHandle() {
         return fileHandle;
     }
 
-    public FileStatus getFileStatus()
-    {
+    public FileStatus getFileStatus() {
         return fs;
     }
 
     @Override
-    public int getDataLength()
-    {
+    public int getDataLength() {
         return 4 +
-               ((cpsize != null && cptype != null || fs != null) ? 8 : 0) +
-               ((fs != null) ? fs.toString().length() + 1 : 0);
+              ((cpsize != null && cptype != null || fs != null) ? 8 : 0) +
+              ((fs != null) ? fs.toString().length() + 1 : 0);
     }
 
     @Override
-    protected void getBytes(ByteBuf buffer)
-    {
+    protected void getBytes(ByteBuf buffer) {
         buffer.writeInt(fileHandle);
 
         if (cpsize != null && cptype != null) {
@@ -81,9 +73,8 @@ public class OpenResponse extends AbstractXrootdResponse<OpenRequest>
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return String.format("open-response[%d,%d,%s,%s]",
-                             fileHandle, cpsize, cptype, fs);
+              fileHandle, cpsize, cptype, fs);
     }
 }

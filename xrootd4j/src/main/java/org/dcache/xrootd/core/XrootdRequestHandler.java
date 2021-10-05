@@ -1,22 +1,44 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
  *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.core;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_Unsupported;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_close;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_dirlist;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_endsess;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_locate;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mkdir;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mv;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_open;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_prepare;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_query;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_read;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_readv;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_rm;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_rmdir;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_set;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_stat;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_statx;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_sync;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_write;
 
 import com.google.common.net.InetAddresses;
 import io.netty.channel.ChannelFuture;
@@ -27,12 +49,8 @@ import io.netty.handler.codec.haproxy.HAProxyMessage;
 import io.netty.handler.codec.haproxy.HAProxyProxiedProtocol;
 import io.netty.handler.ssl.SslHandshakeCompletionEvent;
 import io.netty.util.ReferenceCountUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.InetSocketAddress;
 import java.util.Objects;
-
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
 import org.dcache.xrootd.protocol.messages.DirListRequest;
@@ -58,8 +76,8 @@ import org.dcache.xrootd.protocol.messages.SyncRequest;
 import org.dcache.xrootd.protocol.messages.WriteRequest;
 import org.dcache.xrootd.protocol.messages.XrootdRequest;
 import org.dcache.xrootd.protocol.messages.XrootdResponse;
-
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A ChannelInboundHandler to dispatch xrootd events to handler methods.
@@ -73,10 +91,10 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.*;
  * subclass assumes responsibility to release the request, typically
  * by passing it on the next ChannelHandler in the pipeline.
  */
-public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
-{
+public class XrootdRequestHandler extends ChannelInboundHandlerAdapter {
+
     private static final Logger _log =
-        LoggerFactory.getLogger(XrootdRequestHandler.class);
+          LoggerFactory.getLogger(XrootdRequestHandler.class);
 
     private boolean _isHealthCheck;
 
@@ -85,41 +103,45 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
     private InetSocketAddress _sourceAddress;
 
     @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception
-    {
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
         _destinationAddress = (InetSocketAddress) ctx.channel().localAddress();
         _sourceAddress = (InetSocketAddress) ctx.channel().remoteAddress();
         super.channelActive(ctx);
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception
-    {
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof XrootdRequest) {
             requestReceived(ctx, (XrootdRequest) msg);
         } else if (msg instanceof HAProxyMessage) {
             HAProxyMessage proxyMessage = (HAProxyMessage) msg;
             switch (proxyMessage.command()) {
-            case LOCAL:
-                _isHealthCheck = true;
-                break;
-            case PROXY:
-                String sourceAddress = proxyMessage.sourceAddress();
-                String destinationAddress = proxyMessage.destinationAddress();
-                InetSocketAddress localAddress = (InetSocketAddress) ctx.channel().localAddress();
-                if (proxyMessage.proxiedProtocol() == HAProxyProxiedProtocol.TCP4 ||
-                    proxyMessage.proxiedProtocol() == HAProxyProxiedProtocol.TCP6) {
-                    if (Objects.equals(destinationAddress, localAddress.getAddress().getHostAddress())) {
-                        /* Workaround for what looks like a bug in HAProxy - health checks should
-                         * generate a LOCAL command, but it appears they do actually use PROXY.
-                         */
-                        _isHealthCheck = true;
-                    } else {
-                        _destinationAddress = new InetSocketAddress(InetAddresses.forString(destinationAddress), proxyMessage.destinationPort());
-                        _sourceAddress = new InetSocketAddress(InetAddresses.forString(sourceAddress), proxyMessage.sourcePort());
+                case LOCAL:
+                    _isHealthCheck = true;
+                    break;
+                case PROXY:
+                    String sourceAddress = proxyMessage.sourceAddress();
+                    String destinationAddress = proxyMessage.destinationAddress();
+                    InetSocketAddress localAddress = (InetSocketAddress) ctx.channel()
+                          .localAddress();
+                    if (proxyMessage.proxiedProtocol() == HAProxyProxiedProtocol.TCP4 ||
+                          proxyMessage.proxiedProtocol() == HAProxyProxiedProtocol.TCP6) {
+                        if (Objects.equals(destinationAddress,
+                              localAddress.getAddress().getHostAddress())) {
+                            /* Workaround for what looks like a bug in HAProxy - health checks should
+                             * generate a LOCAL command, but it appears they do actually use PROXY.
+                             */
+                            _isHealthCheck = true;
+                        } else {
+                            _destinationAddress = new InetSocketAddress(
+                                  InetAddresses.forString(destinationAddress),
+                                  proxyMessage.destinationPort());
+                            _sourceAddress = new InetSocketAddress(
+                                  InetAddresses.forString(sourceAddress),
+                                  proxyMessage.sourcePort());
+                        }
                     }
-                }
-                break;
+                    break;
             }
             ctx.fireChannelRead(msg);
         } else {
@@ -127,113 +149,111 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
         }
     }
 
-    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception
-    {
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof SslHandshakeCompletionEvent) {
             if (!((SslHandshakeCompletionEvent) evt).isSuccess()) {
                 Throwable t = ((SslHandshakeCompletionEvent) evt).cause();
                 _log.error("TLS handshake failed: {}.",
-                          t == null ? "no cause reported" : t.toString());
+                      t == null ? "no cause reported" : t.toString());
             }
         } else {
             super.userEventTriggered(ctx, evt);
         }
     }
 
-    protected void requestReceived(ChannelHandlerContext ctx, XrootdRequest req)
-    {
+    protected void requestReceived(ChannelHandlerContext ctx, XrootdRequest req) {
         try {
             Object response;
             switch (req.getRequestId()) {
-            case kXR_auth:
-                response =
-                    doOnAuthentication(ctx, (AuthenticationRequest) req);
-                break;
-            case kXR_login:
-                response =
-                    doOnLogin(ctx, (LoginRequest) req);
-                break;
-            case kXR_open:
-                response =
-                    doOnOpen(ctx, (OpenRequest) req);
-                break;
-            case kXR_stat:
-                response =
-                    doOnStat(ctx, (StatRequest) req);
-                break;
-            case kXR_statx:
-                response =
-                    doOnStatx(ctx, (StatxRequest) req);
-                break;
-            case kXR_read:
-                response =
-                    doOnRead(ctx, (ReadRequest) req);
-                break;
-            case kXR_readv:
-                response =
-                    doOnReadV(ctx, (ReadVRequest) req);
-                break;
-            case kXR_write:
-                response =
-                    doOnWrite(ctx, (WriteRequest) req);
-                break;
-            case kXR_sync:
-                response =
-                    doOnSync(ctx, (SyncRequest) req);
-                break;
-            case kXR_close:
-                response =
-                    doOnClose(ctx, (CloseRequest) req);
-                break;
-            case kXR_protocol:
-                response =
-                    doOnProtocolRequest(ctx, (ProtocolRequest) req);
-                _log.debug("PROTOCOL RESPONSE TO CLIENT {}.", response);
-                break;
-            case kXR_rm:
-                response =
-                    doOnRm(ctx, (RmRequest) req);
-                break;
-            case kXR_rmdir:
-                response =
-                    doOnRmDir(ctx, (RmDirRequest) req);
-                break;
-            case kXR_mkdir:
-                response =
-                    doOnMkDir(ctx, (MkDirRequest) req);
-                break;
-            case kXR_mv:
-                response =
-                    doOnMv(ctx, (MvRequest) req);
-                break;
-            case kXR_dirlist:
-                response =
-                    doOnDirList(ctx, (DirListRequest) req);
-                break;
-            case kXR_prepare:
-                response =
-                    doOnPrepare(ctx, (PrepareRequest) req);
-                break;
-            case kXR_locate :
-                response =
-                        doOnLocate(ctx, (LocateRequest) req);
-                break;
-            case kXR_query :
-                response =
-                        doOnQuery(ctx, (QueryRequest) req);
-                break;
-            case kXR_set :
-                response =
-                        doOnSet(ctx, (SetRequest) req);
-                break;
-            case kXR_endsess:
-                response =
-                        doOnEndSession(ctx, (EndSessionRequest) req);
-                break;
-            default:
-                response =
-                    unsupported(ctx, req);
-                break;
+                case kXR_auth:
+                    response =
+                          doOnAuthentication(ctx, (AuthenticationRequest) req);
+                    break;
+                case kXR_login:
+                    response =
+                          doOnLogin(ctx, (LoginRequest) req);
+                    break;
+                case kXR_open:
+                    response =
+                          doOnOpen(ctx, (OpenRequest) req);
+                    break;
+                case kXR_stat:
+                    response =
+                          doOnStat(ctx, (StatRequest) req);
+                    break;
+                case kXR_statx:
+                    response =
+                          doOnStatx(ctx, (StatxRequest) req);
+                    break;
+                case kXR_read:
+                    response =
+                          doOnRead(ctx, (ReadRequest) req);
+                    break;
+                case kXR_readv:
+                    response =
+                          doOnReadV(ctx, (ReadVRequest) req);
+                    break;
+                case kXR_write:
+                    response =
+                          doOnWrite(ctx, (WriteRequest) req);
+                    break;
+                case kXR_sync:
+                    response =
+                          doOnSync(ctx, (SyncRequest) req);
+                    break;
+                case kXR_close:
+                    response =
+                          doOnClose(ctx, (CloseRequest) req);
+                    break;
+                case kXR_protocol:
+                    response =
+                          doOnProtocolRequest(ctx, (ProtocolRequest) req);
+                    _log.debug("PROTOCOL RESPONSE TO CLIENT {}.", response);
+                    break;
+                case kXR_rm:
+                    response =
+                          doOnRm(ctx, (RmRequest) req);
+                    break;
+                case kXR_rmdir:
+                    response =
+                          doOnRmDir(ctx, (RmDirRequest) req);
+                    break;
+                case kXR_mkdir:
+                    response =
+                          doOnMkDir(ctx, (MkDirRequest) req);
+                    break;
+                case kXR_mv:
+                    response =
+                          doOnMv(ctx, (MvRequest) req);
+                    break;
+                case kXR_dirlist:
+                    response =
+                          doOnDirList(ctx, (DirListRequest) req);
+                    break;
+                case kXR_prepare:
+                    response =
+                          doOnPrepare(ctx, (PrepareRequest) req);
+                    break;
+                case kXR_locate:
+                    response =
+                          doOnLocate(ctx, (LocateRequest) req);
+                    break;
+                case kXR_query:
+                    response =
+                          doOnQuery(ctx, (QueryRequest) req);
+                    break;
+                case kXR_set:
+                    response =
+                          doOnSet(ctx, (SetRequest) req);
+                    break;
+                case kXR_endsess:
+                    response =
+                          doOnEndSession(ctx, (EndSessionRequest) req);
+                    break;
+                default:
+                    response =
+                          unsupported(ctx, req);
+                    break;
             }
             if (response != null) {
                 respond(ctx, response);
@@ -243,182 +263,162 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
         } catch (XrootdException e) {
             respond(ctx, withError(req, e.getError(), e.getMessage()));
         } catch (RuntimeException e) {
-            _log.error("xrootd server error while processing " + req + " (please report this to support@dcache.org)", e);
+            _log.error("xrootd server error while processing " + req
+                  + " (please report this to support@dcache.org)", e);
             respond(ctx,
-                withError(req, kXR_ServerError,
-                    String.format("Internal server error (%s)",
-                        e.getMessage())));
+                  withError(req, kXR_ServerError,
+                        String.format("Internal server error (%s)",
+                              e.getMessage())));
         } finally {
             ReferenceCountUtil.release(req);
         }
     }
 
-    protected <T extends XrootdRequest> OkResponse<T> withOk(T req)
-    {
+    protected <T extends XrootdRequest> OkResponse<T> withOk(T req) {
         return new OkResponse<>(req);
     }
 
-    protected <T extends XrootdRequest> ErrorResponse<T> withError(T req, int errorCode, String errMsg)
-    {
+    protected <T extends XrootdRequest> ErrorResponse<T> withError(T req, int errorCode,
+          String errMsg) {
         return new ErrorResponse<>(req, errorCode, errMsg);
     }
 
-    protected ChannelFuture respond(ChannelHandlerContext ctx, Object response)
-    {
-        return ctx.writeAndFlush(response).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+    protected ChannelFuture respond(ChannelHandlerContext ctx, Object response) {
+        return ctx.writeAndFlush(response)
+              .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
     }
 
-    protected <T extends XrootdRequest> XrootdResponse<T> unsupported(ChannelHandlerContext ctx, T msg)
-        throws XrootdException
-    {
+    protected <T extends XrootdRequest> XrootdResponse<T> unsupported(ChannelHandlerContext ctx,
+          T msg)
+          throws XrootdException {
         _log.warn("Unsupported request: " + msg);
-        throw new XrootdException(kXR_Unsupported, "Request " + msg.getRequestId() + " not supported");
+        throw new XrootdException(kXR_Unsupported,
+              "Request " + msg.getRequestId() + " not supported");
     }
 
     protected Object doOnLogin(ChannelHandlerContext ctx,
-                               LoginRequest msg)
-        throws XrootdException
-    {
+          LoginRequest msg)
+          throws XrootdException {
         return unsupported(ctx, msg);
     }
 
     protected Object doOnAuthentication(ChannelHandlerContext ctx,
-                                        AuthenticationRequest msg)
-        throws XrootdException
-    {
+          AuthenticationRequest msg)
+          throws XrootdException {
         return unsupported(ctx, msg);
     }
 
     protected Object doOnOpen(ChannelHandlerContext ctx,
-                              OpenRequest msg)
-        throws XrootdException
-    {
+          OpenRequest msg)
+          throws XrootdException {
         return unsupported(ctx, msg);
     }
 
     protected Object doOnStat(ChannelHandlerContext ctx,
-                              StatRequest msg)
-        throws XrootdException
-    {
+          StatRequest msg)
+          throws XrootdException {
         return unsupported(ctx, msg);
     }
 
     protected Object doOnStatx(ChannelHandlerContext ctx,
-                               StatxRequest msg)
-        throws XrootdException
-    {
+          StatxRequest msg)
+          throws XrootdException {
         return unsupported(ctx, msg);
     }
 
     protected Object doOnRead(ChannelHandlerContext ctx,
-                              ReadRequest msg)
-        throws XrootdException
-    {
+          ReadRequest msg)
+          throws XrootdException {
         return unsupported(ctx, msg);
     }
 
     protected Object doOnReadV(ChannelHandlerContext ctx,
-                               ReadVRequest msg)
-        throws XrootdException
-    {
+          ReadVRequest msg)
+          throws XrootdException {
         return unsupported(ctx, msg);
     }
 
     protected Object doOnWrite(ChannelHandlerContext ctx,
-                               WriteRequest msg)
-        throws XrootdException
-    {
+          WriteRequest msg)
+          throws XrootdException {
         return unsupported(ctx, msg);
     }
 
     protected Object doOnSync(ChannelHandlerContext ctx,
-                              SyncRequest msg)
-        throws XrootdException
-    {
+          SyncRequest msg)
+          throws XrootdException {
         return unsupported(ctx, msg);
     }
 
     protected Object doOnClose(ChannelHandlerContext ctx,
-                               CloseRequest msg)
-        throws XrootdException
-    {
+          CloseRequest msg)
+          throws XrootdException {
         return unsupported(ctx, msg);
     }
 
     protected Object doOnProtocolRequest(ChannelHandlerContext ctx,
-                                         ProtocolRequest msg)
-        throws XrootdException
-    {
+          ProtocolRequest msg)
+          throws XrootdException {
         return unsupported(ctx, msg);
     }
 
     protected Object doOnRm(ChannelHandlerContext ctx,
-                            RmRequest msg)
-        throws XrootdException
-    {
+          RmRequest msg)
+          throws XrootdException {
         return unsupported(ctx, msg);
     }
 
     protected Object doOnRmDir(ChannelHandlerContext ctx,
-                               RmDirRequest msg)
-        throws XrootdException
-    {
+          RmDirRequest msg)
+          throws XrootdException {
         return unsupported(ctx, msg);
     }
 
     protected Object doOnMkDir(ChannelHandlerContext ctx,
-                               MkDirRequest msg)
-        throws XrootdException
-    {
+          MkDirRequest msg)
+          throws XrootdException {
         return unsupported(ctx, msg);
     }
 
     protected Object doOnMv(ChannelHandlerContext ctx,
-                            MvRequest msg)
-        throws XrootdException
-    {
+          MvRequest msg)
+          throws XrootdException {
         return unsupported(ctx, msg);
     }
 
     protected Object doOnDirList(ChannelHandlerContext ctx,
-                                 DirListRequest msg)
-        throws XrootdException
-    {
+          DirListRequest msg)
+          throws XrootdException {
         return unsupported(ctx, msg);
     }
 
     protected Object doOnPrepare(ChannelHandlerContext ctx,
-                                 PrepareRequest msg)
-        throws XrootdException
-    {
+          PrepareRequest msg)
+          throws XrootdException {
         return unsupported(ctx, msg);
     }
 
     protected Object doOnLocate(ChannelHandlerContext ctx,
-                                LocateRequest msg)
-        throws XrootdException
-    {
+          LocateRequest msg)
+          throws XrootdException {
         return unsupported(ctx, msg);
     }
 
     protected Object doOnQuery(ChannelHandlerContext ctx,
-                               QueryRequest msg)
-        throws XrootdException
-    {
+          QueryRequest msg)
+          throws XrootdException {
         return unsupported(ctx, msg);
     }
 
     protected Object doOnSet(ChannelHandlerContext ctx,
-                             SetRequest request)
-            throws XrootdException
-    {
+          SetRequest request)
+          throws XrootdException {
         return unsupported(ctx, request);
     }
 
     protected Object doOnEndSession(ChannelHandlerContext ctx,
-                                    EndSessionRequest request)
-            throws XrootdException
-    {
+          EndSessionRequest request)
+          throws XrootdException {
         return unsupported(ctx, request);
     }
 
@@ -427,8 +427,7 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
      * of the channel, but could also be an address on a proxy server
      * between the client and the server.
      */
-    protected InetSocketAddress getDestinationAddress()
-    {
+    protected InetSocketAddress getDestinationAddress() {
         return _destinationAddress;
     }
 
@@ -437,16 +436,14 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
      * of the channel, but in case a proxy is in between the client and the
      * server, the source address will be a different from the remote address.
      */
-    protected InetSocketAddress getSourceAddress()
-    {
+    protected InetSocketAddress getSourceAddress() {
         return _sourceAddress;
     }
 
     /**
      * True if this looks like a health check connection from a proxy server.
      */
-    protected boolean isHealthCheck()
-    {
+    protected boolean isHealthCheck() {
         return _isHealthCheck;
     }
 }

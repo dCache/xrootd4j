@@ -1,40 +1,36 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
- *
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.tpc.protocol.messages;
-
-import io.netty.buffer.ByteBuf;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-
-import org.dcache.xrootd.util.ParseException;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asyncdi;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asyncrd;
 
+import io.netty.buffer.ByteBuf;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import org.dcache.xrootd.util.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
- * <p>Response from third-party source server.</p>
+ * Response from third-party source server.</p>
  *
- * <p>According to protocol, has the following packet structure:</p>
+ * According to protocol, has the following packet structure:</p>
  *
  *  <table>
  *      <tr><td>kXR_char</td><td>streamid[2]</td></tr>
@@ -44,11 +40,11 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asyncrd;
  *      <tr><td>kXR_char</td><td>host[?[opaque][?token]][dlen-4] | url</td></tr>
  *  </table>
  *
- *  <p>Can also be constructed from a kXR_attn kXR_asyncrd or kXR_asyncdi
+ *  Can also be constructed from a kXR_attn kXR_asyncrd or kXR_asyncdi
  *     response.</p>
  */
-public class InboundRedirectResponse extends AbstractXrootdInboundResponse
-{
+public class InboundRedirectResponse extends AbstractXrootdInboundResponse {
+
     static final Logger LOGGER = LoggerFactory.getLogger(InboundRedirectResponse.class);
     private final int requestId;
 
@@ -57,17 +53,16 @@ public class InboundRedirectResponse extends AbstractXrootdInboundResponse
     private String opaque;
 
     private String token;
-    private URL    url;
+    private URL url;
 
     private int wsec;
     private int msec;
 
     public InboundRedirectResponse(InboundAttnResponse attnResponse)
-                    throws ParseException
-    {
+          throws ParseException {
         super(attnResponse.streamId, attnResponse.stat);
         this.requestId = attnResponse.getRequestId();
-        switch(attnResponse.getActnum()) {
+        switch (attnResponse.getActnum()) {
             case kXR_asyncdi:
                 wsec = attnResponse.getWsec();
                 msec = attnResponse.getMsec();
@@ -85,74 +80,62 @@ public class InboundRedirectResponse extends AbstractXrootdInboundResponse
     }
 
     public InboundRedirectResponse(ByteBuf buffer, int requestId) throws
-                    ParseException
-    {
+          ParseException {
         super(buffer);
         this.requestId = requestId;
         int len = buffer.getInt(4);
         port = buffer.getInt(8);
-        parseRedirectString(buffer.toString(12, len-4, StandardCharsets.US_ASCII));
+        parseRedirectString(buffer.toString(12, len - 4, StandardCharsets.US_ASCII));
         wsec = 0;
         msec = 0;
     }
 
     @Override
-    public int getRequestId()
-    {
+    public int getRequestId() {
         return requestId;
     }
 
-    public String getHost()
-    {
+    public String getHost() {
         return this.host;
     }
 
-    public int getMsec()
-    {
+    public int getMsec() {
         return msec;
     }
 
-    public String getOpaque()
-    {
+    public String getOpaque() {
         return opaque;
     }
 
-    public int getPort()
-    {
+    public int getPort() {
         return this.port;
     }
 
-    public String getToken()
-    {
+    public String getToken() {
         return token;
     }
 
-    public URL getUrl()
-    {
+    public URL getUrl() {
         return url;
     }
 
-    public int getWsec()
-    {
+    public int getWsec() {
         return wsec;
     }
 
-    public boolean isReconnect()
-    {
+    public boolean isReconnect() {
         return host == null && url == null;
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return String.format("[kXR_redirect (host %s)(port %d)"
-                                             + "(opaque %s)(token %s)(url %s)]",
-                             host, port, opaque, token, url);
+                    + "(opaque %s)(token %s)(url %s)]",
+              host, port, opaque, token, url);
     }
 
     private void parseRedirectString(String redirect)
-                    throws ParseException
-    {
+          throws ParseException {
         if (port == -1) {
             try {
                 url = new URL(redirect);

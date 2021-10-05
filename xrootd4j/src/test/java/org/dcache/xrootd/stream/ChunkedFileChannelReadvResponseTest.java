@@ -1,47 +1,49 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
- *
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.stream;
 
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.google.common.collect.Lists;
 import io.netty.buffer.UnpooledByteBufAllocator;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
 import java.util.List;
-
 import org.dcache.xrootd.protocol.messages.GenericReadRequestMessage;
 import org.dcache.xrootd.protocol.messages.ReadVRequest;
 import org.dcache.xrootd.protocol.messages.ReadVResponse;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+public class ChunkedFileChannelReadvResponseTest {
 
-public class ChunkedFileChannelReadvResponseTest
-{
     private static final int SOME_ID = 1234;
     private static final int SOME_FH = 1;
     private static final int HEADER = 16;
@@ -51,8 +53,7 @@ public class ChunkedFileChannelReadvResponseTest
     private ReadVRequest _request;
 
     @Before
-    public void setUp()
-    {
+    public void setUp() {
         _channels = Lists.newArrayList();
         _requests = new GenericReadRequestMessage.EmbeddedReadRequest[0];
         _request = mock(ReadVRequest.class);
@@ -62,8 +63,7 @@ public class ChunkedFileChannelReadvResponseTest
 
     @Test
     public void shouldReturnSingleResponseIfAllowedByMaxFrameSize()
-        throws Exception
-    {
+          throws Exception {
         givenFileDescriptor().withFileHandle(SOME_FH).withSize(10000);
         givenReadRequest().forFileHandle(SOME_FH).atOffset(100).forLength(200);
         givenReadRequest().forFileHandle(SOME_FH).atOffset(300).forLength(100);
@@ -76,9 +76,8 @@ public class ChunkedFileChannelReadvResponseTest
         assertThat(response2, is(nullValue()));
     }
 
-    @Test(expected=IllegalStateException.class)
-    public void shouldFailReadsBiggerThanMaxFrameSize() throws Exception
-    {
+    @Test(expected = IllegalStateException.class)
+    public void shouldFailReadsBiggerThanMaxFrameSize() throws Exception {
         givenFileDescriptor().withFileHandle(SOME_FH).withSize(10000);
         givenReadRequest().forFileHandle(SOME_FH).atOffset(100).forLength(2000);
 
@@ -87,8 +86,7 @@ public class ChunkedFileChannelReadvResponseTest
     }
 
     @Test
-    public void shouldRespectMaxFrameSize() throws Exception
-    {
+    public void shouldRespectMaxFrameSize() throws Exception {
         givenFileDescriptor().withFileHandle(SOME_FH).withSize(10000);
         givenReadRequest().forFileHandle(SOME_FH).atOffset(100).forLength(100);
         givenReadRequest().forFileHandle(SOME_FH).atOffset(300).forLength(1000);
@@ -104,8 +102,7 @@ public class ChunkedFileChannelReadvResponseTest
     }
 
     @Test
-    public void shouldRespectEndOfFile() throws Exception
-    {
+    public void shouldRespectEndOfFile() throws Exception {
         givenFileDescriptor().withFileHandle(SOME_FH).withSize(10000);
         givenReadRequest().forFileHandle(SOME_FH).atOffset(9700).forLength(500);
 
@@ -118,8 +115,7 @@ public class ChunkedFileChannelReadvResponseTest
     }
 
     @Test
-    public void shouldUsePositionIndependentRead() throws Exception
-    {
+    public void shouldUsePositionIndependentRead() throws Exception {
         givenFileDescriptor().withFileHandle(SOME_FH).withSize(10000);
         givenReadRequest().forFileHandle(SOME_FH).atOffset(100).forLength(100);
         givenReadRequest().forFileHandle(SOME_FH).atOffset(200).forLength(100);
@@ -138,8 +134,7 @@ public class ChunkedFileChannelReadvResponseTest
     }
 
     @Test
-    public void shouldPackTruncatedReadsInSingleFrameIfPossible() throws Exception
-    {
+    public void shouldPackTruncatedReadsInSingleFrameIfPossible() throws Exception {
         givenFileDescriptor().withFileHandle(SOME_FH).withSize(400);
         givenReadRequest().forFileHandle(SOME_FH).atOffset(100).forLength(200);
         givenReadRequest().forFileHandle(SOME_FH).atOffset(300).forLength(1000);
@@ -154,8 +149,7 @@ public class ChunkedFileChannelReadvResponseTest
     }
 
     @Test(expected = IllegalStateException.class)
-    public void shouldNotOverflowWithLargeRequests() throws Exception
-    {
+    public void shouldNotOverflowWithLargeRequests() throws Exception {
         givenFileDescriptor().withFileHandle(SOME_FH).withSize(Integer.MAX_VALUE);
         givenReadRequest().forFileHandle(SOME_FH).atOffset(0).forLength(Integer.MAX_VALUE);
 
@@ -164,13 +158,11 @@ public class ChunkedFileChannelReadvResponseTest
         ReadVResponse response1 = response.nextChunk(UnpooledByteBufAllocator.DEFAULT);
     }
 
-    private FileDescriptorMaker givenFileDescriptor()
-    {
+    private FileDescriptorMaker givenFileDescriptor() {
         return new FileDescriptorMaker();
     }
 
-    private ReadRequestMaker givenReadRequest()
-    {
+    private ReadRequestMaker givenReadRequest() {
         int idx = _requests.length;
         _requests = Arrays.copyOf(_requests, _requests.length + 1);
         _requests[idx] = mock(GenericReadRequestMessage.EmbeddedReadRequest.class);
@@ -180,20 +172,18 @@ public class ChunkedFileChannelReadvResponseTest
         return new ReadRequestMaker(_requests[idx]);
     }
 
-    private FileChannel channel(int fd)
-    {
+    private FileChannel channel(int fd) {
         return _channels.get(fd);
     }
 
-    private AbstractChunkedReadvResponse aResponseWithMaxFrameSizeOf(int maxFrameSize)
-    {
+    private AbstractChunkedReadvResponse aResponseWithMaxFrameSizeOf(int maxFrameSize) {
         return new
-            ChunkedFileChannelReadvResponse(_request, maxFrameSize, _channels);
+              ChunkedFileChannelReadvResponse(_request, maxFrameSize, _channels);
     }
 
     /** A builder of FileDescriptor with a fluent interface. */
-    private class FileDescriptorMaker
-    {
+    private class FileDescriptorMaker {
+
         private final FileChannel channel = mock(FileChannel.class);
 
         public FileDescriptorMaker() {
@@ -230,8 +220,8 @@ public class ChunkedFileChannelReadvResponseTest
     }
 
     /** A builder of EmbeddedReadRequest with a fluent interface. */
-    private static class ReadRequestMaker
-    {
+    private static class ReadRequestMaker {
+
         private final GenericReadRequestMessage.EmbeddedReadRequest _request;
 
         private ReadRequestMaker(GenericReadRequestMessage.EmbeddedReadRequest request) {

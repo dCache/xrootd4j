@@ -1,33 +1,30 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
  *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.tpc.protocol.messages;
-
-import com.google.common.base.Preconditions;
-import io.netty.buffer.ByteBuf;
-
-import java.nio.charset.StandardCharsets;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_Qcksum;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_query;
 
+import com.google.common.base.Preconditions;
+import io.netty.buffer.ByteBuf;
+import java.nio.charset.StandardCharsets;
+
 /**
- * <p>According to protocol, has the following packet structure:</p>
+ * According to protocol, has the following packet structure:</p>
  *
  *  <table>
  *      <tr><td>kXR_char</td><td>streamid[2]</td></tr>
@@ -38,21 +35,19 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_query;
  *      <tr><td>kXR_char</td><td>path[plen]</td></tr>
  *  </table>
  */
-public class OutboundChecksumRequest extends AbstractXrootdOutboundRequest
-{
-    private static final byte[] RESERVED = {0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+public class OutboundChecksumRequest extends AbstractXrootdOutboundRequest {
+
+    private static final byte[] RESERVED = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     private String path;
 
-    public OutboundChecksumRequest(int streamId, String path)
-    {
+    public OutboundChecksumRequest(int streamId, String path) {
         super(streamId, kXR_query);
         this.path = Preconditions.checkNotNull(path);
     }
 
     @Override
-    protected void getParams(ByteBuf buffer)
-    {
+    protected void getParams(ByteBuf buffer) {
         buffer.writeShort(kXR_Qcksum);
         buffer.writeBytes(RESERVED);
         buffer.writeInt(path.length());
@@ -60,8 +55,7 @@ public class OutboundChecksumRequest extends AbstractXrootdOutboundRequest
     }
 
     @Override
-    protected int getParamsLen()
-    {
+    protected int getParamsLen() {
         return 20 + path.length();
     }
 }

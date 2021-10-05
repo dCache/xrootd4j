@@ -1,35 +1,42 @@
 /**
  * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
- *
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.core;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_NotAuthorized;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_NotFound;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_Unsupported;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_bind;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_endsess;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_inProgress;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ping;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
+import static org.dcache.xrootd.security.TLSSessionInfo.isTLSOn;
 
 import com.google.common.collect.Maps;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.security.auth.Subject;
-
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-
+import javax.security.auth.Subject;
 import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
 import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
@@ -48,9 +55,8 @@ import org.dcache.xrootd.security.RequiresTLS;
 import org.dcache.xrootd.security.SigningPolicy;
 import org.dcache.xrootd.security.TLSSessionInfo;
 import org.dcache.xrootd.util.UserNameUtils;
-
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import static org.dcache.xrootd.security.TLSSessionInfo.isTLSOn;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Netty handler implementing Xrootd kXR_login, kXR_auth, and kXR_endsess.
@@ -65,46 +71,44 @@ import static org.dcache.xrootd.security.TLSSessionInfo.isTLSOn;
  * The class may be subclassed to override the <code>authenticated</code> method
  * to add additional operations after authentication.
  */
-public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
-{
-    private static final Logger _log =
-        LoggerFactory.getLogger(XrootdAuthenticationHandler.class);
+public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter {
 
-    private static final ConcurrentMap<XrootdSessionIdentifier,XrootdSession> _sessions =
-        Maps.newConcurrentMap();
+    private static final Logger _log =
+          LoggerFactory.getLogger(XrootdAuthenticationHandler.class);
+
+    private static final ConcurrentMap<XrootdSessionIdentifier, XrootdSession> _sessions =
+          Maps.newConcurrentMap();
 
     private final AtomicBoolean _isInProgress = new AtomicBoolean(false);
     private final XrootdSessionIdentifier _sessionId = new XrootdSessionIdentifier();
 
     private final AuthenticationFactory _authenticationFactory;
     private final ProxyDelegationClient _proxyDelegationClient;
-    private       TLSSessionInfo        _tlsSessionInfo;
-    private       SigningPolicy         _signingPolicy;
+    private TLSSessionInfo _tlsSessionInfo;
+    private SigningPolicy _signingPolicy;
 
     private AuthenticationHandler _authenticationHandler;
 
-    private enum State { NO_LOGIN, NO_AUTH, AUTH }
+    private enum State {NO_LOGIN, NO_AUTH, AUTH}
+
     private volatile State _state = State.NO_LOGIN;
 
     private XrootdSession _session;
 
     public XrootdAuthenticationHandler(AuthenticationFactory authenticationFactory,
-                                       ProxyDelegationClient proxyDelegationClient)
-    {
+          ProxyDelegationClient proxyDelegationClient) {
         _authenticationFactory = authenticationFactory;
         _proxyDelegationClient = proxyDelegationClient;
     }
 
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception
-    {
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         _sessions.remove(_sessionId);
         super.channelInactive(ctx);
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception
-    {
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         /* Pass along any message that is not an xrootd requests.
          */
         if (!(msg instanceof XrootdRequest)) {
@@ -117,131 +121,132 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
 
         try {
             switch (reqId) {
-            case kXR_login:
-                try {
-                    if (_isInProgress.compareAndSet(false, true)) {
-                        try {
-                            _state = State.NO_LOGIN;
-                            LoginRequest loginRequest = (LoginRequest) request;
-                            loginRequest.setUserName(UserNameUtils.checkUsernameValid(loginRequest.getUserName()));
-                            _session = new XrootdSession(_sessionId, ctx.channel(), loginRequest);
-                            request.setSession(_session);
-                            doOnLogin(ctx, loginRequest);
-                            _sessions.put(_sessionId, _session);
-                        } finally {
-                            _isInProgress.set(false);
+                case kXR_login:
+                    try {
+                        if (_isInProgress.compareAndSet(false, true)) {
+                            try {
+                                _state = State.NO_LOGIN;
+                                LoginRequest loginRequest = (LoginRequest) request;
+                                loginRequest.setUserName(
+                                      UserNameUtils.checkUsernameValid(loginRequest.getUserName()));
+                                _session = new XrootdSession(_sessionId, ctx.channel(),
+                                      loginRequest);
+                                request.setSession(_session);
+                                doOnLogin(ctx, loginRequest);
+                                _sessions.put(_sessionId, _session);
+                            } finally {
+                                _isInProgress.set(false);
+                            }
+                        } else {
+                            throw new XrootdException(kXR_inProgress, "Login in progress");
                         }
-                    } else {
-                        throw new XrootdException(kXR_inProgress, "Login in progress");
+                    } finally {
+                        ReferenceCountUtil.release(request);
                     }
-                } finally {
-                    ReferenceCountUtil.release(request);
-                }
-                break;
-            case kXR_auth:
-                try {
-                    if (_isInProgress.compareAndSet(false, true)) {
-                        try {
-                            switch (_state) {
+                    break;
+                case kXR_auth:
+                    try {
+                        if (_isInProgress.compareAndSet(false, true)) {
+                            try {
+                                switch (_state) {
+                                    case NO_LOGIN:
+                                        throw new XrootdException(kXR_NotAuthorized,
+                                              "Login required");
+                                    case AUTH:
+                                        throw new XrootdException(kXR_InvalidRequest,
+                                              "Already authenticated");
+                                }
+                                request.setSession(_session);
+                                doOnAuthentication(ctx, (AuthenticationRequest) request);
+                            } finally {
+                                _isInProgress.set(false);
+                            }
+                        } else {
+                            throw new XrootdException(kXR_inProgress, "Login in progress");
+                        }
+                    } finally {
+                        ReferenceCountUtil.release(request);
+                    }
+                    break;
+                case kXR_endsess:
+                    try {
+                        switch (_state) {
                             case NO_LOGIN:
                                 throw new XrootdException(kXR_NotAuthorized, "Login required");
-                            case AUTH:
-                                throw new XrootdException(kXR_InvalidRequest, "Already authenticated");
-                            }
-                            request.setSession(_session);
-                            doOnAuthentication(ctx, (AuthenticationRequest) request);
-                        } finally {
-                            _isInProgress.set(false);
+                            case NO_AUTH:
+                                throw new XrootdException(kXR_NotAuthorized,
+                                      "Authentication required");
                         }
-                    } else {
-                        throw new XrootdException(kXR_inProgress, "Login in progress");
+                        request.setSession(_session);
+                        doOnEndSession(ctx, (EndSessionRequest) request);
+                    } finally {
+                        ReferenceCountUtil.release(request);
                     }
-                } finally {
-                    ReferenceCountUtil.release(request);
-                }
-                break;
-            case kXR_endsess:
-                try {
-                    switch (_state) {
-                    case NO_LOGIN:
+                    break;
+                case kXR_bind:
+                    request.setSession(_session);
+                    if (_tlsSessionInfo != null && _tlsSessionInfo.serverUsesTls()) {
+                        boolean isStarted = _tlsSessionInfo.serverTransitionedToTLS(kXR_bind, ctx);
+                        _log.debug("kXR_bind, server has now transitioned to tls? {}.", isStarted);
+                    }
+                    super.channelRead(ctx, msg);
+                    break;
+                case kXR_protocol:
+                    request.setSession(_session);
+                    super.channelRead(ctx, msg);
+                    break;
+                case kXR_ping:
+                    if (_state == State.NO_LOGIN) {
+                        ReferenceCountUtil.release(request);
                         throw new XrootdException(kXR_NotAuthorized, "Login required");
-                    case NO_AUTH:
-                        throw new XrootdException(kXR_NotAuthorized, "Authentication required");
                     }
                     request.setSession(_session);
-                    doOnEndSession(ctx, (EndSessionRequest) request);
-                } finally {
-                    ReferenceCountUtil.release(request);
-                }
-                break;
-            case kXR_bind:
-                request.setSession(_session);
-                if (_tlsSessionInfo != null && _tlsSessionInfo.serverUsesTls()) {
-                    boolean isStarted = _tlsSessionInfo.serverTransitionedToTLS(kXR_bind, ctx);
-                    _log.debug("kXR_bind, server has now transitioned to tls? {}.", isStarted);
-                }
-                super.channelRead(ctx, msg);
-                break;
-            case kXR_protocol:
-                request.setSession(_session);
-                super.channelRead(ctx, msg);
-                break;
-            case kXR_ping:
-                if (_state == State.NO_LOGIN) {
-                    ReferenceCountUtil.release(request);
-                    throw new XrootdException(kXR_NotAuthorized, "Login required");
-                }
-                request.setSession(_session);
-                super.channelRead(ctx, msg);
-                break;
-            default:
-                switch (_state) {
-                case NO_LOGIN:
-                    ReferenceCountUtil.release(request);
-                    throw new XrootdException(kXR_NotAuthorized, "Login required");
-                case NO_AUTH:
-                    ReferenceCountUtil.release(request);
-                    throw new XrootdException(kXR_NotAuthorized, "Authentication required");
-                }
-                request.setSession(_session);
-                super.channelRead(ctx, msg);
-                break;
+                    super.channelRead(ctx, msg);
+                    break;
+                default:
+                    switch (_state) {
+                        case NO_LOGIN:
+                            ReferenceCountUtil.release(request);
+                            throw new XrootdException(kXR_NotAuthorized, "Login required");
+                        case NO_AUTH:
+                            ReferenceCountUtil.release(request);
+                            throw new XrootdException(kXR_NotAuthorized, "Authentication required");
+                    }
+                    request.setSession(_session);
+                    super.channelRead(ctx, msg);
+                    break;
             }
         } catch (XrootdException e) {
             ErrorResponse error =
-                new ErrorResponse<>(request, e.getError(), e.getMessage());
+                  new ErrorResponse<>(request, e.getError(), e.getMessage());
             ctx.writeAndFlush(error);
         } catch (RuntimeException e) {
             _log.error("xrootd server error while processing " + msg
-                                       + " (please report this to support@dcache.org)", e);
+                  + " (please report this to support@dcache.org)", e);
             ErrorResponse error =
-                new ErrorResponse<>(request, kXR_ServerError,
-                                    String.format("Internal server error (%s)",
-                                                  e.getMessage()));
+                  new ErrorResponse<>(request, kXR_ServerError,
+                        String.format("Internal server error (%s)",
+                              e.getMessage()));
             ctx.writeAndFlush(error);
         }
     }
 
-    public ProxyDelegationClient getCredentialStoreClient()
-    {
+    public ProxyDelegationClient getCredentialStoreClient() {
         return _proxyDelegationClient;
     }
 
     @Override
-    public void handlerRemoved(ChannelHandlerContext ctx)
-    {
+    public void handlerRemoved(ChannelHandlerContext ctx) {
         if (_proxyDelegationClient != null) {
             _proxyDelegationClient.close();
         }
     }
 
-    public void setSigningPolicy(SigningPolicy signingPolicy)
-    {
+    public void setSigningPolicy(SigningPolicy signingPolicy) {
         _signingPolicy = signingPolicy;
     }
 
-    public void setTlsSessionInfo(TLSSessionInfo tlsSessionInfo)
-    {
+    public void setTlsSessionInfo(TLSSessionInfo tlsSessionInfo) {
         _tlsSessionInfo = tlsSessionInfo;
     }
 
@@ -258,31 +263,29 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
      * @param subject the subject that logged in
      */
     protected Subject login(ChannelHandlerContext context, Subject subject)
-                    throws XrootdException
-    {
+          throws XrootdException {
         return subject;
     }
 
     private void doOnLogin(ChannelHandlerContext context,
-                           LoginRequest request)
-        throws XrootdException
-    {
+          LoginRequest request)
+          throws XrootdException {
         try {
             _authenticationHandler
-                            = _authenticationFactory.createHandler(_proxyDelegationClient);
+                  = _authenticationFactory.createHandler(_proxyDelegationClient);
 
             /*
              *  check to see if we need TLS at login.
              */
             if (_authenticationHandler instanceof RequiresTLS
-                            && !isTLSOn(context)) {
+                  && !isTLSOn(context)) {
                 throw new XrootdException(kXR_Unsupported, "TLS is required "
-                                + "for " + _authenticationHandler.getProtocol());
+                      + "for " + _authenticationHandler.getProtocol());
             }
 
             LoginResponse response =
-                            new LoginResponse(request, _sessionId,
-                                              _authenticationHandler.getProtocol());
+                  new LoginResponse(request, _sessionId,
+                        _authenticationHandler.getProtocol());
 
             if (_authenticationHandler.isCompleted()) {
                 authenticated(context, _authenticationHandler.getSubject());
@@ -298,11 +301,10 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
     }
 
     private void doOnAuthentication(ChannelHandlerContext context,
-                                    AuthenticationRequest request)
-        throws XrootdException
-    {
+          AuthenticationRequest request)
+          throws XrootdException {
         XrootdResponse<AuthenticationRequest> response =
-            _authenticationHandler.authenticate(request);
+              _authenticationHandler.authenticate(request);
         if (_authenticationHandler.isCompleted()) {
             /* If a subclass rejects the authenticated subject then
              * the authentication status is reset.
@@ -314,8 +316,7 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
     }
 
     private void doOnEndSession(ChannelHandlerContext ctx, EndSessionRequest request)
-        throws XrootdException
-    {
+          throws XrootdException {
         XrootdSession session = _sessions.get(request.getSessionId());
         if (session == null) {
             throw new XrootdException(kXR_NotFound, "session not found");
@@ -328,18 +329,17 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
     }
 
     private void authenticated(ChannelHandlerContext context, Subject subject)
-        throws XrootdException
-    {
+          throws XrootdException {
         _session.setSubject(login(context, subject));
         _state = State.AUTH;
         if (_tlsSessionInfo != null && _tlsSessionInfo.serverUsesTls()) {
             boolean isStarted = _tlsSessionInfo.serverTransitionedToTLS(kXR_auth,
-                                                                         context);
+                  context);
             _log.debug("kXR_auth, server has now transitioned to tls? {}.",
-                       isStarted);
+                  isStarted);
         } else if (!(_authenticationHandler instanceof NoAuthenticationHandler)
-                        && !isTLSOn(context)
-                        && _signingPolicy.isSigningOn()) {
+              && !isTLSOn(context)
+              && _signingPolicy.isSigningOn()) {
             /*
              * Add the sigver decoder to the pipeline and remove the original
              * message decoder.
@@ -349,9 +349,9 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
              */
             BufferDecrypter decrypter = _authenticationHandler.getDecrypter();
             context.pipeline().addAfter("decoder",
-                                         "sigverDecoder",
-                                         new XrootdSigverDecoder(_signingPolicy,
-                                                                 decrypter));
+                  "sigverDecoder",
+                  new XrootdSigverDecoder(_signingPolicy,
+                        decrypter));
             context.pipeline().remove("decoder");
             _log.debug("switched decoder to sigverDecoder, decrypter {}.", decrypter);
         }

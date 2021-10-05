@@ -1,34 +1,52 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
- *
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.tpc;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ArgInvalid;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_Unsupported;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asyncab;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asyncav;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asyncdi;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asyncgo;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asyncms;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asyncrd;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asyncwt;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asynresp;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asynunav;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_close;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_endsess;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_handshake;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_noResponsesYet;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_open;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_query;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_read;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelId;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.tpc.protocol.messages.AbstractXrootdInboundResponse;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAttnResponse;
@@ -53,27 +71,26 @@ import org.dcache.xrootd.tpc.protocol.messages.OutboundReadRequest;
 import org.dcache.xrootd.tpc.protocol.messages.XrootdInboundResponse;
 import org.dcache.xrootd.tpc.protocol.messages.XrootdOutboundRequest;
 import org.dcache.xrootd.util.ParseException;
-
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * <p>This handler is intended for implementation of only a very limited
+ * This handler is intended for implementation of only a very limited
  *    subset of the protocol in order to support third-party read requests.
  *    It exposes the handshake, login, protocol, auth, open, read, close
  *    and endsession exchanges.</p>
  */
 public abstract class AbstractClientRequestHandler extends
-                ChannelInboundHandlerAdapter
-{
+      ChannelInboundHandlerAdapter {
+
     protected static final Logger LOGGER
-                    = LoggerFactory.getLogger(AbstractClientRequestHandler.class);
+          = LoggerFactory.getLogger(AbstractClientRequestHandler.class);
 
     protected XrootdTpcClient client;
     protected ScheduledFuture future;
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg)
-    {
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
         if (msg instanceof XrootdInboundResponse) {
             client.stopTimer();
             responseReceived(ctx, (XrootdInboundResponse) msg);
@@ -83,22 +100,21 @@ public abstract class AbstractClientRequestHandler extends
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable t)
-    {
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable t) {
         if (t instanceof ClosedChannelException) {
             LOGGER.warn("ClosedChannelException caught on channel {}.",
-                        ctx.channel().id());
+                  ctx.channel().id());
         } else if (t instanceof IOException) {
             LOGGER.error("IOException caught on channel {}: {}.",
-                         ctx.channel().id(), t.toString());
+                  ctx.channel().id(), t.toString());
         } else if (t instanceof XrootdException) {
             LOGGER.error("Exception caught on channel {}: {}.",
-                         ctx.channel().id(),
-                         t.toString());
+                  ctx.channel().id(),
+                  t.toString());
         } else {
             LOGGER.error("Exception caught on channel {}: {}",
-                         ctx.channel().id(),
-                         t.getMessage());
+                  ctx.channel().id(),
+                  t.getMessage());
             Thread me = Thread.currentThread();
             me.getUncaughtExceptionHandler().uncaughtException(me, t);
         }
@@ -109,17 +125,15 @@ public abstract class AbstractClientRequestHandler extends
         }
     }
 
-    public void setClient(XrootdTpcClient client)
-    {
+    public void setClient(XrootdTpcClient client) {
         this.client = client;
     }
 
     protected void asynWaitTimeout(ChannelHandlerContext ctx,
-                                   InboundWaitRespResponse response)
-    {
+          InboundWaitRespResponse response) {
         String message = String.format("waited %d secs for server attn, "
-                                                       + "never received response.",
-                                       getWaitInSeconds(response));
+                    + "never received response.",
+              getWaitInSeconds(response));
 
         LOGGER.error("Channel {}: {}.", ctx.channel().id(), message);
 
@@ -131,9 +145,8 @@ public abstract class AbstractClientRequestHandler extends
     }
 
     protected void doOnAsynResponse(ChannelHandlerContext ctx,
-                                    InboundAttnResponse response)
-                    throws XrootdException
-    {
+          InboundAttnResponse response)
+          throws XrootdException {
         switch (response.getRequestId()) {
             case kXR_endsess:
                 client.doEndsession(ctx);
@@ -144,112 +157,101 @@ public abstract class AbstractClientRequestHandler extends
     }
 
     protected void doOnAuthenticationResponse(ChannelHandlerContext ctx,
-                                              InboundAuthenticationResponse response)
-                    throws XrootdException
-    {
+          InboundAuthenticationResponse response)
+          throws XrootdException {
         LOGGER.debug("doOnAuthenticationResponse, channel {}, stream {}"
-                                     + " –– passing to next in chain.",
-                     ctx.channel().id(), response.getStreamId());
+                    + " –– passing to next in chain.",
+              ctx.channel().id(), response.getStreamId());
         ctx.fireChannelRead(response);
     }
 
     protected void doOnChecksumResponse(ChannelHandlerContext ctx,
-                                        InboundChecksumResponse response)
-                    throws XrootdException
-    {
+          InboundChecksumResponse response)
+          throws XrootdException {
         LOGGER.debug("doOnChecksumResponse, channel {}, stream {}"
-                                     + " –– passing to next in chain.",
-                     ctx.channel().id(), response.getStreamId());
+                    + " –– passing to next in chain.",
+              ctx.channel().id(), response.getStreamId());
         ctx.fireChannelRead(response);
     }
 
     protected void doOnCloseResponse(ChannelHandlerContext ctx,
-                                     InboundCloseResponse response)
-                    throws XrootdException
-    {
+          InboundCloseResponse response)
+          throws XrootdException {
         LOGGER.debug("doOnCloseResponse, channel {}, stream {}"
-                                     + " –– passing to next in chain.",
-                     ctx.channel().id(), response.getStreamId());
+                    + " –– passing to next in chain.",
+              ctx.channel().id(), response.getStreamId());
         ctx.fireChannelRead(response);
     }
 
     protected void doOnErrorResponse(ChannelHandlerContext ctx,
-                                     InboundErrorResponse response)
-                    throws XrootdException
-    {
+          InboundErrorResponse response)
+          throws XrootdException {
         throw new XrootdException(response.getError(),
-                                  response.getErrorMessage());
+              response.getErrorMessage());
     }
 
     protected void doOnHandshakeResponse(ChannelHandlerContext ctx,
-                                         InboundHandshakeResponse response)
-                    throws XrootdException
-    {
+          InboundHandshakeResponse response)
+          throws XrootdException {
         LOGGER.debug("doOnHandshakeResponse, channel {}"
-                                     + " –– passing to next in chain.",
-                     ctx.channel().id());
+                    + " –– passing to next in chain.",
+              ctx.channel().id());
         ctx.fireChannelRead(response);
     }
 
     protected void doOnLoginResponse(ChannelHandlerContext ctx,
-                                   InboundLoginResponse response)
-                    throws XrootdException
-    {
+          InboundLoginResponse response)
+          throws XrootdException {
         LOGGER.debug("doOnLoginResponse, channel {}, stream {}"
-                                     + " –– passing to next in chain.",
-                     ctx.channel().id(), response.getStreamId());
+                    + " –– passing to next in chain.",
+              ctx.channel().id(), response.getStreamId());
         ctx.fireChannelRead(response);
     }
 
     protected void doOnOpenResponse(ChannelHandlerContext ctx,
-                                  InboundOpenReadOnlyResponse response)
-                    throws XrootdException
-    {
+          InboundOpenReadOnlyResponse response)
+          throws XrootdException {
         LOGGER.debug("doOnOpenResponse, channel {}, stream {}"
-                                     + " –– passing to next in chain.",
-                     ctx.channel().id(), response.getStreamId());
+                    + " –– passing to next in chain.",
+              ctx.channel().id(), response.getStreamId());
         ctx.fireChannelRead(response);
     }
 
     protected void doOnProtocolResponse(ChannelHandlerContext ctx,
-                                        InboundProtocolResponse response)
-                    throws XrootdException
-    {
+          InboundProtocolResponse response)
+          throws XrootdException {
         LOGGER.debug("doOnProtocolResponse, channel {}, stream {}"
-                                     + " –– passing to next in chain.",
-                     ctx.channel().id(), response.getStreamId());
+                    + " –– passing to next in chain.",
+              ctx.channel().id(), response.getStreamId());
         ctx.fireChannelRead(response);
     }
 
     protected void doOnReadResponse(ChannelHandlerContext ctx,
-                                    InboundReadResponse response)
-                    throws XrootdException
-    {
+          InboundReadResponse response)
+          throws XrootdException {
         LOGGER.debug("doOnReadResponse, channel {}, stream {}"
-                                     + " –– passing to next in chain.",
-                     ctx.channel().id(), response.getStreamId());
+                    + " –– passing to next in chain.",
+              ctx.channel().id(), response.getStreamId());
         ctx.fireChannelRead(response);
     }
 
     protected void doOnRedirectResponse(ChannelHandlerContext ctx,
-                                        InboundRedirectResponse response)
-                    throws XrootdException
-    {
+          InboundRedirectResponse response)
+          throws XrootdException {
         ChannelId id = ctx.channel().id();
         LOGGER.debug("redirecting client from {} to {}:{}, channel {}, "
-                                     + "stream {}; [info {}].",
-                     client.getInfo().getSrc(),
-                     response.getHost(),
-                     response.getPort(),
-                     id, client.getStreamId(),
-                     client.getInfo());
+                    + "stream {}; [info {}].",
+              client.getInfo().getSrc(),
+              response.getHost(),
+              response.getPort(),
+              id, client.getStreamId(),
+              client.getInfo());
         client.getWriteHandler().redirect(ctx, response);
     }
 
     protected void doOnAttnResponse(ChannelHandlerContext ctx,
-                                    InboundAttnResponse response)
-                    throws XrootdException
-    {
+          InboundAttnResponse response)
+          throws XrootdException {
         String message;
 
         switch (response.getActnum()) {
@@ -260,7 +262,7 @@ public abstract class AbstractClientRequestHandler extends
                  * further execution.
                  */
                 message = "Received abort from source server: "
-                                + response.getMessage();
+                      + response.getMessage();
                 throw new XrootdException(kXR_ServerError, message);
             case kXR_asyncms:
                 /*
@@ -268,7 +270,7 @@ public abstract class AbstractClientRequestHandler extends
                  * The parameters contain the message text.
                  */
                 LOGGER.info("Received from source server: {}.",
-                            response.getMessage());
+                      response.getMessage());
                 break;
             case kXR_asyncgo:
                 /*
@@ -323,10 +325,10 @@ public abstract class AbstractClientRequestHandler extends
                  */
                 try {
                     doOnRedirectResponse(ctx,
-                                         new InboundRedirectResponse(response));
+                          new InboundRedirectResponse(response));
                 } catch (ParseException e) {
                     throw new XrootdException(kXR_InvalidRequest,
-                                              "bad redirect data from kXR_asyncdi");
+                          "bad redirect data from kXR_asyncdi");
                 }
                 break;
             case kXR_asyncav:
@@ -344,12 +346,12 @@ public abstract class AbstractClientRequestHandler extends
                  * We do not issue prepare requests.  NR.
                  */
                 throw new XrootdException(kXR_Unsupported,
-                                          "tpc client does not support this option: "
-                                           + response.getActnum());
+                      "tpc client does not support this option: "
+                            + response.getActnum());
             default:
                 throw new XrootdException(kXR_ArgInvalid,
-                                          "unrecognized kXR_attn action: "
-                                           + response.getActnum());
+                      "unrecognized kXR_attn action: "
+                            + response.getActnum());
         }
     }
 
@@ -360,9 +362,8 @@ public abstract class AbstractClientRequestHandler extends
      * of the type kXR_asyncwt.  Cancelled by kXR_ayncgo.
      */
     protected synchronized void doOnWaitResponse(final ChannelHandlerContext ctx,
-                                                 AbstractXrootdInboundResponse response)
-                    throws XrootdException
-    {
+          AbstractXrootdInboundResponse response)
+          throws XrootdException {
         switch (response.getRequestId()) {
             case kXR_endsess:
                 future = client.getExecutor().schedule(() -> {
@@ -381,16 +382,14 @@ public abstract class AbstractClientRequestHandler extends
      * Cancelled by kXR_asynresp.
      */
     protected synchronized void doOnWaitRespResponse(final ChannelHandlerContext ctx,
-                                                     InboundWaitRespResponse response)
-                    throws XrootdException
-    {
+          InboundWaitRespResponse response)
+          throws XrootdException {
         future = client.getExecutor().schedule(() -> {
             asynWaitTimeout(ctx, response);
         }, getWaitInSeconds(response), TimeUnit.SECONDS);
     }
 
-    protected int getWaitInSeconds(AbstractXrootdInboundResponse response)
-    {
+    protected int getWaitInSeconds(AbstractXrootdInboundResponse response) {
         int wsec = 0;
         int msec = 0;
         if (response instanceof InboundWaitResponse) {
@@ -400,7 +399,7 @@ public abstract class AbstractClientRequestHandler extends
             msec = ((InboundWaitRespResponse) response).getMaxWaitInSeconds();
             wsec = msec;
         } else if (response instanceof InboundAttnResponse) {
-            InboundAttnResponse attnResponse = (InboundAttnResponse)response;
+            InboundAttnResponse attnResponse = (InboundAttnResponse) response;
             wsec = attnResponse.getWsec();
             msec = wsec;
         }
@@ -408,8 +407,7 @@ public abstract class AbstractClientRequestHandler extends
     }
 
     protected void responseReceived(ChannelHandlerContext ctx,
-                                    XrootdInboundResponse response)
-    {
+          XrootdInboundResponse response) {
         try {
             if (response instanceof InboundWaitResponse) {
                 doOnWaitResponse(ctx, (InboundWaitResponse) response);
@@ -443,75 +441,75 @@ public abstract class AbstractClientRequestHandler extends
             switch (requestId) {
                 case kXR_auth:
                     LOGGER.debug("responseReceived, channel {}, stream {}, "
-                                                 + "requestId = kXR_auth.",
-                                 id, streamId);
+                                + "requestId = kXR_auth.",
+                          id, streamId);
                     doOnAuthenticationResponse(ctx,
-                                               (InboundAuthenticationResponse) response);
+                          (InboundAuthenticationResponse) response);
                     break;
                 case kXR_close:
                     LOGGER.debug("responseReceived, channel {}, stream {}, "
-                                                 + "requestId = kXR_close.",
-                                 id, streamId);
+                                + "requestId = kXR_close.",
+                          id, streamId);
                     doOnCloseResponse(ctx, (InboundCloseResponse) response);
                     break;
                 case kXR_endsess:
                     LOGGER.debug("responseReceived, channel {}, stream {}, "
-                                                 + "requestId = kXR_endsess.",
-                                 id, streamId);
+                                + "requestId = kXR_endsess.",
+                          id, streamId);
                     LOGGER.debug("endsession response received.");
                     client.disconnect(); // will not attempt disconnect twice
                     break;
                 case kXR_handshake:
                     LOGGER.debug("responseReceived, channel {}, stream {}, "
-                                                 + "requestId = kXR_handshake.",
-                                 id, streamId);
+                                + "requestId = kXR_handshake.",
+                          id, streamId);
                     doOnHandshakeResponse(ctx,
-                                          (InboundHandshakeResponse) response);
+                          (InboundHandshakeResponse) response);
                     break;
                 case kXR_login:
                     LOGGER.debug("responseReceived, channel {}, stream {}, "
-                                                 + "requestId = kXR_login.",
-                                 id, streamId);
+                                + "requestId = kXR_login.",
+                          id, streamId);
                     doOnLoginResponse(ctx, (InboundLoginResponse) response);
                     break;
                 case kXR_open:
                     LOGGER.debug("responseReceived, channel {}, stream {}, "
-                                                 + "requestId = kXR_open.",
-                                 id, streamId);
+                                + "requestId = kXR_open.",
+                          id, streamId);
                     doOnOpenResponse(ctx,
-                                     (InboundOpenReadOnlyResponse) response);
+                          (InboundOpenReadOnlyResponse) response);
                     break;
                 case kXR_protocol:
                     LOGGER.debug("responseReceived, channel {}, stream {}, "
-                                                 + "requestId = kXR_protocol.",
-                                 id, streamId);
+                                + "requestId = kXR_protocol.",
+                          id, streamId);
                     doOnProtocolResponse(ctx,
-                                         (InboundProtocolResponse) response);
+                          (InboundProtocolResponse) response);
                     break;
                 case kXR_query:
                     LOGGER.debug("responseReceived, channel {}, stream {}, "
-                                                 + "requestId = kXR_query.",
-                                 id, streamId);
+                                + "requestId = kXR_query.",
+                          id, streamId);
                     doOnChecksumResponse(ctx,
-                                         (InboundChecksumResponse) response);
+                          (InboundChecksumResponse) response);
                     break;
                 case kXR_read:
                     LOGGER.debug("responseReceived, channel {}, stream {}, "
-                                                 + "requestId = kXR_read.",
-                                 id, streamId);
+                                + "requestId = kXR_read.",
+                          id, streamId);
                     doOnReadResponse(ctx, (InboundReadResponse) response);
                     break;
                 default:
                     String error = String.format(
-                                    "Response (channel %s, stream %d, "
-                                                    + "request %s) "
-                                                    + "should not have "
-                                                    + "been received "
-                                                    + "by tpc client; "
-                                                    + "this is a bug;"
-                                                    + "please report to "
-                                                    + "support@dcache.org.",
-                                    id, streamId, requestId);
+                          "Response (channel %s, stream %d, "
+                                + "request %s) "
+                                + "should not have "
+                                + "been received "
+                                + "by tpc client; "
+                                + "this is a bug;"
+                                + "please report to "
+                                + "support@dcache.org.",
+                          id, streamId, requestId);
                     throw new RuntimeException(error);
             }
         } catch (Throwable t) {
@@ -520,46 +518,39 @@ public abstract class AbstractClientRequestHandler extends
     }
 
     protected void sendAuthenticationRequest(ChannelHandlerContext ctx)
-                    throws XrootdException
-    {
+          throws XrootdException {
         unsupported(OutboundAuthenticationRequest.class);
     }
 
     protected void sendChecksumRequest(ChannelHandlerContext ctx)
-                    throws XrootdException
-    {
+          throws XrootdException {
         unsupported(OutboundChecksumRequest.class);
     }
 
     protected void sendCloseRequest(ChannelHandlerContext ctx)
-                    throws XrootdException
-    {
+          throws XrootdException {
         unsupported(OutboundCloseRequest.class);
     }
 
     protected void sendLoginRequest(ChannelHandlerContext ctx)
-                    throws XrootdException
-    {
+          throws XrootdException {
         unsupported(OutboundLoginRequest.class);
     }
 
     protected void sendOpenRequest(ChannelHandlerContext ctx)
-                    throws XrootdException
-    {
+          throws XrootdException {
         unsupported(OutboundOpenReadOnlyRequest.class);
     }
 
     protected void sendReadRequest(ChannelHandlerContext ctx)
-                    throws XrootdException
-    {
+          throws XrootdException {
         unsupported(OutboundReadRequest.class);
     }
 
     protected <T extends XrootdOutboundRequest> void unsupported(Class<T> msg)
-                    throws XrootdException
-    {
+          throws XrootdException {
         LOGGER.warn("Unsupported request: " + msg.getSimpleName());
         throw new XrootdException(kXR_Unsupported, "request "
-                        + msg.getSimpleName() + " not supported");
+              + msg.getSimpleName() + " not supported");
     }
 }

@@ -1,151 +1,141 @@
 /**
  * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
- *
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.plugins.authn.gsi;
-
-import io.netty.buffer.ByteBuf;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.Collection;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
-
-import org.dcache.xrootd.core.XrootdException;
-import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
-import org.dcache.xrootd.security.XrootdSecurityProtocol.*;
-import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
 
 import static io.netty.buffer.Unpooled.wrappedBuffer;
 import static org.dcache.xrootd.core.XrootdDecoder.readAscii;
 import static org.dcache.xrootd.core.XrootdEncoder.writeZeroPad;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_IOError;
 import static org.dcache.xrootd.protocol.messages.LoginResponse.AUTHN_PROTOCOL_TYPE_LEN;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_main;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType.kXRS_version;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.getClientStep;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.getServerStep;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_certreq;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_reserved;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGS_pxyreq;
+
+import io.netty.buffer.ByteBuf;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+import org.dcache.xrootd.core.XrootdException;
+import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
+import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *  Utilities for deserializing, writing, and printing out GSI byte buckets.
  */
 public class GSIBucketUtils {
+
     private static final Logger LOGGER
-                    = LoggerFactory.getLogger(GSIBucketUtils.class);
+          = LoggerFactory.getLogger(GSIBucketUtils.class);
 
     private static final String BYTE_DUMP[] =
-    {
-        "//  0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x    %s\n",
-        "//  0x%02x                                                     %s\n",
-        "//  0x%02x 0x%02x                                              %s\n",
-        "//  0x%02x 0x%02x 0x%02x                                       %s\n",
-        "//  0x%02x 0x%02x 0x%02x 0x%02x                                %s\n",
-        "//  0x%02x 0x%02x 0x%02x 0x%02x 0x%02x                         %s\n",
-        "//  0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x                  %s\n",
-        "//  0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x           %s\n"
-    };
+          {
+                "//  0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x    %s\n",
+                "//  0x%02x                                                     %s\n",
+                "//  0x%02x 0x%02x                                              %s\n",
+                "//  0x%02x 0x%02x 0x%02x                                       %s\n",
+                "//  0x%02x 0x%02x 0x%02x 0x%02x                                %s\n",
+                "//  0x%02x 0x%02x 0x%02x 0x%02x 0x%02x                         %s\n",
+                "//  0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x                  %s\n",
+                "//  0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x           %s\n"
+          };
 
-    public static class BucketSerializerBuilder
-    {
+    public static class BucketSerializerBuilder {
+
         private final BucketSerializer serializer;
 
-        public BucketSerializerBuilder()
-        {
+        public BucketSerializerBuilder() {
             serializer = new BucketSerializer();
         }
 
-        public BucketSerializerBuilder withTitle(String title)
-        {
+        public BucketSerializerBuilder withTitle(String title) {
             serializer.title = title;
             return this;
         }
 
-        public BucketSerializerBuilder withStreamId(Integer streamId)
-        {
+        public BucketSerializerBuilder withStreamId(Integer streamId) {
             serializer.streamId = streamId;
             return this;
         }
 
-        public BucketSerializerBuilder withRequestId(Integer requestId)
-        {
+        public BucketSerializerBuilder withRequestId(Integer requestId) {
             serializer.requestId = requestId;
             return this;
         }
 
-        public BucketSerializerBuilder withStat(Integer stat)
-        {
+        public BucketSerializerBuilder withStat(Integer stat) {
             serializer.stat = stat;
             return this;
         }
 
-        public BucketSerializerBuilder withStepName(String stepName)
-        {
+        public BucketSerializerBuilder withStepName(String stepName) {
             serializer.stepName = stepName;
             return this;
         }
 
-        public BucketSerializerBuilder withProtocol(String protocol)
-        {
+        public BucketSerializerBuilder withProtocol(String protocol) {
             serializer.protocol = protocol;
             return this;
         }
 
-        public BucketSerializerBuilder withStep(int step)
-        {
+        public BucketSerializerBuilder withStep(int step) {
             serializer.step = step;
             return this;
         }
 
-        public BucketSerializerBuilder withBuckets(List<GSIBucket> buckets)
-        {
+        public BucketSerializerBuilder withBuckets(List<GSIBucket> buckets) {
             serializer.buckets = buckets;
             return this;
         }
 
-        public BucketSerializer build()
-        {
+        public BucketSerializer build() {
             return serializer;
         }
     }
 
-    public static class BucketSerializer implements Consumer<ByteBuf>
-    {
-        String             title;
-        Integer            streamId;
-        Integer            requestId;
-        Integer            stat;
-        String             stepName;
-        String             protocol;
-        int                step;
-        List<GSIBucket>    buckets;
+    public static class BucketSerializer implements Consumer<ByteBuf> {
+
+        String title;
+        Integer streamId;
+        Integer requestId;
+        Integer stat;
+        String stepName;
+        String protocol;
+        int step;
+        List<GSIBucket> buckets;
 
         @Override
-        public void accept(ByteBuf byteBuf)
-        {
+        public void accept(ByteBuf byteBuf) {
             writeBytes(byteBuf, protocol, step, buckets);
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace(describe(title,
-                                      b -> dumpBuckets(b, buckets, stepName),
-                                      streamId,
-                                      requestId,
-                                      stat));
+                      b -> dumpBuckets(b, buckets, stepName),
+                      streamId,
+                      requestId,
+                      stat));
             }
         }
     }
@@ -160,8 +150,8 @@ public class GSIBucketUtils {
      *  Authentication requests and responses (which other protocols
      *  may structure differently.)
      */
-    public static class BucketData
-    {
+    public static class BucketData {
+
         /**
          * The protocol, zero-padded char[4]
          */
@@ -183,23 +173,19 @@ public class GSIBucketUtils {
          */
         final Map<BucketType, GSIBucket> bucketMap = new EnumMap<>(BucketType.class);
 
-        public String getProtocol()
-        {
+        public String getProtocol() {
             return protocol;
         }
 
-        public int getStep()
-        {
+        public int getStep() {
             return step;
         }
 
-        public Integer getVersion()
-        {
+        public Integer getVersion() {
             return version;
         }
 
-        public Map<BucketType, GSIBucket> getBucketMap()
-        {
+        public Map<BucketType, GSIBucket> getBucketMap() {
             return bucketMap;
         }
     }
@@ -218,7 +204,7 @@ public class GSIBucketUtils {
      * @return The deserialized bucket
      */
     public static GSIBucket deserialize(BucketType type, ByteBuf buffer)
-                    throws IOException {
+          throws IOException {
 
         GSIBucket bucket;
 
@@ -278,26 +264,26 @@ public class GSIBucketUtils {
      * @throws IOException Failure of deserialization
      */
     public static Map<BucketType, GSIBucket> deserializeBuckets(ByteBuf buffer)
-                    throws IOException {
+          throws IOException {
 
         int bucketCode = buffer.readInt();
         BucketType bucketType = BucketType.get(bucketCode);
 
         Map<BucketType, GSIBucket> buckets =
-                        new EnumMap<>(BucketType.class);
+              new EnumMap<>(BucketType.class);
 
         while (bucketType != BucketType.kXRS_none) {
             LOGGER.debug("Deserialized a bucket with code {}, type {}",
-                         bucketCode, bucketType);
+                  bucketCode, bucketType);
 
             int bucketLength = buffer.readInt();
 
             LOGGER.debug("bucket type {} has length {}.",
-                         bucketType, bucketLength);
+                  bucketType, bucketLength);
 
             GSIBucket bucket = deserialize(bucketType,
-                                           buffer.slice(buffer.readerIndex(),
-                                                        bucketLength));
+                  buffer.slice(buffer.readerIndex(),
+                        bucketLength));
             buckets.put(bucketType, bucket);
 
             /* proceed to the next bucket */
@@ -310,8 +296,7 @@ public class GSIBucketUtils {
         return buckets;
     }
 
-    public static BucketData deserializeData(AuthenticationRequest request)
-    {
+    public static BucketData deserializeData(AuthenticationRequest request) {
         BucketData data = new BucketData();
         ByteBuf buffer = request.getCredentialBuffer();
 
@@ -322,13 +307,13 @@ public class GSIBucketUtils {
             data.bucketMap.putAll(GSIBucketUtils.deserializeBuckets(buffer));
         } catch (IOException ioex) {
             throw new IllegalArgumentException("Illegal credential format: {}",
-                                               ioex);
+                  ioex);
         }
 
         request.releaseBuffer();
 
         UnsignedIntBucket versionBucket
-                        = (UnsignedIntBucket)data.bucketMap.get(kXRS_version);
+              = (UnsignedIntBucket) data.bucketMap.get(kXRS_version);
 
         if (versionBucket != null) {
             data.version = versionBucket.getContent();
@@ -336,19 +321,19 @@ public class GSIBucketUtils {
 
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace(describe("//                Authentication Request",
-                                  b -> dumpBuckets(b,
-                                                   data.bucketMap.values(),
-                                                   getClientStep(data.step)),
-                                  request.getStreamId(),
-                                  request.getRequestId(),
-                                  null));
+                  b -> dumpBuckets(b,
+                        data.bucketMap.values(),
+                        getClientStep(data.step)),
+                  request.getStreamId(),
+                  request.getRequestId(),
+                  null));
         }
 
         return data;
     }
 
     public static BucketData deserializeData(InboundAuthenticationResponse response)
-                    throws XrootdException {
+          throws XrootdException {
         BucketData data = new BucketData();
         ByteBuf buffer = response.getDataBuffer();
         data.protocol = deserializeProtocol(buffer);
@@ -378,12 +363,12 @@ public class GSIBucketUtils {
 
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace(describe("//           Inbound Authentication Response",
-                                  b->dumpBuckets(b,
-                                                 data.bucketMap.values(),
-                                                 getServerStep(data.step)),
-                                  response.getStreamId(),
-                                  response.getRequestId(),
-                                  response.getStatus()));
+                  b -> dumpBuckets(b,
+                        data.bucketMap.values(),
+                        getServerStep(data.step)),
+                  response.getStreamId(),
+                  response.getRequestId(),
+                  response.getStatus()));
         }
 
         return data;
@@ -400,7 +385,7 @@ public class GSIBucketUtils {
      * @throws IOException Deserialization fails
      */
     public static NestedBucketBuffer deserializeNested(BucketType type, ByteBuf buffer)
-                    throws IOException {
+          throws IOException {
         /* kXRS_main can be a nested or an encrypted (raw) bucket. Try whether it
          * looks like a nested buffer and use raw deserialization if not */
         int readIndex = buffer.readerIndex();
@@ -410,7 +395,7 @@ public class GSIBucketUtils {
         int step = deserializeStep(buffer);
 
         LOGGER.debug("NestedBucketBuffer protocol: {}, step {}", protocol,
-                     step);
+              step);
 
         if (step < kXGC_certreq || step > kXGC_reserved) {
             /* reset buffer */
@@ -419,13 +404,12 @@ public class GSIBucketUtils {
         }
 
         return new NestedBucketBuffer(type, protocol, step,
-                                      deserializeBuckets(buffer));
+              deserializeBuckets(buffer));
     }
 
     public static void dumpBuckets(StringBuilder builder,
-                                   Collection<GSIBucket> buckets,
-                                   String step)
-    {
+          Collection<GSIBucket> buckets,
+          String step) {
         int i = 0;
 
         for (GSIBucket bucket : buckets) {
@@ -433,66 +417,64 @@ public class GSIBucketUtils {
         }
     }
 
-    public static void dumpBytes(StringBuilder builder, byte[] data)
-    {
+    public static void dumpBytes(StringBuilder builder, byte[] data) {
         int i = 0;
         int D = data.length / 8;
 
         for (int d = 0; d < D; ++d) {
             builder.append(String.format(BYTE_DUMP[0],
-                                         data[i], data[i+1], data[i+2],
-                                         data[i+3], data[i+4], data[i+5],
-                                         data[i+6], data[i+7],
-                                         getAscii(data, i, 8)));
-            i+=8;
+                  data[i], data[i + 1], data[i + 2],
+                  data[i + 3], data[i + 4], data[i + 5],
+                  data[i + 6], data[i + 7],
+                  getAscii(data, i, 8)));
+            i += 8;
         }
 
         switch (data.length % 8) {
             case 7:
                 builder.append(String.format(BYTE_DUMP[7],
-                                             data[i], data[i+1], data[i+2],
-                                             data[i+3], data[i+4], data[i+5],
-                                             data[i+6],
-                                             getAscii(data, i, 7)));
+                      data[i], data[i + 1], data[i + 2],
+                      data[i + 3], data[i + 4], data[i + 5],
+                      data[i + 6],
+                      getAscii(data, i, 7)));
                 break;
             case 6:
                 builder.append(String.format(BYTE_DUMP[6],
-                                             data[i], data[i+1], data[i+2],
-                                             data[i+3], data[i+4], data[i+5],
-                                             getAscii(data, i, 6)));
+                      data[i], data[i + 1], data[i + 2],
+                      data[i + 3], data[i + 4], data[i + 5],
+                      getAscii(data, i, 6)));
                 break;
             case 5:
                 builder.append(String.format(BYTE_DUMP[5],
-                                             data[i], data[i+1], data[i+2],
-                                             data[i+3], data[i+4],
-                                             getAscii(data, i, 5)));
+                      data[i], data[i + 1], data[i + 2],
+                      data[i + 3], data[i + 4],
+                      getAscii(data, i, 5)));
                 break;
             case 4:
                 builder.append(String.format(BYTE_DUMP[4],
-                                             data[i], data[i+1], data[i+2],
-                                             data[i+3],
-                                             getAscii(data, i, 4)));
+                      data[i], data[i + 1], data[i + 2],
+                      data[i + 3],
+                      getAscii(data, i, 4)));
                 break;
             case 3:
                 builder.append(String.format(BYTE_DUMP[3],
-                                             data[i], data[i+1], data[i+2],
-                                             getAscii(data, i, 3)));
+                      data[i], data[i + 1], data[i + 2],
+                      getAscii(data, i, 3)));
                 break;
             case 2:
                 builder.append(String.format(BYTE_DUMP[2],
-                                             data[i], data[i+1],
-                                             getAscii(data, i, 2)));
+                      data[i], data[i + 1],
+                      getAscii(data, i, 2)));
                 break;
             case 1:
                 builder.append(String.format(BYTE_DUMP[1],
-                                             data[i],
-                                             getAscii(data, i, 1)));
+                      data[i],
+                      getAscii(data, i, 1)));
                 break;
         }
     }
 
-    public static int getLengthForRequest(GSIBucketContainer container)
-    {
+    public static int getLengthForRequest(GSIBucketContainer container) {
         /*
          *  The request length for GSI carries
          *  protocol (4 bytes) + step (4 bytes) + container size + terminal
@@ -502,9 +484,8 @@ public class GSIBucketUtils {
     }
 
     private static void writeBytes(ByteBuf buffer, String protocol,
-                                  int step,
-                                  List<GSIBucket> buckets)
-    {
+          int step,
+          List<GSIBucket> buckets) {
         writeZeroPad(protocol, buffer, 4);
         buffer.writeInt(step);
         for (GSIBucket bucket : buckets) {
@@ -515,11 +496,10 @@ public class GSIBucketUtils {
     }
 
     private static String describe(String title,
-                                   Consumer<StringBuilder> data,
-                                   Integer streamId,
-                                   Integer requestId,
-                                   Integer stat)
-    {
+          Consumer<StringBuilder> data,
+          Integer streamId,
+          Integer requestId,
+          Integer stat) {
         StringBuilder builder = new StringBuilder("\n");
         builder.append("/////////////////////////////////////////////////////////\n");
         builder.append(title);
@@ -537,23 +517,20 @@ public class GSIBucketUtils {
         return builder.toString();
     }
 
-    private static String deserializeProtocol(ByteBuf buffer)
-    {
+    private static String deserializeProtocol(ByteBuf buffer) {
         return readAscii(buffer, AUTHN_PROTOCOL_TYPE_LEN);
     }
 
-    private static int deserializeStep(ByteBuf buffer)
-    {
+    private static int deserializeStep(ByteBuf buffer) {
         return buffer.readInt();
     }
 
-    private static String getAscii(byte[] bytes, int from, int len)
-    {
+    private static String getAscii(byte[] bytes, int from, int len) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < len; ++i) {
-            byte b = bytes[from+i];
+            byte b = bytes[from + i];
             if (32 < b && b < 127) {
-                sb.append((char)b);
+                sb.append((char) b);
             } else {
                 sb.append('.');
             }
@@ -561,8 +538,7 @@ public class GSIBucketUtils {
         return sb.toString();
     }
 
-    private GSIBucketUtils()
-    {
+    private GSIBucketUtils() {
         // Static singleton
     }
 }

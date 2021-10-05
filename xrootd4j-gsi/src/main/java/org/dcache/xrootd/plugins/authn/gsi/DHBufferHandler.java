@@ -1,52 +1,47 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
- *
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.plugins.authn.gsi;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.util.Arrays;
-
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import org.dcache.xrootd.security.BufferDecrypter;
 import org.dcache.xrootd.security.BufferEncrypter;
 
 /**
- * <p>Uses established shared secret from a Diffie Hellman session to
+ * Uses established shared secret from a Diffie Hellman session to
  *    encrypt or decrypt the buffer.</p>
  */
-public class DHBufferHandler implements BufferEncrypter, BufferDecrypter
-{
+public class DHBufferHandler implements BufferEncrypter, BufferDecrypter {
+
     private DHSession session;
-    private String    cipherSpec;
-    private String    keySpec;
-    private int       blocksize;
+    private String cipherSpec;
+    private String keySpec;
+    private int blocksize;
 
     public DHBufferHandler(DHSession session,
-                           String cipherSpec,
-                           String keySpec,
-                           int blocksize)
-    {
+          String cipherSpec,
+          String keySpec,
+          int blocksize) {
         this.session = session;
         this.cipherSpec = cipherSpec;
         this.keySpec = keySpec;
@@ -55,12 +50,11 @@ public class DHBufferHandler implements BufferEncrypter, BufferDecrypter
 
     @Override
     public byte[] decrypt(byte[] encrypted)
-                    throws InvalidKeyException, IllegalStateException,
-                    NoSuchAlgorithmException, NoSuchPaddingException,
-                    IllegalBlockSizeException, BadPaddingException,
-                    InvalidAlgorithmParameterException,
-                    NoSuchProviderException
-    {
+          throws InvalidKeyException, IllegalStateException,
+          NoSuchAlgorithmException, NoSuchPaddingException,
+          IllegalBlockSizeException, BadPaddingException,
+          InvalidAlgorithmParameterException,
+          NoSuchProviderException {
         /*
          *  REVISIT
          *
@@ -94,12 +88,11 @@ public class DHBufferHandler implements BufferEncrypter, BufferDecrypter
 
     @Override
     public byte[] encrypt(byte[] unencrypted)
-                    throws InvalidKeyException, IllegalStateException,
-                    NoSuchAlgorithmException, NoSuchPaddingException,
-                    IllegalBlockSizeException, BadPaddingException,
-                    InvalidAlgorithmParameterException,
-                    NoSuchProviderException
-    {
+          throws InvalidKeyException, IllegalStateException,
+          NoSuchAlgorithmException, NoSuchPaddingException,
+          IllegalBlockSizeException, BadPaddingException,
+          InvalidAlgorithmParameterException,
+          NoSuchProviderException {
         /*
          *  REVISIT
          *
@@ -124,7 +117,7 @@ public class DHBufferHandler implements BufferEncrypter, BufferDecrypter
         int origLen = unencrypted.length;
         unencrypted = Arrays.copyOf(unencrypted, origLen + 16);
         for (int i = 0; i < 16; i++) {
-            unencrypted[origLen+i] = (byte)16;
+            unencrypted[origLen + i] = (byte) 16;
         }
         return session.encrypt(cipherSpec, keySpec, blocksize, unencrypted);
     }

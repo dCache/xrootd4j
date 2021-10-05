@@ -1,32 +1,29 @@
 /**
  * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
- *
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
-import io.netty.buffer.ByteBuf;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Collection;
-import java.util.Map;
-
 import static org.dcache.xrootd.core.XrootdEncoder.writeZeroPad;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
+
+import io.netty.buffer.ByteBuf;
+import java.util.Collection;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Format of a NestedBucketBuffer:
@@ -53,16 +50,17 @@ import static org.dcache.xrootd.security.XrootdSecurityProtocol.BucketType;
  *
  */
 public class NestedBucketBuffer extends GSIBucket {
-    private static final Logger              _logger =
-        LoggerFactory.getLogger(NestedBucketBuffer.class);
+
+    private static final Logger _logger =
+          LoggerFactory.getLogger(NestedBucketBuffer.class);
     private final Map<BucketType, GSIBucket> _nestedBuckets;
-    private final String                     _protocol;
-    private final int                        _step;
+    private final String _protocol;
+    private final int _step;
 
     public NestedBucketBuffer(BucketType type,
-                              String protocol,
-                              int step,
-                              Map<BucketType, GSIBucket> nestedBuckets) {
+          String protocol,
+          int step,
+          Map<BucketType, GSIBucket> nestedBuckets) {
         super(type);
         _protocol = protocol;
         _step = step;
@@ -70,15 +68,14 @@ public class NestedBucketBuffer extends GSIBucket {
     }
 
     @Override
-    public int dump(StringBuilder builder, String step, int number)
-    {
+    public int dump(StringBuilder builder, String step, int number) {
         super.dump(builder, step, number);
         builder.append("//........................NESTED.........................\n");
 
         int i = number;
 
         Collection<GSIBucket> buckets = _nestedBuckets.values();
-        for (GSIBucket bucket: buckets) {
+        for (GSIBucket bucket : buckets) {
             i = bucket.dump(builder, step, ++i);
         }
         builder.append("//\n");

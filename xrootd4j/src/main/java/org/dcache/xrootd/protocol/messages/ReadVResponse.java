@@ -1,22 +1,26 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
- *
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.protocol.messages;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_oksofar;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
@@ -24,18 +28,13 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.util.AbstractReferenceCounted;
 import io.netty.util.ReferenceCounted;
-
 import java.util.ArrayList;
 import java.util.List;
-
 import org.dcache.xrootd.protocol.messages.GenericReadRequestMessage.EmbeddedReadRequest;
 
-import static com.google.common.base.Preconditions.*;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_oksofar;
+public class ReadVResponse extends AbstractReferenceCounted implements
+      XrootdResponse<ReadVRequest> {
 
-public class ReadVResponse extends AbstractReferenceCounted implements XrootdResponse<ReadVRequest>
-{
     public static final int READ_LIST_HEADER_SIZE = 16;
 
     private final ReadVRequest request;
@@ -46,12 +45,11 @@ public class ReadVResponse extends AbstractReferenceCounted implements XrootdRes
     private final int length;
 
     public ReadVResponse(ReadVRequest request,
-                         EmbeddedReadRequest[] requests,
-                         ByteBuf[] data,
-                         int index,
-                         int length,
-                         boolean isIncomplete)
-    {
+          EmbeddedReadRequest[] requests,
+          ByteBuf[] data,
+          int index,
+          int length,
+          boolean isIncomplete) {
         checkArgument(length > 0);
         this.request = checkNotNull(request);
         this.stat = isIncomplete ? kXR_oksofar : kXR_ok;
@@ -62,14 +60,12 @@ public class ReadVResponse extends AbstractReferenceCounted implements XrootdRes
     }
 
     @Override
-    public ReadVRequest getRequest()
-    {
+    public ReadVRequest getRequest() {
         return request;
     }
 
     @Override
-    public int getStatus()
-    {
+    public int getStatus() {
         return stat;
     }
 
@@ -81,8 +77,7 @@ public class ReadVResponse extends AbstractReferenceCounted implements XrootdRes
      * Reference counts are shared and the caller should not release any reference
      * to the returned buffers.
      */
-    public List<ByteBuf> getSegments()
-    {
+    public List<ByteBuf> getSegments() {
         List<ByteBuf> chunks = new ArrayList<>(length);
         for (int i = 0; i < length; i++) {
             chunks.add(data[index + i].asReadOnly());
@@ -90,8 +85,7 @@ public class ReadVResponse extends AbstractReferenceCounted implements XrootdRes
         return chunks;
     }
 
-    public List<Integer> getSegmentLengths()
-    {
+    public List<Integer> getSegmentLengths() {
         List<Integer> chunks = new ArrayList<>(length);
         for (int i = 0; i < length; i++) {
             chunks.add(data[index + i].readableBytes());
@@ -103,23 +97,20 @@ public class ReadVResponse extends AbstractReferenceCounted implements XrootdRes
      * Returns the starting index into the request read segments that this response
      * addresses.
      */
-    public int getIndex()
-    {
+    public int getIndex() {
         return index;
     }
 
     /**
      * Returns the number of segments contained in this response.
      */
-    public int getLength()
-    {
+    public int getLength() {
         return length;
     }
 
 
     @Override
-    public int getDataLength()
-    {
+    public int getDataLength() {
         int payload = 0;
         for (int i = 0; i < length; i++) {
             payload += READ_LIST_HEADER_SIZE;
@@ -129,8 +120,7 @@ public class ReadVResponse extends AbstractReferenceCounted implements XrootdRes
     }
 
     @Override
-    public void writeTo(ChannelHandlerContext ctx, ChannelPromise promise)
-    {
+    public void writeTo(ChannelHandlerContext ctx, ChannelPromise promise) {
         checkState(refCnt() > 0);
 
         CompositeByteBuf buffer = ctx.alloc().compositeBuffer(2 * length + 1);
@@ -157,8 +147,7 @@ public class ReadVResponse extends AbstractReferenceCounted implements XrootdRes
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         int payload = 0;
         for (int i = 0; i < length; i++) {
             payload += data[index + i].readableBytes();
@@ -167,8 +156,7 @@ public class ReadVResponse extends AbstractReferenceCounted implements XrootdRes
     }
 
     @Override
-    public ReferenceCounted touch(Object hint)
-    {
+    public ReferenceCounted touch(Object hint) {
         for (int i = 0; i < length; i++) {
             data[i + index].touch(hint);
         }
@@ -176,8 +164,7 @@ public class ReadVResponse extends AbstractReferenceCounted implements XrootdRes
     }
 
     @Override
-    protected void deallocate()
-    {
+    protected void deallocate() {
         for (int i = 0; i < length; i++) {
             data[i + index].release();
         }

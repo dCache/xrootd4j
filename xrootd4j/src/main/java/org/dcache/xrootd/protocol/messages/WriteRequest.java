@@ -1,43 +1,38 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
- *
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.protocol.messages;
 
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_write;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.util.ReferenceCounted;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.GatheringByteChannel;
-
 import org.dcache.xrootd.util.ByteBuffersProvider;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_write;
+public class WriteRequest extends AbstractXrootdRequest implements ByteBuffersProvider {
 
-public class WriteRequest extends AbstractXrootdRequest implements ByteBuffersProvider
-{
     private final int fhandle;
     private final long offset;
     private final int dlen;
     private final ByteBuf data;
 
-    public WriteRequest(ByteBuf buffer)
-    {
+    public WriteRequest(ByteBuf buffer) {
         super(buffer, kXR_write);
 
         fhandle = buffer.getInt(4);
@@ -47,25 +42,21 @@ public class WriteRequest extends AbstractXrootdRequest implements ByteBuffersPr
         buffer.getBytes(24, data);
     }
 
-    public int getFileHandle()
-    {
+    public int getFileHandle() {
         return fhandle;
     }
 
     @Override
-    public long getWriteOffset()
-    {
+    public long getWriteOffset() {
         return offset;
     }
 
-    public int getDataLength()
-    {
+    public int getDataLength() {
         return dlen;
     }
 
     public void getData(GatheringByteChannel out)
-        throws IOException
-    {
+          throws IOException {
         int index = 0;
         int len = dlen;
         while (len > 0) {
@@ -81,60 +72,51 @@ public class WriteRequest extends AbstractXrootdRequest implements ByteBuffersPr
      * content with this request.
      */
     @Override
-    public ByteBuffer[] toByteBuffers()
-    {
+    public ByteBuffer[] toByteBuffers() {
         return (data.nioBufferCount() == -1 ? data.copy() : data).nioBuffers();
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return String.format("write[handle=%d,offset=%d,length=%d]",
-                             fhandle, offset, dlen);
+              fhandle, offset, dlen);
     }
 
     @Override
-    public int refCnt()
-    {
+    public int refCnt() {
         return data.refCnt();
     }
 
     @Override
-    public boolean release()
-    {
+    public boolean release() {
         return data.release();
     }
 
     @Override
-    public boolean release(int decrement)
-    {
+    public boolean release(int decrement) {
         return data.release(decrement);
     }
 
     @Override
-    public WriteRequest retain(int increment)
-    {
+    public WriteRequest retain(int increment) {
         data.retain(increment);
         return this;
     }
 
     @Override
-    public WriteRequest retain()
-    {
+    public WriteRequest retain() {
         data.retain();
         return this;
     }
 
     @Override
-    public ReferenceCounted touch()
-    {
+    public ReferenceCounted touch() {
         data.touch();
         return this;
     }
 
     @Override
-    public ReferenceCounted touch(Object hint)
-    {
+    public ReferenceCounted touch(Object hint) {
         data.touch(hint);
         return this;
     }

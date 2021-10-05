@@ -1,20 +1,18 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
- *
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 /* The file is based on ChunkedWriteHandler version 4.0.24 from the Netty Project.
  *
@@ -33,12 +31,11 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelProgressivePromise;
 import io.netty.channel.ChannelPromise;
 import io.netty.util.ReferenceCountUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.channels.ClosedChannelException;
 import java.util.ArrayDeque;
 import java.util.Queue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A {@link io.netty.channel.ChannelHandler} that adds support for writing chunked xrootd replies.
@@ -72,17 +69,17 @@ import java.util.Queue;
  *
  */
 public class ChunkedResponseWriteHandler
-        extends ChannelDuplexHandler
-{
+      extends ChannelDuplexHandler {
+
     private static final Logger logger =
-            LoggerFactory.getLogger(ChunkedResponseWriteHandler.class);
+          LoggerFactory.getLogger(ChunkedResponseWriteHandler.class);
 
     private final Queue<PendingWrite> queue = new ArrayDeque<>();
     private PendingWrite currentWrite;
 
     @Override
-    public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception
-    {
+    public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise)
+          throws Exception {
         if (msg instanceof ChunkedResponse) {
             queue.add(new PendingWrite((ChunkedResponse) msg, promise));
         } else {
@@ -91,8 +88,7 @@ public class ChunkedResponseWriteHandler
     }
 
     @Override
-    public void flush(ChannelHandlerContext ctx) throws Exception
-    {
+    public void flush(ChannelHandlerContext ctx) throws Exception {
         if (!doFlush(ctx)) {
             // Make sure to flush at least once.
             ctx.flush();
@@ -100,15 +96,13 @@ public class ChunkedResponseWriteHandler
     }
 
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception
-    {
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         doFlush(ctx);
         ctx.fireChannelInactive();
     }
 
     @Override
-    public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception
-    {
+    public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
         if (ctx.channel().isWritable()) {
             // channel is writable again try to continue flushing
             doFlush(ctx);
@@ -116,9 +110,8 @@ public class ChunkedResponseWriteHandler
         ctx.fireChannelWritabilityChanged();
     }
 
-    private void discard(Throwable cause)
-    {
-        for (;;) {
+    private void discard(Throwable cause) {
+        for (; ; ) {
             PendingWrite currentWrite = this.currentWrite;
 
             if (this.currentWrite == null) {
@@ -147,8 +140,7 @@ public class ChunkedResponseWriteHandler
         }
     }
 
-    private boolean doFlush(final ChannelHandlerContext ctx) throws Exception
-    {
+    private boolean doFlush(final ChannelHandlerContext ctx) throws Exception {
         final Channel channel = ctx.channel();
         if (!channel.isActive()) {
             discard(null);
@@ -236,6 +228,7 @@ public class ChunkedResponseWriteHandler
     }
 
     private static final class PendingWrite {
+
         final ChunkedResponse msg;
         final ChannelPromise promise;
         private long progress;

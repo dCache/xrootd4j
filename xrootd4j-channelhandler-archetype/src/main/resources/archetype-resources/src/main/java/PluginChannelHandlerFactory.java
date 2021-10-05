@@ -1,42 +1,32 @@
-#set( $symbol_pound = '#' )
-#set( $symbol_dollar = '$' )
-#set( $symbol_escape = '\' )
-package ${package};
-
+import io.netty.channel.ChannelHandler;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
-import io.netty.channel.ChannelHandler;
 
-public class PluginChannelHandlerFactory implements ChannelHandlerFactory
-{
+public class PluginChannelHandlerFactory implements ChannelHandlerFactory {
+
     final static String NAME = "${name}";
 
     final static Set<String> ALTERNATIVE_NAMES =
-        new HashSet(Arrays.asList(NAME));
+          new HashSet(Arrays.asList(NAME));
 
-    static boolean hasName(String name)
-    {
+    static boolean hasName(String name) {
         return ALTERNATIVE_NAMES.contains(name);
     }
 
     @Override
-    public String getName()
-    {
+    public String getName() {
         return NAME;
     }
 
     @Override
-    public String getDescription()
-    {
+    public String getDescription() {
         return "${description}";
     }
 
     @Override
-    public ChannelHandler createHandler()
-    {
+    public ChannelHandler createHandler() {
         return new PluginChannelHandler();
     }
 }

@@ -1,46 +1,54 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
  *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.protocol.messages;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import static org.dcache.xrootd.protocol.XrootdProtocol.FilePerm;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_async;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_compress;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_delete;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_force;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mkpath;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_new;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_open;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_open_apnd;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_open_read;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_open_updt;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_refresh;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_retstat;
+
 import io.netty.buffer.ByteBuf;
 
-public class OpenRequest extends PathRequest
-{
+public class OpenRequest extends PathRequest {
+
     private final int mode;
     private final int options;
 
-    public OpenRequest(ByteBuf buffer)
-    {
+    public OpenRequest(ByteBuf buffer) {
         super(buffer, kXR_open);
 
         mode = buffer.getUnsignedShort(4);
         options = buffer.getUnsignedShort(6);
     }
 
-    public int getUMask()
-    {
+    public int getUMask() {
         return mode;
     }
 
-    public int getOptions()
-    {
+    public int getOptions() {
         return options;
     }
 
@@ -88,15 +96,14 @@ public class OpenRequest extends PathRequest
         return (getOptions() & kXR_mkpath) == kXR_mkpath;
     }
 
-    public FilePerm getRequiredPermission()
-    {
-        return isNew() || isDelete() || isReadWrite() || isAppend() ? FilePerm.WRITE : FilePerm.READ;
+    public FilePerm getRequiredPermission() {
+        return isNew() || isDelete() || isReadWrite() || isAppend() ? FilePerm.WRITE
+              : FilePerm.READ;
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return String.format("open[%d,%d,%s,%s]",
-                             getUMask(), getOptions(), getPath(), getOpaque());
+              getUMask(), getOptions(), getPath(), getOpaque());
     }
 }

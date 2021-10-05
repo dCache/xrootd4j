@@ -1,20 +1,18 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
- *
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
@@ -25,9 +23,6 @@ import eu.emi.security.authn.x509.impl.PEMCredential;
 import eu.emi.security.authn.x509.proxy.ProxyCertificate;
 import eu.emi.security.authn.x509.proxy.ProxyCertificateOptions;
 import eu.emi.security.authn.x509.proxy.ProxyGenerator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
@@ -36,42 +31,43 @@ import java.security.SignatureException;
 import java.security.cert.CertificateException;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *  Loads and stores credentials based on certificate .pems on the local
  *  disk.  Shared between all instances of the GSICredentialManager
  *  to optimize/cache the refreshed credentials and caCerts.
  */
-public class CredentialLoader
-{
+public class CredentialLoader {
+
     private static final Logger LOGGER
-                    = LoggerFactory.getLogger(CredentialLoader.class);
+          = LoggerFactory.getLogger(CredentialLoader.class);
 
     /*
      *  Local credentials and CA certs.
      */
     private final X509CertChainValidator certChainValidator;
-    private final String                 hostCertificatePath;
-    private final String                 hostKeyPath;
-    private final long                   hostCertRefreshInterval;
-    private final boolean                verifyHostCertificate;
-    private final String                 clientCertificatePath;
-    private final String                 clientKeyPath;
-    private final long                   proxyRefreshInterval;
-    private final boolean                verifyClientCertificate;
-    private final boolean                delegationOnly;
-    private final String                 proxyPath;
+    private final String hostCertificatePath;
+    private final String hostKeyPath;
+    private final long hostCertRefreshInterval;
+    private final boolean verifyHostCertificate;
+    private final String clientCertificatePath;
+    private final String clientKeyPath;
+    private final long proxyRefreshInterval;
+    private final boolean verifyClientCertificate;
+    private final boolean delegationOnly;
+    private final String proxyPath;
 
-    private long   hostCertRefreshTimestamp = 0;
-    private long   proxyRefreshTimestamp    = 0;
+    private long hostCertRefreshTimestamp = 0;
+    private long proxyRefreshTimestamp = 0;
 
-    private PEMCredential  hostCredential;
-    private PEMCredential  clientCredential;
+    private PEMCredential hostCredential;
+    private PEMCredential clientCredential;
     private X509Credential proxy;
 
     public CredentialLoader(Properties properties,
-                            X509CertChainValidator certChainValidator)
-    {
+          X509CertChainValidator certChainValidator) {
         this.certChainValidator = certChainValidator;
 
         /**
@@ -80,10 +76,11 @@ public class CredentialLoader
         hostKeyPath = properties.getProperty("xrootd.gsi.hostcert.key");
         hostCertificatePath = properties.getProperty("xrootd.gsi.hostcert.cert");
         hostCertRefreshInterval =
-                        TimeUnit.valueOf(properties.getProperty("xrootd.gsi.hostcert.refresh.unit"))
-                                .toMillis(Integer.parseInt(properties.getProperty("xrootd.gsi.hostcert.refresh")));
+              TimeUnit.valueOf(properties.getProperty("xrootd.gsi.hostcert.refresh.unit"))
+                    .toMillis(
+                          Integer.parseInt(properties.getProperty("xrootd.gsi.hostcert.refresh")));
         verifyHostCertificate =
-                        Boolean.parseBoolean(properties.getProperty("xrootd.gsi.hostcert.verify"));
+              Boolean.parseBoolean(properties.getProperty("xrootd.gsi.hostcert.verify"));
 
         /**
          *  If dCache third-party copy properties are locally defined
@@ -91,16 +88,17 @@ public class CredentialLoader
         clientKeyPath = properties.getProperty("xrootd.gsi.tpc.cred.key");
         clientCertificatePath = properties.getProperty("xrootd.gsi.tpc.cred.cert");
         proxyRefreshInterval =
-                        TimeUnit.valueOf(properties.getProperty("xrootd.gsi.tpc.cred.refresh.unit"))
-                                .toMillis(Integer.parseInt(properties.getProperty("xrootd.gsi.tpc.cred.refresh")));
+              TimeUnit.valueOf(properties.getProperty("xrootd.gsi.tpc.cred.refresh.unit"))
+                    .toMillis(
+                          Integer.parseInt(properties.getProperty("xrootd.gsi.tpc.cred.refresh")));
         verifyClientCertificate =
-                        Boolean.parseBoolean(properties.getProperty("xrootd.gsi.tpc.cred.verify"));
+              Boolean.parseBoolean(properties.getProperty("xrootd.gsi.tpc.cred.verify"));
         proxyPath = properties.getProperty("xrootd.gsi.tpc.proxy.path");
-        delegationOnly = Boolean.parseBoolean(properties.getProperty("xrootd.gsi.tpc.delegation-only"));
+        delegationOnly = Boolean.parseBoolean(
+              properties.getProperty("xrootd.gsi.tpc.delegation-only"));
     }
 
-    public PEMCredential getHostCredential()
-    {
+    public PEMCredential getHostCredential() {
         loadServerCredentials();
         return hostCredential;
     }
@@ -110,8 +108,7 @@ public class CredentialLoader
         return proxy;
     }
 
-    public boolean isDelegationOnly()
-    {
+    public boolean isDelegationOnly() {
         return delegationOnly;
     }
 
@@ -120,20 +117,19 @@ public class CredentialLoader
      * path, or to construct one from the local cert and key, if refresh
      * has expired.
      */
-    private synchronized void loadClientCredentials()
-    {
+    private synchronized void loadClientCredentials() {
         try {
             if (shouldRefreshClientProxyCredential()) {
                 LOGGER.info("Refreshing proxy credential. Current refresh interval: {} ms",
-                            proxyRefreshInterval);
+                      proxyRefreshInterval);
 
                 if (!Strings.isNullOrEmpty(proxyPath)) {
                     clientCredential = new PEMCredential(proxyPath, (char[]) null);
                     proxy = clientCredential;
                 } else {
                     clientCredential = new PEMCredential(clientKeyPath,
-                                                         clientCertificatePath,
-                                                         null);
+                          clientCertificatePath,
+                          null);
                     if (verifyClientCertificate) {
                         LOGGER.info("Verifying client certificate");
                         certChainValidator.validate(clientCredential.getCertificateChain());
@@ -145,16 +141,16 @@ public class CredentialLoader
                      */
                     try {
                         ProxyCertificateOptions options
-                                        = new ProxyCertificateOptions(
-                                        clientCredential.getCertificateChain());
+                              = new ProxyCertificateOptions(
+                              clientCredential.getCertificateChain());
                         ProxyCertificate proxyCert = ProxyGenerator.generate(
-                                        options,
-                                        clientCredential.getKey());
+                              options,
+                              clientCredential.getKey());
                         proxy = proxyCert.getCredential();
                     } catch (InvalidKeyException | SignatureException | NoSuchAlgorithmException e) {
                         throw new CertificateException(
-                                        "could not generate host proxy credential.",
-                                        e);
+                              "could not generate host proxy credential.",
+                              e);
                     }
                 }
 
@@ -162,10 +158,10 @@ public class CredentialLoader
             }
         } catch (GeneralSecurityException gssex) {
             LOGGER.error("Could not load client certificates/key due to security error; {}: {}.",
-                         getCredentialValues(), gssex.toString());
+                  getCredentialValues(), gssex.toString());
         } catch (IOException ioex) {
             LOGGER.error("Could not read client certificates/key from file-system; {}: {}.",
-                         getCredentialValues(), ioex.toString());
+                  getCredentialValues(), ioex.toString());
 
         }
     }
@@ -174,49 +170,45 @@ public class CredentialLoader
      * Server-side, will attempt to generate host credential from
      * local cert and key, if refresh has expired.
      */
-    private synchronized void loadServerCredentials()
-    {
+    private synchronized void loadServerCredentials() {
         try {
             if (shouldReloadServerCredentials()) {
                 LOGGER.info("Loading server certificates. Current refresh interval: {} ms",
-                            hostCertRefreshInterval);
+                      hostCertRefreshInterval);
                 PEMCredential credential = new PEMCredential(hostKeyPath,
-                                                             hostCertificatePath,
-                                                             null);
+                      hostCertificatePath,
+                      null);
                 if (verifyHostCertificate) {
                     LOGGER.info("Verifying host certificate");
                     certChainValidator.validate(
-                                    credential.getCertificateChain());
+                          credential.getCertificateChain());
                 }
                 hostCredential = credential;
                 hostCertRefreshTimestamp = System.currentTimeMillis();
             }
         } catch (GeneralSecurityException gssex) {
             LOGGER.error("Could not load server certificates/key due to security error; {}: {}.",
-                         getCredentialValues(), gssex.toString());
+                  getCredentialValues(), gssex.toString());
         } catch (IOException ioex) {
             LOGGER.error("Could not read server certificates/key from file-system; {}: {}.",
-                         getCredentialValues(), ioex.toString());
+                  getCredentialValues(), ioex.toString());
 
         }
     }
 
-    private String getCredentialValues()
-    {
+    private String getCredentialValues() {
         return "client cert path: " + clientCertificatePath
-                        + ", client key path: " + clientKeyPath
-                        + ", proxy path: " + proxyPath;
+              + ", client key path: " + clientKeyPath
+              + ", proxy path: " + proxyPath;
     }
 
-    private boolean shouldReloadServerCredentials()
-    {
+    private boolean shouldReloadServerCredentials() {
         long timeSinceLastServerRefresh = (System.currentTimeMillis() - hostCertRefreshTimestamp);
         LOGGER.info("Time since last server cert refresh {}", timeSinceLastServerRefresh);
         return hostCredential == null || timeSinceLastServerRefresh >= hostCertRefreshInterval;
     }
 
-    private boolean shouldRefreshClientProxyCredential()
-    {
+    private boolean shouldRefreshClientProxyCredential() {
         long timeSinceLastClientRefresh = (System.currentTimeMillis() - proxyRefreshTimestamp);
         LOGGER.info("Time since last client cert refresh {}", timeSinceLastClientRefresh);
         return proxy == null || timeSinceLastClientRefresh >= proxyRefreshInterval;

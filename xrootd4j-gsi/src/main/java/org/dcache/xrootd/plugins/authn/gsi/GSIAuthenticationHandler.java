@@ -1,65 +1,71 @@
 /**
  * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
- *
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.plugins.authn.gsi;
 
+import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.CERT_AUTH_KEY;
+import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.CRYPTO_MODE;
+import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.ENCRYPTION_KEY;
+import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.PROTOCOL;
+import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.PROTO_WITH_DELEGATION;
+import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.VERSION_KEY;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.AUTHN_PROTOCOL_PREFIX;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kGSErrBadOpt;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kGSErrBadProtocol;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_cert;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_certreq;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_none;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_sigpxy;
+
 import eu.emi.security.authn.x509.impl.PEMCredential;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.security.auth.Subject;
-
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
+import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketData;
 import org.dcache.xrootd.plugins.authn.gsi.post49.GSIPost49ServerRequestHandler;
 import org.dcache.xrootd.plugins.authn.gsi.pre49.GSIPre49ServerRequestHandler;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.dcache.xrootd.protocol.messages.XrootdResponse;
 import org.dcache.xrootd.security.BufferDecrypter;
-import org.dcache.xrootd.plugins.authn.gsi.GSIBucketUtils.BucketData;
-
-import static org.dcache.xrootd.plugins.authn.gsi.GSIRequestHandler.*;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Handler for xrootd-security message exchange based on the GSI protocol.
  * Loosely based on the first reverse-engineering of xrootdsec-gsi, done by
  * Martin Radicke.
  */
-public class GSIAuthenticationHandler implements AuthenticationHandler
-{
-    protected static final Logger               LOGGER
-                    = LoggerFactory.getLogger(GSIAuthenticationHandler.class);
+public class GSIAuthenticationHandler implements AuthenticationHandler {
+
+    protected static final Logger LOGGER
+          = LoggerFactory.getLogger(GSIAuthenticationHandler.class);
 
     /**
      * Container for principals and credentials found during the authentication
      * process.
      */
-    private final Subject              subject;
+    private final Subject subject;
     private final GSICredentialManager credentialManager;
 
     private GSIServerRequestHandler requestHandler;
-    private boolean                 finished = false;
+    private boolean finished = false;
 
-    public GSIAuthenticationHandler(GSICredentialManager credentialManager)
-    {
+    public GSIAuthenticationHandler(GSICredentialManager credentialManager) {
         this.credentialManager = credentialManager;
         subject = new Subject();
     }
@@ -71,16 +77,15 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
      */
     @Override
     public XrootdResponse<AuthenticationRequest> authenticate(AuthenticationRequest request)
-        throws XrootdException
-    {
+          throws XrootdException {
         BucketData data = GSIBucketUtils.deserializeData(request);
 
         /* check whether the protocol matches */
         if (!PROTOCOL.equalsIgnoreCase(data.getProtocol())) {
             requestHandler.cancelHandshake();
             throw new XrootdException(kXR_InvalidRequest,
-                                      "Specified Protocol " + data.getProtocol() +
-                                      " is not the protocol that was negotiated.");
+                  "Specified Protocol " + data.getProtocol() +
+                        " is not the protocol that was negotiated.");
         }
 
         if (requestHandler == null) {
@@ -90,7 +95,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
         if (requestHandler.isRequestExpired()) {
             requestHandler.cancelHandshake();
             throw new XrootdException(kXR_InvalidRequest,
-                                      "Client authentication request time expired.");
+                  "Client authentication request time expired.");
         }
 
         XrootdResponse<AuthenticationRequest> response;
@@ -102,29 +107,30 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
             case kXGC_certreq:
                 response = requestHandler.handleCertReqStep(request, data);
                 LOGGER.debug("authenticate, processed certreq step "
-                                             + "for stream {}, session {}.",
-                             request.getStreamId(), request.getSession());
+                            + "for stream {}, session {}.",
+                      request.getStreamId(), request.getSession());
                 break;
             case kXGC_cert:
                 response = requestHandler.handleCertStep(request, data);
                 finished = requestHandler.isFinished(data);
                 LOGGER.debug("authenticate, processed cert step "
-                                             + "for stream {}, session {}.",
-                             request.getStreamId(), request.getSession());
+                            + "for stream {}, session {}.",
+                      request.getStreamId(), request.getSession());
                 break;
             case kXGC_sigpxy:
                 response = requestHandler.handleSigPxyStep(request, data);
                 LOGGER.debug("authenticate, processed sigpxy step "
-                                             + "for stream {}, session {}.",
-                             request.getStreamId(), request.getSession());
-                finished = requestHandler.isFinished(data);;
+                            + "for stream {}, session {}.",
+                      request.getStreamId(), request.getSession());
+                finished = requestHandler.isFinished(data);
+                ;
                 break;
             default:
                 requestHandler.cancelHandshake();
                 throw new XrootdException(kGSErrBadOpt,
-                                          "Error during authentication, " +
-                                                          "unknown processing step: "
-                                                          + data.getStep());
+                      "Error during authentication, " +
+                            "unknown processing step: "
+                            + data.getStep());
         }
 
         requestHandler.updateLastRequest();
@@ -132,8 +138,7 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
     }
 
     @Override
-    public BufferDecrypter getDecrypter()
-    {
+    public BufferDecrypter getDecrypter() {
         return requestHandler.getDecrypter();
     }
 
@@ -142,42 +147,38 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
      * contains metainformation such as the host-certificate subject hash.
      */
     @Override
-    public String getProtocol()
-    {
+    public String getProtocol() {
         PEMCredential credential = credentialManager.getHostCredential();
         /* hashed principals are cached in CertUtil */
         String subjectHash =
-            CertUtil.computeMD5Hash(credential.getCertificate()
-                                              .getIssuerX500Principal());
+              CertUtil.computeMD5Hash(credential.getCertificate()
+                    .getIssuerX500Principal());
 
         return AUTHN_PROTOCOL_PREFIX + PROTOCOL + "," + VERSION_KEY + ":"
-                 + GSIRequestHandler.PROTOCOL_VERSION + "," + ENCRYPTION_KEY
-                + ":" + CRYPTO_MODE + "," + CERT_AUTH_KEY
-                + ":" + subjectHash;
+              + GSIRequestHandler.PROTOCOL_VERSION + "," + ENCRYPTION_KEY
+              + ":" + CRYPTO_MODE + "," + CERT_AUTH_KEY
+              + ":" + subjectHash;
     }
 
     @Override
-    public Subject getSubject()
-    {
+    public Subject getSubject() {
         return subject;
     }
 
     @Override
-    public boolean isCompleted()
-    {
+    public boolean isCompleted() {
         return finished;
     }
 
     private GSIServerRequestHandler createRequestHandler(Integer clientVersion)
-                    throws XrootdException
-    {
+          throws XrootdException {
         if (clientVersion == null) {
             /*
              *  This method should be called only on the first exchange,
              *  so the client only needs to send it then (as it does).
              */
             throw new XrootdException(kGSErrBadProtocol, "Client did not "
-                            + "provide GSI protocol version number.");
+                  + "provide GSI protocol version number.");
         }
 
         GSIServerRequestHandler handler;
@@ -195,8 +196,8 @@ public class GSIAuthenticationHandler implements AuthenticationHandler
         }
 
         LOGGER.info("Client protocol version was {}, using {}.",
-                    clientVersion,
-                    handler.getClass().getSimpleName());
+              clientVersion,
+              handler.getClass().getSimpleName());
 
         return handler;
     }

@@ -1,32 +1,35 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
- *
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.tpc.protocol.messages;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asyncab;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asyncdi;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asyncms;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asyncrd;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asyncwt;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_asynresp;
+
 import io.netty.buffer.ByteBuf;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-
 /**
- * <p>Server's prerogative to tell the client to do something.</p>
+ * Server's prerogative to tell the client to do something.</p>
  *
- * <p>According to protocol, response has this structure:</p>
+ * According to protocol, response has this structure:</p>
  *
  *  <table>
  *      <tr><td>kXR_char</td><td>pad[2]</td></tr>
@@ -37,6 +40,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.*;
  *  </table>
  */
 public class InboundAttnResponse extends AbstractXrootdInboundResponse {
+
     private final int nextRequest;
     private final int actnum;
 
@@ -64,73 +68,61 @@ public class InboundAttnResponse extends AbstractXrootdInboundResponse {
     private int rStat;
     private byte[] rData;
 
-    public InboundAttnResponse(ByteBuf buffer, int requestId)
-    {
+    public InboundAttnResponse(ByteBuf buffer, int requestId) {
         super(buffer);
         nextRequest = requestId;
         int plen = buffer.getInt(4);
         actnum = buffer.getInt(8);
 
         if (plen > 4) {
-            parseParameters(buffer, plen-4);
+            parseParameters(buffer, plen - 4);
         }
     }
 
-    public int getActnum()
-    {
+    public int getActnum() {
         return actnum;
     }
 
-    public byte[] getrData()
-    {
+    public byte[] getrData() {
         return rData;
     }
 
-    public String getMessage()
-    {
+    public String getMessage() {
         return message;
     }
 
-    public int getMsec()
-    {
+    public int getMsec() {
         return msec;
     }
 
-    public int getPort()
-    {
+    public int getPort() {
         return port;
     }
 
-    public String getRedirectData()
-    {
+    public String getRedirectData() {
         return redirectData;
     }
 
     @Override
-    public int getRequestId()
-    {
+    public int getRequestId() {
         return nextRequest;
     }
 
-    public int getrStreamId()
-    {
+    public int getrStreamId() {
         return rStreamId;
     }
 
-    public int getrStat()
-    {
+    public int getrStat() {
         return rStat;
     }
 
 
-    public int getWsec()
-    {
+    public int getWsec() {
         return wsec;
     }
 
-    private void parseParameters(ByteBuf buffer, int len)
-    {
-        switch(actnum) {
+    private void parseParameters(ByteBuf buffer, int len) {
+        switch (actnum) {
             case kXR_asyncab:
             case kXR_asyncms:
                 message = buffer.toString(12, len, US_ASCII);
@@ -141,7 +133,7 @@ public class InboundAttnResponse extends AbstractXrootdInboundResponse {
                 break;
             case kXR_asyncrd:
                 port = buffer.getInt(12);
-                redirectData = buffer.toString(16, len-4, US_ASCII);
+                redirectData = buffer.toString(16, len - 4, US_ASCII);
                 break;
             case kXR_asynresp:
                 rStreamId = buffer.getUnsignedShort(16);

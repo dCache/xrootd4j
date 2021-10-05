@@ -1,25 +1,22 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
  *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.util;
 
 import com.google.common.base.Joiner;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,7 +30,6 @@ import java.util.Map;
  *     question mark (?) and then coding the opaque information as a series of
  *     ampersand prefixed (&amp;) variable names immediately followed by an
  *     equal sign (=) prefix value."
-
  *
  * token (follows the SPEC in Feichtinger, Peters: "Authorization of Data
  *        Access in Distributed Systems", Section IIIA., page 3):
@@ -60,6 +56,7 @@ import java.util.Map;
  *
  */
 public class OpaqueStringParser {
+
     public static final char OPAQUE_STRING_PREFIX = '?';
     public static final char OPAQUE_PREFIX = '&';
     public static final char OPAQUE_SEPARATOR = '=';
@@ -82,17 +79,16 @@ public class OpaqueStringParser {
      * @return Map from keys to values in the opaque string
      * @throws ParseException if value is missing for a key in the string
      */
-    public static Map<String,String> getOpaqueMap(String opaque)
-                                                        throws ParseException
-    {
+    public static Map<String, String> getOpaqueMap(String opaque)
+          throws ParseException {
         if (opaque == null || opaque.isEmpty()) {
             return Collections.emptyMap();
         } else {
             opaque = UserNameUtils.checkAllUsernamesValid(opaque);
 
-            Map<String,String> map = new HashMap<>();
+            Map<String, String> map = new HashMap<>();
 
-            String [] prefixBlocks = opaque.split("\\?");
+            String[] prefixBlocks = opaque.split("\\?");
 
             for (String prefixBlock : prefixBlocks) {
 
@@ -100,7 +96,7 @@ public class OpaqueStringParser {
                     continue;
                 }
 
-                String [] prefixSubBlocks = prefixBlock.split("&");
+                String[] prefixSubBlocks = prefixBlock.split("&");
 
                 for (String prefixSubBlock : prefixSubBlocks) {
 
@@ -111,12 +107,12 @@ public class OpaqueStringParser {
                     int delimiter = prefixSubBlock.indexOf(OPAQUE_SEPARATOR);
                     if (delimiter == -1) {
                         throw new ParseException("Opaque information is missing a"
-                                                 + "value for variable " +
-                                                  prefixSubBlock);
+                              + "value for variable " +
+                              prefixSubBlock);
                     }
 
                     map.put(prefixSubBlock.substring(0, delimiter),
-                            prefixSubBlock.substring(delimiter + 1, prefixSubBlock.length()));
+                          prefixSubBlock.substring(delimiter + 1, prefixSubBlock.length()));
                 }
             }
 
@@ -130,8 +126,7 @@ public class OpaqueStringParser {
      * @param value The value contained in the opaque string
      * @return string with correct opaque prefix and correct separator
      */
-    public static String buildOpaqueString(String key, String value)
-    {
+    public static String buildOpaqueString(String key, String value) {
         return OPAQUE_PREFIX + key + OPAQUE_SEPARATOR + value;
     }
 
@@ -140,10 +135,9 @@ public class OpaqueStringParser {
      * @param map of key - value pairs
      * @return string with correct opaque prefix and correct separator
      */
-    public static String buildOpaqueString(Map<String, String> map)
-    {
+    public static String buildOpaqueString(Map<String, String> map) {
         return Joiner.on(OPAQUE_PREFIX)
-                     .withKeyValueSeparator("" + OPAQUE_SEPARATOR)
-                     .join(map);
+              .withKeyValueSeparator("" + OPAQUE_SEPARATOR)
+              .join(map);
     }
 }

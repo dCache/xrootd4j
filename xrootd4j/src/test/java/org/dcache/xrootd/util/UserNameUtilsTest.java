@@ -1,38 +1,35 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
- *
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.util;
 
-import org.junit.Test;
+import static org.dcache.xrootd.util.OpaqueStringParser.OPAQUE_STRING_PREFIX;
+import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-
-import static org.dcache.xrootd.util.OpaqueStringParser.OPAQUE_STRING_PREFIX;
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
 
 /**
  *  Tests checks for Posix compliance of user names, and for
  *  replacement of non-compliant names in strings.
  */
-public class UserNameUtilsTest
-{
+public class UserNameUtilsTest {
+
     private static final String TPC_SRC = "tpc.src";
     private static final String TPC_DLG = "tpc.dlg";
     private static final String CLIENT = "org.dcache.xrootd.client";
@@ -51,8 +48,8 @@ public class UserNameUtilsTest
 
     private static final String NON_COMPLIANT_CLIENT = "i&v4.29931@foobar.org";
     private static final String NON_COMPLIANT_SRC = "alrossi7&@foobar.org";
-    private static final String COMPLIANT_PID_2   = "foo.bar.29931@foobar.org";
-    private static final String EXTENDED_PID      = "foo.29042:10@foobar.org";
+    private static final String COMPLIANT_PID_2 = "foo.bar.29931@foobar.org";
+    private static final String EXTENDED_PID = "foo.29042:10@foobar.org";
 
     private static final String COMPLIANT_TPC_SRC = "arossi2020@foobar.org";
     private static final String COMPLIANT_TPC_DLG = "arossi2020@foobar.org";
@@ -75,136 +72,118 @@ public class UserNameUtilsTest
     private Map<String, String> parsed;
 
     @Test
-    public void shouldAcceptEmptyUserName() throws Exception
-    {
+    public void shouldAcceptEmptyUserName() throws Exception {
         assertEquals("Should have accepted empty name", "",
-                   UserNameUtils.checkUsernameValid(""));
+              UserNameUtils.checkUsernameValid(""));
     }
 
     @Test
-    public void shouldNotAcceptNullUserName() throws Exception
-    {
+    public void shouldNotAcceptNullUserName() throws Exception {
         assertEquals("Should have replaced user name",
-                     UserNameUtils.XROOTD_MAGIC_NAME,
-                        UserNameUtils.checkUsernameValid(null));
+              UserNameUtils.XROOTD_MAGIC_NAME,
+              UserNameUtils.checkUsernameValid(null));
     }
 
     @Test
-    public void shouldAcceptCompliantUserName() throws Exception
-    {
+    public void shouldAcceptCompliantUserName() throws Exception {
         assertEquals("Should have accepted user name.",
-                     "a_l_rossi1955-06-01",
-                   UserNameUtils.checkUsernameValid("a_l_rossi1955-06-01"));
+              "a_l_rossi1955-06-01",
+              UserNameUtils.checkUsernameValid("a_l_rossi1955-06-01"));
     }
 
     @Test
-    public void shouldAcceptUserNameThatBeginsWithUpperCaseLetter() throws Exception
-    {
+    public void shouldAcceptUserNameThatBeginsWithUpperCaseLetter() throws Exception {
         assertEquals("Should have accepted user name.",
-                     "A_l_rossi1955-06-01",
-        UserNameUtils.checkUsernameValid("A_l_rossi1955-06-01"));
+              "A_l_rossi1955-06-01",
+              UserNameUtils.checkUsernameValid("A_l_rossi1955-06-01"));
     }
 
     @Test
-    public void shouldReplaceNonCompliantUserNameWithPeriod() throws Exception
-    {
+    public void shouldReplaceNonCompliantUserNameWithPeriod() throws Exception {
         assertEquals("Should have replaced user name.",
-                     UserNameUtils.XROOTD_MAGIC_NAME,
-                     UserNameUtils.checkUsernameValid("a_l_rossi1955-06-01.c"));
+              UserNameUtils.XROOTD_MAGIC_NAME,
+              UserNameUtils.checkUsernameValid("a_l_rossi1955-06-01.c"));
     }
 
     @Test
-    public void shouldNotFailIfClientContainsExtendedPid() throws Exception
-    {
+    public void shouldNotFailIfClientContainsExtendedPid() throws Exception {
         givenOpaqueStringWithClientName(EXTENDED_PID);
         whenStringIsParsed();
     }
 
     @Test
-    public void shouldReplaceUserNameThatBeginsWithNumber() throws Exception
-    {
+    public void shouldReplaceUserNameThatBeginsWithNumber() throws Exception {
         assertEquals("Should have replaced user name.",
-                     UserNameUtils.XROOTD_MAGIC_NAME,
-                     UserNameUtils.checkUsernameValid("7a_l_rossi1955-06-01"));
+              UserNameUtils.XROOTD_MAGIC_NAME,
+              UserNameUtils.checkUsernameValid("7a_l_rossi1955-06-01"));
     }
 
     @Test
-    public void shouldReplaceUserNameThatContainsUpperCaseLetter() throws Exception
-    {
+    public void shouldReplaceUserNameThatContainsUpperCaseLetter() throws Exception {
         assertEquals("Should have replaced user name.",
-                     UserNameUtils.XROOTD_MAGIC_NAME,
-                     UserNameUtils.checkUsernameValid("a_l_Rossi?1955-06-01"));
+              UserNameUtils.XROOTD_MAGIC_NAME,
+              UserNameUtils.checkUsernameValid("a_l_Rossi?1955-06-01"));
     }
 
     @Test
-    public void shouldReplaceUserNameThatContainsSpecialCharacters() throws Exception
-    {
+    public void shouldReplaceUserNameThatContainsSpecialCharacters() throws Exception {
         UserNameUtils.checkUsernameValid("7a_l_rossi?1955-06-01");
     }
 
     @Test
-    public void shouldChangeUnknownToMagicNameForAllUsernames() throws Exception
-    {
+    public void shouldChangeUnknownToMagicNameForAllUsernames() throws Exception {
         givenOpaqueStringWithXrootdUnknownNames();
         whenStringIsParsed();
         assertThatXrootdUnknownNamesAreReplaced();
     }
 
     @Test
-    public void shouldNotReplaceCompliantUsernames() throws Exception
-    {
+    public void shouldNotReplaceCompliantUsernames() throws Exception {
         givenOpaqueStringWithClientName(COMPLIANT_CLIENT);
         whenStringIsParsed();
         assertThatCompliantNamesAreUnchanged();
     }
 
     @Test
-    public void shouldNotFailIfClientContainsNonCompliantUsername() throws Exception
-    {
+    public void shouldNotFailIfClientContainsNonCompliantUsername() throws Exception {
         givenOpaqueStringWithClientName(NON_COMPLIANT_CLIENT);
         whenStringIsParsed();
     }
 
     @Test
-    public void shouldNotFailIfSrcContainsNonCompliantUsername() throws Exception
-    {
+    public void shouldNotFailIfSrcContainsNonCompliantUsername() throws Exception {
         givenOpaqueStringWithSrcName(NON_COMPLIANT_SRC);
         whenStringIsParsed();
     }
 
-    public void shouldNotFailIfClientContainsDoublePeriod() throws Exception
-    {
+    public void shouldNotFailIfClientContainsDoublePeriod() throws Exception {
         givenOpaqueStringWithClientName(COMPLIANT_PID_2);
         whenStringIsParsed();
     }
 
-    private void whenStringIsParsed() throws Exception
-    {
+    private void whenStringIsParsed() throws Exception {
         parsed = OpaqueStringParser.getOpaqueMap(opaqueString);
     }
 
-    private void assertThatCompliantNamesAreUnchanged() throws Exception
-    {
+    private void assertThatCompliantNamesAreUnchanged() throws Exception {
         assertEquals("Wrong " + TPC_SRC + " value",
-                     COMPLIANT_TPC_SRC, parsed.get(TPC_SRC));
+              COMPLIANT_TPC_SRC, parsed.get(TPC_SRC));
         assertEquals("Wrong " + TPC_DLG + " value",
-                     COMPLIANT_TPC_DLG, parsed.get(TPC_DLG));
+              COMPLIANT_TPC_DLG, parsed.get(TPC_DLG));
         assertEquals("Wrong " + CLIENT + " value",
-                     COMPLIANT_CLIENT, parsed.get(CLIENT));
+              COMPLIANT_CLIENT, parsed.get(CLIENT));
     }
 
-    private void assertThatXrootdUnknownNamesAreReplaced() throws Exception
-    {
+    private void assertThatXrootdUnknownNamesAreReplaced() throws Exception {
         assertEquals("Wrong " + TPC_SRC + " value",
-                     REPLACED_TPC_SRC, parsed.get(TPC_SRC));
+              REPLACED_TPC_SRC, parsed.get(TPC_SRC));
         assertEquals("Wrong " + TPC_DLG + " value",
-                     REPLACED_TPC_DLG, parsed.get(TPC_DLG));
+              REPLACED_TPC_DLG, parsed.get(TPC_DLG));
         assertEquals("Wrong " + CLIENT + " value",
-                     REPLACED_CLIENT, parsed.get(CLIENT));
+              REPLACED_CLIENT, parsed.get(CLIENT));
     }
 
-    private void givenOpaqueStringWithXrootdUnknownNames()
-    {
+    private void givenOpaqueStringWithXrootdUnknownNames() {
         Map<String, String> opaqueMap = new HashMap<>();
         opaqueMap.put(TPC_SRC, XROOTD_UNKNOWN_TPC_SRC);
         opaqueMap.put(TPC_DLG, XROOTD_UNKNOWN_TPC_DLG);
@@ -213,8 +192,7 @@ public class UserNameUtilsTest
         opaqueString = OPAQUE_STRING_PREFIX + OpaqueStringParser.buildOpaqueString(opaqueMap);
     }
 
-    private void givenOpaqueStringWithClientName(String name)
-    {
+    private void givenOpaqueStringWithClientName(String name) {
         Map<String, String> opaqueMap = new HashMap<>();
         opaqueMap.put(TPC_SRC, COMPLIANT_TPC_SRC);
         opaqueMap.put(TPC_DLG, COMPLIANT_TPC_DLG);
@@ -223,8 +201,7 @@ public class UserNameUtilsTest
         opaqueString = OPAQUE_STRING_PREFIX + OpaqueStringParser.buildOpaqueString(opaqueMap);
     }
 
-    private void givenOpaqueStringWithSrcName(String name)
-    {
+    private void givenOpaqueStringWithSrcName(String name) {
         Map<String, String> opaqueMap = new HashMap<>();
         add(TPC_SRC, name, opaqueMap);
         opaqueMap.put(TPC_DLG, COMPLIANT_TPC_DLG);
@@ -233,13 +210,11 @@ public class UserNameUtilsTest
         opaqueString = OPAQUE_STRING_PREFIX + OpaqueStringParser.buildOpaqueString(opaqueMap);
     }
 
-    private void add(String name, String value, Map<String, String> opaqueMap)
-    {
+    private void add(String name, String value, Map<String, String> opaqueMap) {
         opaqueMap.put(name, value);
     }
 
-    private void addOtherValues(Map<String, String> opaqueMap)
-    {
+    private void addOtherValues(Map<String, String> opaqueMap) {
         opaqueMap.put(OSS_ASIZE, ASIZE_VAL);
         opaqueMap.put(TPC_KEY, KEY_VAL);
         opaqueMap.put(TPC_LFN, LFN_VAL);

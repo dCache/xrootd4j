@@ -1,83 +1,71 @@
 /**
- * Copyright (C) 2011-2018 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
  *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.protocol.messages;
 
-import io.netty.buffer.ByteBuf;
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
+import io.netty.buffer.ByteBuf;
 import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.util.FileStatus;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
+public class StatResponse extends AbstractXrootdResponse<StatRequest> {
 
-public class StatResponse extends AbstractXrootdResponse<StatRequest>
-{
     private final FileStatus fs;
     private final String info;
 
-    public StatResponse(StatRequest request, FileStatus fs)
-    {
+    public StatResponse(StatRequest request, FileStatus fs) {
         this(request, fs, fs.toString());
     }
 
-    private StatResponse(StatRequest request, FileStatus fs, String info)
-    {
+    private StatResponse(StatRequest request, FileStatus fs, String info) {
         super(request, XrootdProtocol.kXR_ok);
         this.fs = fs;
         this.info = info;
     }
 
-    public long getSize()
-    {
+    public long getSize() {
         return fs.getSize();
     }
 
-    public int getFlags()
-    {
+    public int getFlags() {
         return fs.getFlags();
     }
 
-    public long getId()
-    {
+    public long getId() {
         return fs.getId();
     }
 
-    public long getModificationTime()
-    {
+    public long getModificationTime() {
         return fs.getModificationTime();
     }
 
     @Override
-    public int getDataLength()
-    {
+    public int getDataLength() {
         return info.length() + 1;
     }
 
     @Override
-    protected void getBytes(ByteBuf buffer)
-    {
+    protected void getBytes(ByteBuf buffer) {
         buffer.writeBytes(info.getBytes(US_ASCII));
         buffer.writeByte('\0');
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return String.format("stat-response[%s]", fs);
     }
 }

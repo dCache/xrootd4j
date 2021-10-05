@@ -1,30 +1,41 @@
 /**
- * Copyright (C) 2011-2019 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
  *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.standalone;
+
+import static org.dcache.xrootd.protocol.XrootdProtocol.DATA_SERVER;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ArgInvalid;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ArgMissing;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_FileNotOpen;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_IOError;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_NotFile;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_NotFound;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_Qcksum;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_Qconfig;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_Unsupported;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_isDir;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_isDirectory;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_other;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_readable;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_writable;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_xset;
 
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import io.netty.channel.ChannelHandlerContext;
-import org.apache.commons.io.FilenameUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -38,7 +49,7 @@ import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-
+import org.apache.commons.io.FilenameUtils;
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.core.XrootdRequestHandler;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
@@ -73,13 +84,13 @@ import org.dcache.xrootd.protocol.messages.ZeroCopyReadResponse;
 import org.dcache.xrootd.stream.ChunkedFileChannelReadResponse;
 import org.dcache.xrootd.stream.ChunkedFileReadvResponse;
 import org.dcache.xrootd.util.FileStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+public class DataServerHandler extends XrootdRequestHandler {
 
-public class DataServerHandler extends XrootdRequestHandler
-{
     private static final Logger _log =
-        LoggerFactory.getLogger(DataServerHandler.class);
+          LoggerFactory.getLogger(DataServerHandler.class);
 
     /**
      * Maximum frame size of a read or readv reply. Does not include the size
@@ -88,18 +99,16 @@ public class DataServerHandler extends XrootdRequestHandler
     private static final int MAX_FRAME_SIZE = 2 << 20;
 
     private final List<RandomAccessFile> _openFiles =
-        new ArrayList<>();
+          new ArrayList<>();
 
     private final DataServerConfiguration _configuration;
 
-    public DataServerHandler(DataServerConfiguration configuration)
-    {
+    public DataServerHandler(DataServerConfiguration configuration) {
         _configuration = configuration;
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable t)
-    {
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable t) {
         if (t instanceof ClosedChannelException) {
             _log.info("Connection closed");
         } else if (t instanceof RuntimeException || t instanceof Error) {
@@ -114,16 +123,14 @@ public class DataServerHandler extends XrootdRequestHandler
 
     @Override
     protected ProtocolResponse doOnProtocolRequest(
-            ChannelHandlerContext ctx, ProtocolRequest msg)
-    {
+          ChannelHandlerContext ctx, ProtocolRequest msg) {
         return new ProtocolResponse(msg, DATA_SERVER);
     }
 
     @Override
     protected StatResponse doOnStat(ChannelHandlerContext ctx,
-                                    StatRequest req)
-        throws XrootdException
-    {
+          StatRequest req)
+          throws XrootdException {
         File file = getFile(req.getPath());
         if (!file.exists()) {
             throw new XrootdException(kXR_NotFound, "No such file");
@@ -135,9 +142,8 @@ public class DataServerHandler extends XrootdRequestHandler
 
     @Override
     protected StatxResponse doOnStatx(ChannelHandlerContext ctx,
-                                      StatxRequest req)
-        throws XrootdException
-    {
+          StatxRequest req)
+          throws XrootdException {
         if (req.getPaths().length == 0) {
             throw new XrootdException(kXR_ArgMissing, "no paths specified");
         }
@@ -159,8 +165,7 @@ public class DataServerHandler extends XrootdRequestHandler
 
     @Override
     protected OkResponse<RmRequest> doOnRm(ChannelHandlerContext ctx, RmRequest req)
-        throws XrootdException
-    {
+          throws XrootdException {
         if (req.getPath().isEmpty()) {
             throw new XrootdException(kXR_ArgMissing, "no path specified");
         }
@@ -168,21 +173,20 @@ public class DataServerHandler extends XrootdRequestHandler
         File file = getFile(req.getPath());
         if (!file.exists()) {
             throw new XrootdException(kXR_NotFound,
-                                      "No such directory or file: " + file);
+                  "No such directory or file: " + file);
         } else if (!file.isFile()) {
             throw new XrootdException(kXR_NotFile,
-                                      "Not a file: " + file);
+                  "Not a file: " + file);
         } else if (!file.delete()) {
             throw new XrootdException(kXR_IOError,
-                                      "Failed to delete file: " + file);
+                  "Failed to delete file: " + file);
         }
         return withOk(req);
     }
 
     @Override
     protected OkResponse<RmDirRequest> doOnRmDir(ChannelHandlerContext ctx, RmDirRequest req)
-        throws XrootdException
-    {
+          throws XrootdException {
         if (req.getPath().isEmpty()) {
             throw new XrootdException(kXR_ArgMissing, "no path specified");
         }
@@ -190,21 +194,20 @@ public class DataServerHandler extends XrootdRequestHandler
         File file = getFile(req.getPath());
         if (!file.exists()) {
             throw new XrootdException(kXR_NotFound,
-                                      "No such directory or file: " + file);
+                  "No such directory or file: " + file);
         } else if (!file.isDirectory()) {
             throw new XrootdException(kXR_IOError,
-                                      "Not a directory: " + file);
+                  "Not a directory: " + file);
         } else if (!file.delete()) {
             throw new XrootdException(kXR_IOError,
-                                      "Failed to delete directory: " + file);
+                  "Failed to delete directory: " + file);
         }
         return withOk(req);
     }
 
     @Override
     protected OkResponse<MkDirRequest> doOnMkDir(ChannelHandlerContext ctx, MkDirRequest req)
-        throws XrootdException
-    {
+          throws XrootdException {
         if (req.getPath().isEmpty()) {
             throw new XrootdException(kXR_ArgMissing, "no path specified");
         }
@@ -216,12 +219,12 @@ public class DataServerHandler extends XrootdRequestHandler
         if (req.shouldMkPath()) {
             if (!file.mkdirs()) {
                 throw new XrootdException(kXR_IOError,
-                                          "Failed to create directories: " + file);
+                      "Failed to create directories: " + file);
             }
         } else {
             if (!file.mkdir()) {
                 throw new XrootdException(kXR_IOError,
-                                          "Failed to create directory: " + file);
+                      "Failed to create directory: " + file);
             }
         }
         return withOk(req);
@@ -229,8 +232,7 @@ public class DataServerHandler extends XrootdRequestHandler
 
     @Override
     protected OkResponse<MvRequest> doOnMv(ChannelHandlerContext ctx, MvRequest req)
-        throws XrootdException
-    {
+          throws XrootdException {
         String sourcePath = req.getSourcePath();
         if (sourcePath.isEmpty()) {
             throw new XrootdException(kXR_ArgMissing, "No source path specified");
@@ -254,9 +256,8 @@ public class DataServerHandler extends XrootdRequestHandler
 
     @Override
     protected DirListResponse doOnDirList(ChannelHandlerContext context,
-                                          DirListRequest request)
-        throws XrootdException
-    {
+          DirListRequest request)
+          throws XrootdException {
         String listPath = request.getPath();
         if (listPath.isEmpty()) {
             throw new XrootdException(kXR_ArgMissing, "no source path specified");
@@ -266,7 +267,8 @@ public class DataServerHandler extends XrootdRequestHandler
         try (DirectoryStream<Path> paths = Files.newDirectoryStream(dir)) {
             DirListResponse.Builder builder = DirListResponse.builder(request);
             for (Path path : paths) {
-                builder.add(path.getFileName().toString(), request.isDirectoryStat() ? getFileStatusOf(path.toFile()) : null);
+                builder.add(path.getFileName().toString(),
+                      request.isDirectoryStat() ? getFileStatusOf(path.toFile()) : null);
                 if (builder.count() >= 1000) {
                     respond(context, builder.buildPartial());
                 }
@@ -282,8 +284,8 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     @Override
-    protected OkResponse<PrepareRequest> doOnPrepare(ChannelHandlerContext ctx, PrepareRequest msg)
-    {
+    protected OkResponse<PrepareRequest> doOnPrepare(ChannelHandlerContext ctx,
+          PrepareRequest msg) {
         return withOk(msg);
     }
 
@@ -295,9 +297,8 @@ public class DataServerHandler extends XrootdRequestHandler
      */
     @Override
     protected OpenResponse doOnOpen(ChannelHandlerContext ctx,
-                                    OpenRequest msg)
-        throws XrootdException
-    {
+          OpenRequest msg)
+          throws XrootdException {
         try {
             File file = getFile(msg.getPath());
             if (file.isDirectory()) {
@@ -309,7 +310,8 @@ public class DataServerHandler extends XrootdRequestHandler
             RandomAccessFile raf;
             if (msg.isReadWrite()) {
                 if (msg.isMkPath() && !parent.exists() && !parent.mkdirs()) {
-                    throw new XrootdException(kXR_IOError, "Failed to create directories: " + parent);
+                    throw new XrootdException(kXR_IOError,
+                          "Failed to create directories: " + parent);
                 }
                 if (msg.isNew() && !file.createNewFile()) {
                     throw new XrootdException(kXR_IOError, "Failed to create file: " + file);
@@ -332,10 +334,10 @@ public class DataServerHandler extends XrootdRequestHandler
                 int fd = addOpenFile(raf);
                 raf = null;
                 return new OpenResponse(msg,
-                                        fd,
-                                        null,
-                                        null,
-                                        stat);
+                      fd,
+                      null,
+                      null,
+                      stat);
             } finally {
                 if (raf != null) {
                     raf.close();
@@ -358,8 +360,7 @@ public class DataServerHandler extends XrootdRequestHandler
      */
     @Override
     protected Object doOnRead(ChannelHandlerContext ctx, ReadRequest msg)
-        throws XrootdException
-    {
+          throws XrootdException {
         RandomAccessFile raf = getOpenFile(msg.getFileHandle());
         if (msg.bytesToRead() == 0) {
             return withOk(msg);
@@ -387,13 +388,12 @@ public class DataServerHandler extends XrootdRequestHandler
      */
     @Override
     protected ChunkedFileReadvResponse doOnReadV(ChannelHandlerContext ctx,
-                                                 ReadVRequest msg)
-        throws XrootdException
-    {
+          ReadVRequest msg)
+          throws XrootdException {
         EmbeddedReadRequest[] requests = msg.getReadRequestList();
         if (requests == null || requests.length == 0) {
             throw new XrootdException(kXR_ArgMissing,
-                                      "Request contains no vector");
+                  "Request contains no vector");
         }
 
         return new ChunkedFileReadvResponse(msg, MAX_FRAME_SIZE, _openFiles);
@@ -409,11 +409,10 @@ public class DataServerHandler extends XrootdRequestHandler
      */
     @Override
     protected OkResponse<WriteRequest> doOnWrite(ChannelHandlerContext ctx, WriteRequest msg)
-        throws XrootdException
-    {
+          throws XrootdException {
         try {
             FileChannel channel =
-                getOpenFile(msg.getFileHandle()).getChannel();
+                  getOpenFile(msg.getFileHandle()).getChannel();
             channel.position(msg.getWriteOffset());
             msg.getData(channel);
             return withOk(msg);
@@ -431,8 +430,7 @@ public class DataServerHandler extends XrootdRequestHandler
      */
     @Override
     protected OkResponse<SyncRequest> doOnSync(ChannelHandlerContext ctx, SyncRequest msg)
-        throws XrootdException
-    {
+          throws XrootdException {
         try {
             getOpenFile(msg.getFileHandle()).getFD().sync();
             return withOk(msg);
@@ -450,8 +448,7 @@ public class DataServerHandler extends XrootdRequestHandler
      */
     @Override
     protected OkResponse<CloseRequest> doOnClose(ChannelHandlerContext ctx, CloseRequest msg)
-        throws XrootdException
-    {
+          throws XrootdException {
         try {
             closeOpenFile(msg.getFileHandle());
             return withOk(msg);
@@ -462,69 +459,71 @@ public class DataServerHandler extends XrootdRequestHandler
 
     @Override
     protected LocateResponse doOnLocate(ChannelHandlerContext ctx,
-                                        LocateRequest msg) throws XrootdException
-    {
+          LocateRequest msg) throws XrootdException {
         File file = getFile(stripLeadingAsterix(msg.getPath()));
         if (!file.exists()) {
             return new LocateResponse(msg);
         } else {
             return new LocateResponse(msg,
-                    new LocateResponse.InfoElement(
-                            (InetSocketAddress) ctx.channel().localAddress(),
-                            LocateResponse.Node.SERVER,
-                            file.canWrite() ? LocateResponse.Access.WRITE : LocateResponse.Access.READ));
+                  new LocateResponse.InfoElement(
+                        (InetSocketAddress) ctx.channel().localAddress(),
+                        LocateResponse.Node.SERVER,
+                        file.canWrite() ? LocateResponse.Access.WRITE
+                              : LocateResponse.Access.READ));
         }
     }
 
     @Override
-    protected QueryResponse doOnQuery(ChannelHandlerContext ctx, QueryRequest msg) throws XrootdException
-    {
+    protected QueryResponse doOnQuery(ChannelHandlerContext ctx, QueryRequest msg)
+          throws XrootdException {
         switch (msg.getReqcode()) {
-        case kXR_Qconfig:
-            StringBuilder s = new StringBuilder();
-            for (String name: msg.getArgs().split(" ")) {
-                switch (name) {
-                case "bind_max":
-                    s.append(0);
-                    break;
-                case "readv_ior_max":
-                    s.append(MAX_FRAME_SIZE);
-                    break;
-                case "readv_iov_max":
-                    s.append(Integer.MAX_VALUE);
-                    break;
-                case "csname":
-                    s.append("1:ADLER32");
-                    break;
-                case "version":
-                    s.append("xrootd4j");
-                    break;
-                default:
-                    s.append(name);
-                    break;
+            case kXR_Qconfig:
+                StringBuilder s = new StringBuilder();
+                for (String name : msg.getArgs().split(" ")) {
+                    switch (name) {
+                        case "bind_max":
+                            s.append(0);
+                            break;
+                        case "readv_ior_max":
+                            s.append(MAX_FRAME_SIZE);
+                            break;
+                        case "readv_iov_max":
+                            s.append(Integer.MAX_VALUE);
+                            break;
+                        case "csname":
+                            s.append("1:ADLER32");
+                            break;
+                        case "version":
+                            s.append("xrootd4j");
+                            break;
+                        default:
+                            s.append(name);
+                            break;
+                    }
+                    s.append('\n');
                 }
-                s.append('\n');
-            }
-            return new QueryResponse(msg, s.toString());
+                return new QueryResponse(msg, s.toString());
 
-        case kXR_Qcksum:
-            try {
-                HashCode hash = com.google.common.io.Files.asByteSource(getFile(msg.getPath())).hash(Hashing.adler32());
-                return new QueryResponse(msg, "ADLER32 " + hash);
-            } catch (FileNotFoundException e) {
-                throw new XrootdException(kXR_NotFound, e.getMessage());
-            } catch (IOException e) {
-                throw new XrootdException(kXR_IOError, e.getMessage());
-            }
+            case kXR_Qcksum:
+                try {
+                    HashCode hash = com.google.common.io.Files.asByteSource(getFile(msg.getPath()))
+                          .hash(Hashing.adler32());
+                    return new QueryResponse(msg, "ADLER32 " + hash);
+                } catch (FileNotFoundException e) {
+                    throw new XrootdException(kXR_NotFound, e.getMessage());
+                } catch (IOException e) {
+                    throw new XrootdException(kXR_IOError, e.getMessage());
+                }
 
-        default:
-            throw new XrootdException(kXR_Unsupported, "Unsupported kXR_query reqcode: " + msg.getReqcode());
+            default:
+                throw new XrootdException(kXR_Unsupported,
+                      "Unsupported kXR_query reqcode: " + msg.getReqcode());
         }
     }
 
     @Override
-    protected SetResponse doOnSet(ChannelHandlerContext ctx, SetRequest request) throws XrootdException
-    {
+    protected SetResponse doOnSet(ChannelHandlerContext ctx, SetRequest request)
+          throws XrootdException {
         /* The xrootd spec states that we should include 80 characters in our log.
          */
         final String APPID_PREFIX = "appid ";
@@ -532,31 +531,29 @@ public class DataServerHandler extends XrootdRequestHandler
         final int APPID_MSG_LENGTH = 80;
         String data = request.getData();
         if (data.startsWith(APPID_PREFIX)) {
-            _log.info(data.substring(APPID_PREFIX_LENGTH, Math.min(APPID_PREFIX_LENGTH + APPID_MSG_LENGTH, data.length())));
+            _log.info(data.substring(APPID_PREFIX_LENGTH,
+                  Math.min(APPID_PREFIX_LENGTH + APPID_MSG_LENGTH, data.length())));
         }
         return new SetResponse(request, "");
     }
 
-    private String stripLeadingAsterix(String s)
-    {
+    private String stripLeadingAsterix(String s) {
         return s.startsWith("*") ? s.substring(1) : s;
     }
 
-    private int addOpenFile(RandomAccessFile raf)
-    {
-       for (int i = 0; i < _openFiles.size(); i++) {
-           if (_openFiles.get(i) == null) {
-               _openFiles.set(i, raf);
-               return i;
-           }
-       }
-       _openFiles.add(raf);
-       return _openFiles.size() - 1;
+    private int addOpenFile(RandomAccessFile raf) {
+        for (int i = 0; i < _openFiles.size(); i++) {
+            if (_openFiles.get(i) == null) {
+                _openFiles.set(i, raf);
+                return i;
+            }
+        }
+        _openFiles.add(raf);
+        return _openFiles.size() - 1;
     }
 
     private RandomAccessFile getOpenFile(int fd)
-        throws XrootdException
-    {
+          throws XrootdException {
         if (fd >= 0 && fd < _openFiles.size()) {
             RandomAccessFile raf = _openFiles.get(fd);
             if (raf != null) {
@@ -567,15 +564,13 @@ public class DataServerHandler extends XrootdRequestHandler
     }
 
     private void closeOpenFile(int fd)
-        throws XrootdException, IOException
-    {
+          throws XrootdException, IOException {
         getOpenFile(fd).close();
         _openFiles.set(fd, null);
     }
 
     private File getFile(String path)
-        throws XrootdException
-    {
+          throws XrootdException {
         String normalized = FilenameUtils.normalize(path);
         if (normalized == null) {
             throw new XrootdException(kXR_ArgInvalid, "Invalid path: " + path);
@@ -583,8 +578,7 @@ public class DataServerHandler extends XrootdRequestHandler
         return new File(_configuration.root, normalized);
     }
 
-    private int getFileStatusFlagsOf(File file)
-    {
+    private int getFileStatusFlagsOf(File file) {
         int flags = 0;
         if (file.isDirectory()) {
             flags |= kXR_isDir;
@@ -604,12 +598,11 @@ public class DataServerHandler extends XrootdRequestHandler
         return flags;
     }
 
-    private FileStatus getFileStatusOf(File file)
-    {
+    private FileStatus getFileStatusOf(File file) {
         int flags = getFileStatusFlagsOf(file);
         return new FileStatus(0,
-                              file.length(),
-                              flags,
-                              file.lastModified() / 1000);
+              file.length(),
+              flags,
+              file.lastModified() / 1000);
     }
 }

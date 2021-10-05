@@ -1,20 +1,18 @@
 /**
  * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
- *
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.plugins.authn.ztn;
 
@@ -29,13 +27,13 @@ package org.dcache.xrootd.plugins.authn.ztn;
  *  uint16_t tlen; Length of token in network byte order<br/>
  *  char token; Actual token ending with null byte<br/>
  */
-public class ZTNCredential
-{
+public class ZTNCredential {
+
     public static final String PROTOCOL = "ztn";
 
-    private int    version;
-    private byte   opr;
-    private int    length;
+    private int version;
+    private byte opr;
+    private int length;
     private String token;
 
     public int getVersion() {
@@ -70,8 +68,7 @@ public class ZTNCredential
         this.token = token;
     }
 
-    public int getLength()
-    {
+    public int getLength() {
         /*
          * PROTOCOL (4) + VERSION (1) + OPR (1) + RESERVED (2) + LEN (2)
          *          + token length + null byte
@@ -79,16 +76,15 @@ public class ZTNCredential
         return 10 + getNullTerminatedTokenLength();
     }
 
-    public String toString()
-    {
+    public String toString() {
         return String.format("(ZTN credential [id %s] [version %s][opc %s]"
-                                             + "[token len %s][token %s]"
-                                             + "[cred len %s])",
-                             PROTOCOL + "\\0",
-                             version,
-                             opr,
-                             getNullTerminatedTokenLength(),
-                             token,
-                             getLength());
+                    + "[token len %s][token %s]"
+                    + "[cred len %s])",
+              PROTOCOL + "\\0",
+              version,
+              opr,
+              getNullTerminatedTokenLength(),
+              token,
+              getLength());
     }
 }

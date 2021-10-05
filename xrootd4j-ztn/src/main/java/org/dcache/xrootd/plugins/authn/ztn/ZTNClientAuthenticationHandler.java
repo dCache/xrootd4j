@@ -1,29 +1,32 @@
 /**
  * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
- *
+ * 
  * This file is part of xrootd4j.
- *
- * xrootd4j is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * xrootd4j is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 
+ * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * Lesser General Public License as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ * 
+ * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
+ * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.plugins.authn.ztn;
+
+import static io.netty.channel.ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE;
+import static org.dcache.xrootd.plugins.authn.ztn.ZTNCredential.PROTOCOL;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_NotAuthorized;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_error;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelId;
-
 import java.util.function.Consumer;
-
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.security.SigningPolicy;
 import org.dcache.xrootd.security.TLSSessionInfo;
@@ -33,10 +36,6 @@ import org.dcache.xrootd.tpc.TpcSigverRequestEncoder;
 import org.dcache.xrootd.tpc.XrootdTpcInfo;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundAuthenticationRequest;
-
-import static io.netty.channel.ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE;
-import static org.dcache.xrootd.plugins.authn.ztn.ZTNCredential.PROTOCOL;
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
 
 /**
  *     Client-side handler which does TPC via ztn authentication.
@@ -52,15 +51,15 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.*;
  *     a version of the protocol > 0.  This is necessary for interaction
  *     between xrootd and dCache.
  */
-public class ZTNClientAuthenticationHandler extends AbstractClientAuthnHandler
-{
+public class ZTNClientAuthenticationHandler extends AbstractClientAuthnHandler {
+
     /**
      *  REVISIT.  Version 1 is not yet available, and TPC is not
      *            entirely supported for ztn/scitokens in xrootd
      *            for version 0 of this protocol.
      */
-    private static final int  VERSION = 0;
-    private static final byte OPR     = (byte)'T';
+    private static final int VERSION = 0;
+    private static final byte OPR = (byte) 'T';
 
     public ZTNClientAuthenticationHandler() {
         super(PROTOCOL);
@@ -68,9 +67,8 @@ public class ZTNClientAuthenticationHandler extends AbstractClientAuthnHandler
 
     @Override
     protected void doOnAuthenticationResponse(ChannelHandlerContext ctx,
-                                              InboundAuthenticationResponse response)
-                    throws XrootdException
-    {
+          InboundAuthenticationResponse response)
+          throws XrootdException {
         ChannelId id = ctx.channel().id();
         int status = response.getStatus();
         int streamId = client.getStreamId();
@@ -78,27 +76,26 @@ public class ZTNClientAuthenticationHandler extends AbstractClientAuthnHandler
         switch (status) {
             case kXR_ok:
                 LOGGER.debug("Authentication to {}, channel {}, stream {}, "
-                                             + "sessionId {} succeeded; "
-                                             + "passing to next handler.",
-                             tpcInfo.getSrc(),
-                             id,
-                             streamId,
-                             client.getSessionId());
+                            + "sessionId {} succeeded; "
+                            + "passing to next handler.",
+                      tpcInfo.getSrc(),
+                      id,
+                      streamId,
+                      client.getSessionId());
                 ctx.fireChannelRead(response);
                 break;
             default:
                 throw new XrootdException(kXR_error, "failed with status "
-                                            + status);
+                      + status);
         }
     }
 
     @Override
     protected void sendAuthenticationRequest(ChannelHandlerContext ctx)
-                    throws XrootdException
-    {
+          throws XrootdException {
         LOGGER.warn("TPC with ztn and scitokens is not yet established; "
-                                        + "this is not guaranteed to work with "
-                                        + "version 0.");
+              + "this is not guaranteed to work with "
+              + "version 0.");
 
         /*
          *  ZTN requires TLS.  While we can make the reasonable assumption
@@ -110,14 +107,14 @@ public class ZTNClientAuthenticationHandler extends AbstractClientAuthnHandler
         TLSSessionInfo tlsSessionInfo = client.getTlsSessionInfo();
         if (signingPolicy.isSigningOn()) {
             TpcSigverRequestEncoder sigverRequestEncoder =
-                            new TpcSigverRequestEncoder(null, signingPolicy);
+                  new TpcSigverRequestEncoder(null, signingPolicy);
             ctx.pipeline().addAfter("encoder",
-                                    "sigverEncoder",
-                                    sigverRequestEncoder);
+                  "sigverEncoder",
+                  sigverRequestEncoder);
             LOGGER.debug("optional signed hash verification encoder has been "
-                                         + "added; this is unusual for ZTN:"
-                                         + "signing is on? {}; tls ? {}.",
-                         signingPolicy.isSigningOn(), tlsSessionInfo.getClientTls());
+                        + "added; this is unusual for ZTN:"
+                        + "signing is on? {}; tls ? {}.",
+                  signingPolicy.isSigningOn(), tlsSessionInfo.getClientTls());
         }
 
         /*
@@ -134,7 +131,7 @@ public class ZTNClientAuthenticationHandler extends AbstractClientAuthnHandler
         String token = client.getInfo().getSourceToken();
         if (token == null) {
             throw new XrootdException(kXR_NotAuthorized,
-                                      "TPC was not provided a ztn token.");
+                  "TPC was not provided a ztn token.");
         }
 
         /*
@@ -152,14 +149,14 @@ public class ZTNClientAuthenticationHandler extends AbstractClientAuthnHandler
 
         Consumer<ByteBuf> serializer = b -> ZTNCredentialUtils.writeBytes(b, credential);
         OutboundAuthenticationRequest request
-                        = new OutboundAuthenticationRequest(client.getStreamId(),
-                                                            PROTOCOL,
-                                                            credential.getLength(),
-                                                            serializer);
+              = new OutboundAuthenticationRequest(client.getStreamId(),
+              PROTOCOL,
+              credential.getLength(),
+              serializer);
         client.setExpectedResponse(kXR_auth);
         client.setAuthResponse(null);
         ctx.writeAndFlush(request, ctx.newPromise())
-           .addListener(FIRE_EXCEPTION_ON_FAILURE);
+              .addListener(FIRE_EXCEPTION_ON_FAILURE);
         client.startTimer(ctx);
     }
 }
