@@ -18,12 +18,16 @@
  */
 package org.dcache.xrootd.plugins.authn.unix;
 
+import static io.netty.channel.ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE;
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_error;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelId;
-
 import java.util.function.Consumer;
-
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.security.SigningPolicy;
 import org.dcache.xrootd.security.TLSSessionInfo;
@@ -34,12 +38,6 @@ import org.dcache.xrootd.tpc.XrootdTpcInfo;
 import org.dcache.xrootd.tpc.protocol.messages.InboundAuthenticationResponse;
 import org.dcache.xrootd.tpc.protocol.messages.OutboundAuthenticationRequest;
 
-import static io.netty.channel.ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE;
-import static java.nio.charset.StandardCharsets.US_ASCII;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_error;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
-
 /**
  *  <p>Client-side handler which allows TPC via unix authentication.
  *     Added to the channel pipeline to handle protocol and auth requests
@@ -49,7 +47,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
  *     pool, which now requires unix (in order to guarantee signed hashes
  *     are passed from the vanilla xrootd client).</p>
  *
- *  <p>The module merely sends a response with the uid + " " + gid; the
+ *  The module merely sends a response with the username; the
  *     sigver handler is given no crypto handler, and thus sigver requests
  *     will be signed without encryption.</p>
  */
@@ -57,21 +55,8 @@ public class UnixClientAuthenticationHandler extends AbstractClientAuthnHandler
 {
     public static final String PROTOCOL = "unix";
 
-    private static String getCredential(XrootdTpcClient client)
-    {
-        Long uid = client.getInfo().getUid();
-
-        if (uid == null) {
-            return PROTOCOL + client.getUname();
-        }
-
-        Long gid = client.getInfo().getGid();
-
-        if (gid == null) {
-            return PROTOCOL + uid;
-        } else {
-            return PROTOCOL + uid + " " + gid;
-        }
+    private static String getCredential(XrootdTpcClient client) {
+        return client.getUname();
     }
 
     private static void writeBytes(ByteBuf buffer, String cred)
