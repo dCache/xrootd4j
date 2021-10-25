@@ -1,18 +1,20 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
- * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
- * Lesser General Public License as published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
+ * xrootd4j is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
- * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * xrootd4j is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
- * not, see http://www.gnu.org/licenses/.
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with xrootd4j.  If not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.security;
 
@@ -44,18 +46,13 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.FutureListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.plugins.tls.SSLHandlerFactory;
 import org.dcache.xrootd.tpc.XrootdTpcInfo;
 import org.dcache.xrootd.util.ServerProtocolFlags;
 import org.dcache.xrootd.util.ServerProtocolFlags.TlsMode;
-
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
-import static org.dcache.xrootd.security.TLSSessionInfo.TlsActivation.*;
-import static org.dcache.xrootd.util.ServerProtocolFlags.TlsMode.OFF;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *  Used by both the server and the TPC client to determine when TLS
