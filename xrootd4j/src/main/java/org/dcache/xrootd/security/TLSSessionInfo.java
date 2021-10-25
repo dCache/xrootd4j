@@ -1,16 +1,16 @@
 /**
  * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
- * 
+ *
  * This file is part of xrootd4j.
- * 
+ *
  * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
  * Lesser General Public License as published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
- * 
+ *
  * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
  * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
  * not, see http://www.gnu.org/licenses/.
  */
@@ -37,6 +37,7 @@ import static org.dcache.xrootd.security.TLSSessionInfo.TlsActivation.LOGIN;
 import static org.dcache.xrootd.security.TLSSessionInfo.TlsActivation.NONE;
 import static org.dcache.xrootd.security.TLSSessionInfo.TlsActivation.TPC;
 import static org.dcache.xrootd.util.ServerProtocolFlags.TlsMode.OFF;
+import static org.dcache.xrootd.util.ServerProtocolFlags.TlsMode.OPTIONAL;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -244,6 +245,22 @@ public class TLSSessionInfo {
                 serverFlags.setGoToTLS(true);
                 LOGGER.debug("setLocalTlsActivation, activation is now {}.",
                       LOGIN);
+                return;
+            }
+
+            /*
+             *  Guarantee consistency, in case the configuration redundantly set one of these flags.
+             */
+            if (serverFlags.getMode() == OPTIONAL) {
+                serverFlags.setRequiresTLSForData(false);
+                serverFlags.setRequiresTLSForSession(false);
+                serverFlags.setRequiresTLSForGPF(false);
+                serverFlags.setRequiresTLSForGPFA(false);
+                serverFlags.setRequiresTLSForLogin(false);
+                serverFlags.setRequiresTLSForSession(false);
+                serverFlags.setRequiresTLSForTPC(false);
+                LOGGER.debug(
+                      "setLocalTlsActivation, server mode is OPTIONAL, flags are turned off.");
                 return;
             }
 
