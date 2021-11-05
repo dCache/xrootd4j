@@ -70,7 +70,7 @@ public class ZeroCopyReadResponse implements XrootdResponse<ReadRequest> {
                       }
                   }
               });
-        ctx.write(new DefaultFileRegion(file, request.getReadOffset(), count)).addListener(
+        ctx.write(new OpenFileRegion(file, request.getReadOffset(), count)).addListener(
               new ChannelFutureListener() {
                   @Override
                   public void operationComplete(ChannelFuture future) throws Exception {
@@ -87,5 +87,21 @@ public class ZeroCopyReadResponse implements XrootdResponse<ReadRequest> {
     public String toString() {
         return String.format("zero-copy-read-response[offset=%d,bytes=%d]", request.getReadOffset(),
               count);
+    }
+
+    /**
+     * A FileRegion implementation which transfer data from a FileChannel. In contrast to {@link
+     * DefaultFileRegion} the FileChannel is not closed after transfer.
+     */
+    private static class OpenFileRegion extends DefaultFileRegion {
+
+        public OpenFileRegion(FileChannel file, long position, long count) {
+            super(file, position, count);
+        }
+
+        @Override
+        protected void deallocate() {
+            // don't close file channel after transfer
+        }
     }
 }
