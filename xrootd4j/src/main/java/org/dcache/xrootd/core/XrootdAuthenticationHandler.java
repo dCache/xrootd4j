@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2020 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -18,18 +18,25 @@
  */
 package org.dcache.xrootd.core;
 
+import static org.dcache.xrootd.protocol.XrootdProtocol.SESSION_ID_SIZE;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_NotAuthorized;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_bind;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_endsess;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_inProgress;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ping;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
+
 import com.google.common.collect.Maps;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.security.auth.Subject;
-
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-
+import javax.security.auth.Subject;
 import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
 import org.dcache.xrootd.plugins.InvalidHandlerConfigurationException;
@@ -46,8 +53,8 @@ import org.dcache.xrootd.security.BufferDecrypter;
 import org.dcache.xrootd.security.SigningPolicy;
 import org.dcache.xrootd.security.TLSSessionInfo;
 import org.dcache.xrootd.util.UserNameUtils;
-
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Netty handler implementing Xrootd kXR_login, kXR_auth, and kXR_endsess.
@@ -69,6 +76,9 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
 
     private static final ConcurrentMap<XrootdSessionIdentifier,XrootdSession> _sessions =
         Maps.newConcurrentMap();
+
+    private static final XrootdSessionIdentifier CURRENT_SESSION_PLACEHOLDER =
+          new XrootdSessionIdentifier(new byte[SESSION_ID_SIZE]);
 
     private final AtomicBoolean _isInProgress = new AtomicBoolean(false);
     private final XrootdSessionIdentifier _sessionId = new XrootdSessionIdentifier();
@@ -165,14 +175,12 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
                     case NO_AUTH:
                         throw new XrootdException(kXR_NotAuthorized, "Authentication required");
                     }
-                    request.setSession(_session);
                     doOnEndSession(ctx, (EndSessionRequest) request);
                 } finally {
                     ReferenceCountUtil.release(request);
                 }
                 break;
             case kXR_bind:
-                request.setSession(_session);
                 if (_tlsSessionInfo != null && _tlsSessionInfo.serverUsesTls()) {
                     boolean isStarted = _tlsSessionInfo.serverTransitionedToTLS(kXR_bind, ctx);
                     _log.debug("kXR_bind, server has now transitioned to tls? {}.", isStarted);
@@ -304,14 +312,24 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
     private void doOnEndSession(ChannelHandlerContext ctx, EndSessionRequest request)
         throws XrootdException
     {
-        XrootdSession session = _sessions.get(request.getSessionId());
-        if (session == null) {
-            throw new XrootdException(kXR_NotFound, "session not found");
+        XrootdSessionIdentifier id = request.getSessionId();
+        if (id.equals(CURRENT_SESSION_PLACEHOLDER)) {
+            ctx.writeAndFlush(new OkResponse<>(request));
+            ctx.channel().close();
+            return;
         }
-        if (!session.hasOwner(_session.getSubject())) {
-            throw new XrootdException(kXR_NotAuthorized, "not session owner");
+        XrootdSession session = _sessions.get(id);
+        if (session != null) {
+            if (!session.hasOwner(_session.getSubject())) {
+                throw new XrootdException(kXR_NotAuthorized, "not session owner");
+            }
+            session.getChannel().close();
         }
-        session.getChannel().close();
+        /*
+         * If the session is not in the map, it has either been removed on another channel,
+         * or it is unknown.  Either way, the vanilla server just sends back OK,
+         * so we do the same.
+         */
         ctx.writeAndFlush(new OkResponse<>(request));
     }
 
