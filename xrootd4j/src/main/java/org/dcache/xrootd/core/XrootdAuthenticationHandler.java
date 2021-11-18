@@ -1,24 +1,24 @@
 /**
  * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
- * 
+ *
  * This file is part of xrootd4j.
- * 
+ *
  * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
  * Lesser General Public License as published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
- * 
+ *
  * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
  * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
  * not, see http://www.gnu.org/licenses/.
  */
 package org.dcache.xrootd.core;
 
+import static org.dcache.xrootd.protocol.XrootdProtocol.SESSION_ID_SIZE;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_NotAuthorized;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_NotFound;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_Unsupported;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
@@ -78,6 +78,9 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter {
 
     private static final ConcurrentMap<XrootdSessionIdentifier, XrootdSession> _sessions =
           Maps.newConcurrentMap();
+
+    private static final XrootdSessionIdentifier CURRENT_SESSION_PLACEHOLDER =
+          new XrootdSessionIdentifier(new byte[SESSION_ID_SIZE]);
 
     private final AtomicBoolean _isInProgress = new AtomicBoolean(false);
     private final XrootdSessionIdentifier _sessionId = new XrootdSessionIdentifier();
@@ -177,14 +180,12 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter {
                                 throw new XrootdException(kXR_NotAuthorized,
                                       "Authentication required");
                         }
-                        request.setSession(_session);
                         doOnEndSession(ctx, (EndSessionRequest) request);
                     } finally {
                         ReferenceCountUtil.release(request);
                     }
                     break;
                 case kXR_bind:
-                    request.setSession(_session);
                     if (_tlsSessionInfo != null && _tlsSessionInfo.serverUsesTls()) {
                         boolean isStarted = _tlsSessionInfo.serverTransitionedToTLS(kXR_bind, ctx);
                         _log.debug("kXR_bind, server has now transitioned to tls? {}.", isStarted);
@@ -317,14 +318,28 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter {
 
     private void doOnEndSession(ChannelHandlerContext ctx, EndSessionRequest request)
           throws XrootdException {
-        XrootdSession session = _sessions.get(request.getSessionId());
-        if (session == null) {
-            throw new XrootdException(kXR_NotFound, "session not found");
+        XrootdSessionIdentifier id = request.getSessionId();
+
+        if (id.equals(CURRENT_SESSION_PLACEHOLDER)) {
+            ctx.writeAndFlush(new OkResponse<>(request));
+            ctx.channel().close();
+            return;
         }
-        if (!session.hasOwner(_session.getSubject())) {
-            throw new XrootdException(kXR_NotAuthorized, "not session owner");
+
+        XrootdSession session = _sessions.get(id);
+
+        if (session != null) {
+            if (!session.hasOwner(_session.getSubject())) {
+                throw new XrootdException(kXR_NotAuthorized, "not session owner");
+            }
+            session.getChannel().close();
         }
-        session.getChannel().close();
+
+        /*
+         * If the session is not in the map, it has either been removed on another channel,
+         * or it is unknown.  Either way, the vanilla server just sends back OK,
+         * so we do the same.
+         */
         ctx.writeAndFlush(new OkResponse<>(request));
     }
 
