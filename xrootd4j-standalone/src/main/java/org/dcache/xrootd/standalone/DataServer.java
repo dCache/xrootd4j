@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2022 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -20,10 +20,8 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.oio.OioEventLoopGroup;
 import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.channel.socket.oio.OioServerSocketChannel;
 import java.util.NoSuchElementException;
 import joptsimple.OptionException;
 import joptsimple.OptionSet;
@@ -40,15 +38,10 @@ public class DataServer {
         final EventLoopGroup bossGroup;
         final EventLoopGroup workerGroup;
         Class<? extends ServerSocketChannel> channelClass;
-        if (_configuration.useBlockingIo) {
-            bossGroup = new OioEventLoopGroup();
-            workerGroup = new OioEventLoopGroup();
-            channelClass = OioServerSocketChannel.class;
-        } else {
-            bossGroup = new NioEventLoopGroup();
-            workerGroup = new NioEventLoopGroup();
-            channelClass = NioServerSocketChannel.class;
-        }
+        bossGroup = new NioEventLoopGroup();
+        workerGroup = new NioEventLoopGroup();
+        channelClass = NioServerSocketChannel.class;
+
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {

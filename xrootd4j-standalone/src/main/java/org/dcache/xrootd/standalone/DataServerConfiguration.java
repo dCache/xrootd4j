@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2022 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -55,7 +55,6 @@ public class DataServerConfiguration {
     public final File root;
     public final List<File> pluginPath;
     public final List<String> channelHandlerPlugins;
-    public final boolean useBlockingIo;
     public final boolean useZeroCopy;
 
     public final List<ChannelHandlerFactory> channelHandlerFactories;
@@ -66,7 +65,6 @@ public class DataServerConfiguration {
         root = options.valueOf(parser.root);
         pluginPath = options.valuesOf(parser.pluginPath);
         channelHandlerPlugins = options.valuesOf(parser.handlerPlugins);
-        useBlockingIo = options.has(parser.blocking);
         useZeroCopy = options.has(parser.zeroCopy);
 
         _pluginDefaults = loadDefaultProperties(pluginPath);

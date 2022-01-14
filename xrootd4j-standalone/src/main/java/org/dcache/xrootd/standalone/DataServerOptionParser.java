@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2021 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2022 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -29,7 +29,6 @@ public class DataServerOptionParser extends OptionParser {
     public final OptionSpec<File> root;
     public final OptionSpec<String> handlerPlugins;
     public final OptionSpec<File> pluginPath;
-    public final OptionSpec<Void> blocking;
     public final OptionSpec<Void> zeroCopy;
 
     {
@@ -55,7 +54,6 @@ public class DataServerOptionParser extends OptionParser {
               .withValuesSeparatedBy(File.pathSeparatorChar)
               .describedAs("url")
               .ofType(File.class);
-        blocking = acceptsAll(asList("b", "blocking"), "Use blocking IO calls");
         zeroCopy = acceptsAll(asList("z", "zerocopy"), "Use zero copy reads");
     }
 }
