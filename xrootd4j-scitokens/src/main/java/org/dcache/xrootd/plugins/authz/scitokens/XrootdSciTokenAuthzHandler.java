@@ -25,11 +25,12 @@ import javax.security.auth.Subject;
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.plugins.AuthorizationHandler;
 import org.dcache.xrootd.protocol.XrootdProtocol.FilePerm;
+import org.dcache.xrootd.security.RequiresTLS;
 import org.dcache.xrootd.security.TokenValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class XrootdSciTokenAuthzHandler implements AuthorizationHandler {
+public class XrootdSciTokenAuthzHandler implements AuthorizationHandler, RequiresTLS {
 
     protected static final Logger LOGGER
           = LoggerFactory.getLogger(XrootdSciTokenAuthzHandler.class);

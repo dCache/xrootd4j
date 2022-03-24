@@ -22,6 +22,8 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_NotAuthorized;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_Qcksum;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_Qxattr;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_Unsupported;
+import static org.dcache.xrootd.security.TLSSessionInfo.isTLSOn;
 
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
@@ -49,6 +51,7 @@ import org.dcache.xrootd.protocol.messages.StatxRequest;
 import org.dcache.xrootd.protocol.messages.SyncRequest;
 import org.dcache.xrootd.protocol.messages.WriteRequest;
 import org.dcache.xrootd.protocol.messages.XrootdRequest;
+import org.dcache.xrootd.security.RequiresTLS;
 import org.dcache.xrootd.util.OpaqueStringParser;
 import org.dcache.xrootd.util.ParseException;
 
@@ -301,6 +304,14 @@ public class XrootdAuthorizationHandler extends XrootdRequestHandler {
 
             AuthorizationHandler handler
                   = _authorizationFactory.createHandler(ctx);
+
+            /*
+             *  check to see if we need TLS.
+             */
+            if (handler instanceof RequiresTLS && !isTLSOn(ctx)) {
+                throw new XrootdException(kXR_Unsupported, "TLS is required "
+                      + "for " + _authorizationFactory.getName());
+            }
 
             return handler.authorize(request.getSubject(),
                   destinationAddress,
