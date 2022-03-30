@@ -74,7 +74,7 @@ Starting the standalone server
 
 The standalone server may be executed as follows:
 
-    java -Dlog=debug -jar xrootd-standalone/target/xrootd4j-standalone-2.0.0-jar-with-dependencies.jar
+    java -Dlog=debug -jar xrootd4j-standalone/target/xrootd4j-standalone-4.3.0-SNAPSHOT-jar-with-dependencies.jar
 
 
 Please adjust the log level as needed. Add the -h option at the end of
