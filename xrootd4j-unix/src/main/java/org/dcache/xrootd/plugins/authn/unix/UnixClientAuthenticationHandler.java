@@ -164,7 +164,7 @@ public class UnixClientAuthenticationHandler extends AbstractClientAuthnHandler 
         Consumer<ByteBuf> serializer = b -> writeBytes(b, cred);
         OutboundAuthenticationRequest request
               = new OutboundAuthenticationRequest(client.getStreamId(),
-              "",
+              "unix",
               getCredentialLength(cred),
               serializer);
         client.setExpectedResponse(kXR_auth);

@@ -63,6 +63,7 @@ public abstract class AbstractClientAuthnHandler extends AbstractClientRequestHa
               t.toString());
 
         try {
+            ctx.pipeline().remove(this);
             super.doOnLoginResponse(ctx, loginResponse);
         } catch (XrootdException e) {
             super.exceptionCaught(ctx, e);
