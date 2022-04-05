@@ -34,6 +34,5 @@ public interface ProxyDelegationClientFactory<C extends ProxyDelegationClient> {
      * @return ProxyDelegationClientFactory instance or null if the provider
      * does not provide a matching AuthenticationFactory
      */
-    C createClient(String authPlugin, Properties properties)
-          throws InvalidHandlerConfigurationException;
+    C createClient(String authPlugin, Properties properties);
 }

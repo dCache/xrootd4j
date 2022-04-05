@@ -16,6 +16,8 @@
  */
 package org.dcache.xrootd.plugins.authn.none;
 
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.AUTHN_PROTOCOL_PREFIX;
+
 import javax.security.auth.Subject;
 import org.dcache.xrootd.plugins.AuthenticationHandler;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
@@ -26,10 +28,13 @@ import org.dcache.xrootd.security.BufferDecrypter;
 /**
  * Dummy authentication handler that accepts all authentication
  * requests in authenticate.
- *
- * @author tzangerl
  */
 public class NoAuthenticationHandler implements AuthenticationHandler {
+    /**
+     *  The protocol for this handler is mapped to unix in order to chain this as a last resort
+     *  for the xrootd client to use.   The latter will send unix uid:gid, but we just ignore it.
+     */
+    private static final String PROTOCOL = "unix";
 
     @Override
     public XrootdResponse<AuthenticationRequest> authenticate(AuthenticationRequest request) {
@@ -38,7 +43,7 @@ public class NoAuthenticationHandler implements AuthenticationHandler {
 
     @Override
     public String getProtocol() {
-        return "";
+        return AUTHN_PROTOCOL_PREFIX + PROTOCOL;
     }
 
     @Override

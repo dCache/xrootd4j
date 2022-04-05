@@ -53,7 +53,6 @@ public class XrootdAuthenticationHandlerFactory implements ChannelHandlerFactory
 
     @Override
     public ChannelHandler createHandler() {
-        return new XrootdAuthenticationHandler(authenticationFactory,
-              proxyDelegationClient);
+        return new XrootdAuthenticationHandler(name, authenticationFactory, proxyDelegationClient);
     }
 }

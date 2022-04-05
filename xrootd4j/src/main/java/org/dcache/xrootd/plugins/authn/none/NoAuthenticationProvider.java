@@ -21,8 +21,7 @@ import org.dcache.xrootd.plugins.AuthenticationFactory;
 import org.dcache.xrootd.plugins.AuthenticationProvider;
 
 public class NoAuthenticationProvider implements AuthenticationProvider {
-
-    private static final String NAME = "none";
+    public static final String NAME = "none";
 
     @Override
     public AuthenticationFactory createFactory(String plugin, Properties properties) {

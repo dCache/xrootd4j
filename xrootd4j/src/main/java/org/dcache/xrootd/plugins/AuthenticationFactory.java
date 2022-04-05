@@ -18,6 +18,5 @@ package org.dcache.xrootd.plugins;
 
 public interface AuthenticationFactory {
 
-    AuthenticationHandler createHandler(ProxyDelegationClient client)
-          throws InvalidHandlerConfigurationException;
+    AuthenticationHandler createHandler(ProxyDelegationClient client);
 }

@@ -17,6 +17,8 @@
 package org.dcache.xrootd.plugins.authz.scitokens;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_InvalidRequest;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_Unsupported;
+import static org.dcache.xrootd.security.TLSSessionInfo.isTLSOn;
 
 import io.netty.channel.ChannelHandlerContext;
 import java.net.InetSocketAddress;
@@ -122,6 +124,13 @@ public class XrootdSciTokenAuthzHandler implements AuthorizationHandler, Require
 
             throw new XrootdException(kXR_InvalidRequest,
                   "user provided no bearer token.");
+        }
+
+        /*
+         *  check to see if we need TLS.
+         */
+        if (!isTLSOn(ctx)) {
+            throw new XrootdException(kXR_Unsupported, "TLS is required for scitokens");
         }
 
         /*

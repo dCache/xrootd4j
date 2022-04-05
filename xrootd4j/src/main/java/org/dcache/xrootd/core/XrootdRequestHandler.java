@@ -81,15 +81,13 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A ChannelInboundHandler to dispatch xrootd events to handler methods.
- *
- * Default response to all request messages from a client is
- * kXR_Unsupported. Sub-classes may override handler methods to
- * implement request handling.
- *
- * Releases the reference to XrootdRequest if the handler method throws
- * an exception or returns a response. If the handler returns null the
- * subclass assumes responsibility to release the request, typically
- * by passing it on the next ChannelHandler in the pipeline.
+ * <p>
+ * Default response to all request messages from a client is kXR_Unsupported. Sub-classes may
+ * override handler methods to implement request handling.
+ * <p>
+ * Releases the reference to XrootdRequest if the handler method throws an exception or returns a
+ * response. If the handler returns null the subclass assumes responsibility to release the request,
+ * typically by passing it on the next ChannelHandler in the pipeline.
  */
 public class XrootdRequestHandler extends ChannelInboundHandlerAdapter {
 
@@ -110,7 +108,7 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
         if (msg instanceof XrootdRequest) {
             requestReceived(ctx, (XrootdRequest) msg);
         } else if (msg instanceof HAProxyMessage) {
@@ -163,98 +161,7 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter {
 
     protected void requestReceived(ChannelHandlerContext ctx, XrootdRequest req) {
         try {
-            Object response;
-            switch (req.getRequestId()) {
-                case kXR_auth:
-                    response =
-                          doOnAuthentication(ctx, (AuthenticationRequest) req);
-                    break;
-                case kXR_login:
-                    response =
-                          doOnLogin(ctx, (LoginRequest) req);
-                    break;
-                case kXR_open:
-                    response =
-                          doOnOpen(ctx, (OpenRequest) req);
-                    break;
-                case kXR_stat:
-                    response =
-                          doOnStat(ctx, (StatRequest) req);
-                    break;
-                case kXR_statx:
-                    response =
-                          doOnStatx(ctx, (StatxRequest) req);
-                    break;
-                case kXR_read:
-                    response =
-                          doOnRead(ctx, (ReadRequest) req);
-                    break;
-                case kXR_readv:
-                    response =
-                          doOnReadV(ctx, (ReadVRequest) req);
-                    break;
-                case kXR_write:
-                    response =
-                          doOnWrite(ctx, (WriteRequest) req);
-                    break;
-                case kXR_sync:
-                    response =
-                          doOnSync(ctx, (SyncRequest) req);
-                    break;
-                case kXR_close:
-                    response =
-                          doOnClose(ctx, (CloseRequest) req);
-                    break;
-                case kXR_protocol:
-                    response =
-                          doOnProtocolRequest(ctx, (ProtocolRequest) req);
-                    _log.debug("PROTOCOL RESPONSE TO CLIENT {}.", response);
-                    break;
-                case kXR_rm:
-                    response =
-                          doOnRm(ctx, (RmRequest) req);
-                    break;
-                case kXR_rmdir:
-                    response =
-                          doOnRmDir(ctx, (RmDirRequest) req);
-                    break;
-                case kXR_mkdir:
-                    response =
-                          doOnMkDir(ctx, (MkDirRequest) req);
-                    break;
-                case kXR_mv:
-                    response =
-                          doOnMv(ctx, (MvRequest) req);
-                    break;
-                case kXR_dirlist:
-                    response =
-                          doOnDirList(ctx, (DirListRequest) req);
-                    break;
-                case kXR_prepare:
-                    response =
-                          doOnPrepare(ctx, (PrepareRequest) req);
-                    break;
-                case kXR_locate:
-                    response =
-                          doOnLocate(ctx, (LocateRequest) req);
-                    break;
-                case kXR_query:
-                    response =
-                          doOnQuery(ctx, (QueryRequest) req);
-                    break;
-                case kXR_set:
-                    response =
-                          doOnSet(ctx, (SetRequest) req);
-                    break;
-                case kXR_endsess:
-                    response =
-                          doOnEndSession(ctx, (EndSessionRequest) req);
-                    break;
-                default:
-                    response =
-                          unsupported(ctx, req);
-                    break;
-            }
+            Object response = getResponse(ctx, req);
             if (response != null) {
                 respond(ctx, response);
             } else {
@@ -262,7 +169,7 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter {
             }
         } catch (XrootdException e) {
             respond(ctx, withError(req, e.getError(), e.getMessage()));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             _log.error("xrootd server error while processing " + req
                   + " (please report this to support@dcache.org)", e);
             respond(ctx,
@@ -271,6 +178,56 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter {
                               e.getMessage())));
         } finally {
             ReferenceCountUtil.release(req);
+        }
+    }
+
+    protected Object getResponse(ChannelHandlerContext ctx, XrootdRequest req)
+          throws Exception {
+        switch (req.getRequestId()) {
+            case kXR_auth:
+                return doOnAuthentication(ctx, (AuthenticationRequest) req);
+            case kXR_login:
+                return doOnLogin(ctx, (LoginRequest) req);
+            case kXR_open:
+                return doOnOpen(ctx, (OpenRequest) req);
+            case kXR_stat:
+                return doOnStat(ctx, (StatRequest) req);
+            case kXR_statx:
+                return doOnStatx(ctx, (StatxRequest) req);
+            case kXR_read:
+                return doOnRead(ctx, (ReadRequest) req);
+            case kXR_readv:
+                return doOnReadV(ctx, (ReadVRequest) req);
+            case kXR_write:
+                return doOnWrite(ctx, (WriteRequest) req);
+            case kXR_sync:
+                return doOnSync(ctx, (SyncRequest) req);
+            case kXR_close:
+                return doOnClose(ctx, (CloseRequest) req);
+            case kXR_protocol:
+                return doOnProtocolRequest(ctx, (ProtocolRequest) req);
+            case kXR_rm:
+                return doOnRm(ctx, (RmRequest) req);
+            case kXR_rmdir:
+                return doOnRmDir(ctx, (RmDirRequest) req);
+            case kXR_mkdir:
+                return doOnMkDir(ctx, (MkDirRequest) req);
+            case kXR_mv:
+                return doOnMv(ctx, (MvRequest) req);
+            case kXR_dirlist:
+                return doOnDirList(ctx, (DirListRequest) req);
+            case kXR_prepare:
+                return doOnPrepare(ctx, (PrepareRequest) req);
+            case kXR_locate:
+                return doOnLocate(ctx, (LocateRequest) req);
+            case kXR_query:
+                return doOnQuery(ctx, (QueryRequest) req);
+            case kXR_set:
+                return doOnSet(ctx, (SetRequest) req);
+            case kXR_endsess:
+                return doOnEndSession(ctx, (EndSessionRequest) req);
+            default:
+                return unsupported(ctx, req);
         }
     }
 
@@ -423,18 +380,17 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter {
     }
 
     /**
-     * The socket address the client connected to. May be the local address
-     * of the channel, but could also be an address on a proxy server
-     * between the client and the server.
+     * The socket address the client connected to. May be the local address of the channel, but
+     * could also be an address on a proxy server between the client and the server.
      */
     protected InetSocketAddress getDestinationAddress() {
         return _destinationAddress;
     }
 
     /**
-     * The socket address the client connected from. May be the remote address
-     * of the channel, but in case a proxy is in between the client and the
-     * server, the source address will be a different from the remote address.
+     * The socket address the client connected from. May be the remote address of the channel, but
+     * in case a proxy is in between the client and the server, the source address will be a
+     * different from the remote address.
      */
     protected InetSocketAddress getSourceAddress() {
         return _sourceAddress;
