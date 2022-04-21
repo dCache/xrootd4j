@@ -1,5 +1,0 @@
-REVIEWBOARD_URL = "https://rb.dcache.org"
-REPOSITORY = "xrootd4j"
-REPOSITORY_TYPE = "git"
-BRANCH = "fix/master/xrootd4j-fix-attn-wait"
-LAND_DEST_BRANCH = "fix/master/xrootd4j-fix-attn-wait"
