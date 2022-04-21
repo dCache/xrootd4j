@@ -18,9 +18,10 @@
  */
 package org.dcache.xrootd.tpc;
 
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ArgMissing;
+
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
-
 import java.io.Serializable;
 import java.net.URL;
 import java.util.HashMap;
@@ -29,15 +30,12 @@ import java.util.Map.Entry;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.tpc.protocol.messages.InboundRedirectResponse;
 import org.dcache.xrootd.util.FileStatus;
 import org.dcache.xrootd.util.OpaqueStringParser;
 import org.dcache.xrootd.util.ParseException;
-
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ArgMissing;
 
 /**
  * <p>Metadata established via interaction between user client, source and
@@ -345,6 +343,8 @@ public class XrootdTpcInfo {
 
         if (this.status == null) {
             this.status = Status.PENDING;
+        } else if (this.status == Status.PENDING) {
+            this.status = Status.READY;
         }
 
         if (sourceToken == null) {
