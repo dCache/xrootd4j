@@ -172,6 +172,14 @@ public class XrootdTpcClient
 
     private ScheduledFuture timerTask;
 
+    /*
+     *  The kXR_attn response requires the client to wait, either for another
+     *  instruction from the server, or to retry after a certain period of time.
+     *  We store the future in the client so we can cancel it if an instruction
+     *  arrives before its timeout expires.
+     */
+    private ScheduledFuture attnFuture;
+
     public XrootdTpcClient(String userUrn,
                            XrootdTpcInfo info,
                            TpcDelayedSyncWriteHandler writeHandler,
@@ -206,8 +214,16 @@ public class XrootdTpcClient
         timeOfFirstRedirect = 0;
     }
 
-    public synchronized boolean canRedirect()
-    {
+    public synchronized boolean cancelAttnFuture() {
+        if (attnFuture != null) {
+            attnFuture.cancel(true);
+            attnFuture = null;
+            return true;
+        }
+        return false;
+    }
+
+    public synchronized boolean canRedirect() {
         if (redirects >= 256 &&
                 System.currentTimeMillis() - timeOfFirstRedirect
                             >= TimeUnit.MINUTES.toMillis(10)) {
@@ -551,8 +567,11 @@ public class XrootdTpcClient
         return isOpenFile;
     }
 
-    public void setAuthResponse(InboundAuthenticationResponse authResponse)
-    {
+    public synchronized void setAttnFuture(ScheduledFuture attnFuture) {
+        this.attnFuture = attnFuture;
+    }
+
+    public void setAuthResponse(InboundAuthenticationResponse authResponse) {
         this.authResponse = authResponse;
     }
 
