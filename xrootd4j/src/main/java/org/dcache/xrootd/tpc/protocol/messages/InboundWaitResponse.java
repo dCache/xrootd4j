@@ -21,8 +21,8 @@ package org.dcache.xrootd.tpc.protocol.messages;
 import io.netty.buffer.ByteBuf;
 
 /**
- * <p>Server's prerogative to tell the client to wait up to a
- * certain number of seconds.</p>
+ * Server's prerogative to tell the client to wait up to a
+ * certain number of seconds and then retry.</p>
  */
 public class InboundWaitResponse extends AbstractInboundWaitResponse{
     public InboundWaitResponse(ByteBuf buffer, int requestId) {
