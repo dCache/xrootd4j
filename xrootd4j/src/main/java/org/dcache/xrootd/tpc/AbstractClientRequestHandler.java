@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.dcache.xrootd.core.XrootdException;
@@ -69,7 +68,6 @@ public abstract class AbstractClientRequestHandler extends
                     = LoggerFactory.getLogger(AbstractClientRequestHandler.class);
 
     protected XrootdTpcClient client;
-    protected ScheduledFuture future;
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg)
@@ -285,12 +283,8 @@ public abstract class AbstractClientRequestHandler extends
                  * For this to be valid, there has to be a waiting request
                  * for this pipeline.  If future is null here, we skip it.
                  */
-                synchronized (this) {
-                    if (future != null) {
-                        future.cancel(true);
-                        doOnAsynResponse(ctx, response);
-                        future = null;
-                    }
+                if (client.cancelAttnFuture()) {
+                    doOnAsynResponse(ctx, response);
                 }
                 break;
             case kXR_asyncwt:
@@ -365,9 +359,9 @@ public abstract class AbstractClientRequestHandler extends
     {
         switch (response.getRequestId()) {
             case kXR_endsess:
-                future = client.getExecutor().schedule(() -> {
+                client.setAttnFuture(client.getExecutor().schedule(() -> {
                     client.doEndsession(ctx);
-                }, getWaitInSeconds(response), TimeUnit.SECONDS);
+                }, getWaitInSeconds(response), TimeUnit.SECONDS));
                 break;
             default:
                 ctx.fireChannelRead(response);
@@ -381,12 +375,11 @@ public abstract class AbstractClientRequestHandler extends
      * Cancelled by kXR_asynresp.
      */
     protected synchronized void doOnWaitRespResponse(final ChannelHandlerContext ctx,
-                                                     InboundWaitRespResponse response)
-                    throws XrootdException
-    {
-        future = client.getExecutor().schedule(() -> {
+          InboundWaitRespResponse response)
+          throws XrootdException {
+        client.setAttnFuture(client.getExecutor().schedule(() -> {
             asynWaitTimeout(ctx, response);
-        }, getWaitInSeconds(response), TimeUnit.SECONDS);
+        }, getWaitInSeconds(response), TimeUnit.SECONDS));
     }
 
     protected int getWaitInSeconds(AbstractXrootdInboundResponse response)

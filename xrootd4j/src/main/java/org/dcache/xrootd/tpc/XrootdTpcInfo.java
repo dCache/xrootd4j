@@ -421,44 +421,46 @@ public class XrootdTpcInfo
      * <p>Will not overwrite existing non-null values.</p>
      */
     public synchronized XrootdTpcInfo addInfoFromOpaque(String slfn,
-                                                        Map<String, String> opaque)
-                    throws ParseException {
-        if (this.lfn == null) {
-            this.lfn = slfn;
+          Map<String, String> opaque)
+          throws ParseException {
+        if (lfn == null) {
+            lfn = slfn;
         }
 
-        this.dlgon = Delegation.valueOf(opaque);
+        dlgon = Delegation.valueOf(opaque);
 
-        if (this.org == null) {
-            this.org = opaque.get(CLIENT.key());
+        if (org == null) {
+            org = opaque.get(CLIENT.key());
         }
 
-        if (this.dst == null) {
-            this.dst = opaque.get(DST.key());
+        if (dst == null) {
+            dst = opaque.get(DST.key());
         }
 
-        if (this.src == null) {
+        if (src == null) {
             setSourceFromOpaque(opaque);
         }
 
-        if (this.cks == null) {
-            this.cks = opaque.get(CHECKSUM.key());
+        if (cks == null) {
+            cks = opaque.get(CHECKSUM.key());
         }
 
         String value = opaque.get(TIME_TO_LIVE.key());
 
         if (value != null) {
-            this.ttl = new Long(value);
-            this.startTime = System.currentTimeMillis();
+            ttl = new Long(value);
+            startTime = System.currentTimeMillis();
         }
 
         value = opaque.get(SIZE_IN_BYTES.key());
         if (value != null) {
-            this.asize = Long.parseLong(value);
+            asize = Long.parseLong(value);
         }
 
-        if (this.status == null) {
-            this.status = Status.PENDING;
+        if (status == null) {
+            status = Status.PENDING;
+        } else if (status == Status.PENDING) {
+            status = Status.READY;
         }
 
         if (!sourceProtocol.isPresent()) {
