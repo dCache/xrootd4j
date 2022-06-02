@@ -18,6 +18,30 @@
  */
 package org.dcache.xrootd.core;
 
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_Unsupported;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_close;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_dirlist;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_endsess;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_locate;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mkdir;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mv;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_open;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_prepare;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_query;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_read;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_readv;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_rm;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_rmdir;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_set;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_stat;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_statx;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_sync;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_write;
+
 import com.google.common.net.InetAddresses;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -27,12 +51,8 @@ import io.netty.handler.codec.haproxy.HAProxyMessage;
 import io.netty.handler.codec.haproxy.HAProxyProxiedProtocol;
 import io.netty.handler.ssl.SslHandshakeCompletionEvent;
 import io.netty.util.ReferenceCountUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.InetSocketAddress;
 import java.util.Objects;
-
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
 import org.dcache.xrootd.protocol.messages.DirListRequest;
@@ -58,8 +78,8 @@ import org.dcache.xrootd.protocol.messages.SyncRequest;
 import org.dcache.xrootd.protocol.messages.WriteRequest;
 import org.dcache.xrootd.protocol.messages.XrootdRequest;
 import org.dcache.xrootd.protocol.messages.XrootdResponse;
-
-import static org.dcache.xrootd.protocol.XrootdProtocol.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A ChannelInboundHandler to dispatch xrootd events to handler methods.
@@ -241,11 +261,11 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
                 req = null; // Do not release reference
             }
         } catch (XrootdException e) {
-            respond(ctx, withError(req, e.getError(), e.getMessage()));
+            respond(ctx, withError(ctx, req, e.getError(), e.getMessage()));
         } catch (RuntimeException e) {
             _log.error("xrootd server error while processing " + req + " (please report this to support@dcache.org)", e);
             respond(ctx,
-                withError(req, kXR_ServerError,
+                withError(ctx, req, kXR_ServerError,
                     String.format("Internal server error (%s)",
                         e.getMessage())));
         } finally {
@@ -258,9 +278,10 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter
         return new OkResponse<>(req);
     }
 
-    protected <T extends XrootdRequest> ErrorResponse<T> withError(T req, int errorCode, String errMsg)
+    protected <T extends XrootdRequest> ErrorResponse<T> withError(ChannelHandlerContext ctx,
+          T req, int errorCode, String errMsg)
     {
-        return new ErrorResponse<>(req, errorCode, errMsg);
+        return new ErrorResponse<>(ctx, req, errorCode, errMsg);
     }
 
     protected ChannelFuture respond(ChannelHandlerContext ctx, Object response)

@@ -218,13 +218,13 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
             }
         } catch (XrootdException e) {
             ErrorResponse error =
-                new ErrorResponse<>(request, e.getError(), e.getMessage());
+                new ErrorResponse<>(ctx, request, e.getError(), e.getMessage());
             ctx.writeAndFlush(error);
         } catch (RuntimeException e) {
             _log.error("xrootd server error while processing " + msg
                                        + " (please report this to support@dcache.org)", e);
             ErrorResponse error =
-                new ErrorResponse<>(request, kXR_ServerError,
+                new ErrorResponse<>(ctx, request, kXR_ServerError,
                                     String.format("Internal server error (%s)",
                                                   e.getMessage()));
             ctx.writeAndFlush(error);
