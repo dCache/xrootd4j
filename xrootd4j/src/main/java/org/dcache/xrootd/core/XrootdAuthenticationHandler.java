@@ -103,7 +103,7 @@ public class XrootdAuthenticationHandler extends XrootdRequestHandler {
                     LOGGER.debug("authenticated, login failed {}: {}.", e.getError(),
                           e.getMessage());
                     sessionHandler.setAuthFailed(ctx);
-                    respond(ctx, withError(req, e.getError(), e.getMessage()));
+                    respond(ctx, withError(ctx, req, e.getError(), e.getMessage()));
                     return null;
                 } finally {
                     ReferenceCountUtil.release(req);

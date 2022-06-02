@@ -168,12 +168,12 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter {
                 req = null; // Do not release reference
             }
         } catch (XrootdException e) {
-            respond(ctx, withError(req, e.getError(), e.getMessage()));
+            respond(ctx, withError(ctx, req, e.getError(), e.getMessage()));
         } catch (Exception e) {
             _log.error("xrootd server error while processing " + req
                   + " (please report this to support@dcache.org)", e);
             respond(ctx,
-                  withError(req, kXR_ServerError,
+                  withError(ctx, req, kXR_ServerError,
                         String.format("Internal server error (%s)",
                               e.getMessage())));
         } finally {
@@ -235,9 +235,9 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter {
         return new OkResponse<>(req);
     }
 
-    protected <T extends XrootdRequest> ErrorResponse<T> withError(T req, int errorCode,
-          String errMsg) {
-        return new ErrorResponse<>(req, errorCode, errMsg);
+    protected <T extends XrootdRequest> ErrorResponse<T> withError(ChannelHandlerContext ctx, T req,
+          int errorCode, String errMsg) {
+        return new ErrorResponse<>(ctx, req, errorCode, errMsg);
     }
 
     protected ChannelFuture respond(ChannelHandlerContext ctx, Object response) {
