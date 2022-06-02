@@ -18,14 +18,15 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+
 import com.google.common.base.Strings;
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import org.dcache.xrootd.core.XrootdSession;
+import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.dcache.xrootd.protocol.XrootdProtocol;
-
-import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class ErrorResponse<T extends XrootdRequest> extends AbstractXrootdResponse<T>
 {
@@ -34,12 +35,17 @@ public class ErrorResponse<T extends XrootdRequest> extends AbstractXrootdRespon
     private final int errnum;
     private final String errmsg;
 
-    public ErrorResponse(T request, int errnum, String errmsg)
-    {
+    public ErrorResponse(ChannelHandlerContext ctx, T request, int errnum, String errmsg) {
         super(request, XrootdProtocol.kXR_error);
         this.errnum = errnum;
         this.errmsg = Strings.nullToEmpty(errmsg);
-        LOGGER.info("Xrootd-Error-Response: ErrorNr={} ErrorMsg={}", errnum, errmsg);
+        XrootdSession session = request.getSession();
+        int reqId = request.getRequestId();
+        LOGGER.info(
+              "Xrootd-Error-Response: [session {}][connection {}][request {} {}]"
+                    + "(error {}, {}, {}).", session == null ? "?" : session.getSessionIdentifier(),
+              ctx.channel(), reqId, XrootdProtocol.getClientRequest(reqId), errnum,
+              XrootdProtocol.getServerError(errnum), errmsg);
     }
 
     public int getErrorNumber()
