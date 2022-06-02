@@ -174,6 +174,48 @@ public interface XrootdProtocol {
     int     kXR_writev                  = 3031;
     int     kXR_REQFENCE                = 3032;
 
+    static String getClientRequest(int code) {
+        switch (code) {
+            case kXR_handshake: return "kXR_handshake";
+            case kXR_auth: return "kXR_auth";
+            case kXR_query: return "kXR_query";
+            case kXR_chmod: return "kXR_chmod";
+            case kXR_close: return "kXR_close";
+            case kXR_dirlist: return "kXR_dirlist";
+            case kXR_gpfile: return "kXR_gpfile";
+            case kXR_protocol: return "kXR_protocol";
+            case kXR_login: return "kXR_login";
+            case kXR_mkdir: return "kXR_mkdir";
+            case kXR_mv: return "kXR_mv";
+            case kXR_open: return "kXR_open";
+            case kXR_ping: return "kXR_ping";
+            case kXR_chkpoint: return "kXR_chkpoint";
+            case kXR_read: return "kXR_read";
+            case kXR_rm: return "kXR_rm";
+            case kXR_rmdir: return "kXR_rmdir";
+            case kXR_sync: return "kXR_sync";
+            case kXR_stat: return "kXR_stat";
+            case kXR_set: return "kXR_set";
+            case kXR_write: return "kXR_write";
+            case kXR_fattr: return "kXR_fattr";
+            case kXR_prepare: return "kXR_prepare";
+            case kXR_statx: return "kXR_statx";
+            case kXR_endsess: return "kXR_endsess";
+            case kXR_bind: return "kXR_bind";
+            case kXR_readv: return "kXR_readv";
+            case kXR_pgwrite: return "kXR_pgwrite";
+            case kXR_locate: return "kXR_locate";
+            case kXR_truncate: return "kXR_truncate";
+            case kXR_sigver: return "kXR_sigver";
+            case kXR_pgread: return "kXR_pgread";
+            case kXR_writev: return "kXR_writev";
+            case kXR_REQFENCE: return "kXR_REQFENCE";
+            default:
+                return "unrecognized client request";
+        }
+    }
+
+
     /**
      *  _______________________________________________________________________
      *  OPEN MODE FOR A REMOTE FILE
@@ -451,4 +493,44 @@ public interface XrootdProtocol {
     @Deprecated // Kept for compatibility with plugins
     int     kXR_FileLockedr             = 3003;
 
+    static String getServerError(int code) {
+        switch (code) {
+            case kXR_ArgInvalid: return "kXR_ArgInvalid";
+            case kXR_ArgMissing: return "kXR_ArgMissing";
+            case kXR_ArgTooLong: return "kXR_ArgTooLong";
+            case kXR_FileLocked: return "kXR_FileLocked";
+            case kXR_FileNotOpen: return "kXR_FileNotOpen";
+            case kXR_FSError: return "kXR_FSError";
+            case kXR_InvalidRequest: return "kXR_InvalidRequest";
+            case kXR_IOError: return "kXR_IOError";
+            case kXR_NoMemory: return "kXR_NoMemory";
+            case kXR_NoSpace: return "kXR_NoSpace";
+            case kXR_NotAuthorized: return "kXR_NotAuthorized";
+            case kXR_NotFound: return "kXR_NotFound";
+            case kXR_ServerError: return "kXR_ServerError";
+            case kXR_Unsupported: return "kXR_Unsupported";
+            case kXR_noserver: return "kXR_noserver";
+            case kXR_NotFile: return "kXR_NotFile";
+            case kXR_isDirectory: return "kXR_isDirectory";
+            case kXR_Cancelled: return "kXR_Cancelled";
+            case kXR_ItExists: return "kXR_ItExists";
+            case kXR_ChkSumErr: return "kXR_ChkSumErr";
+            case kXR_inProgress: return "kXR_inProgress";
+            case kXR_overQuota: return "kXR_overQuota";
+            case kXR_SigVerErr: return "kXR_SigVerErr";
+            case kXR_DecryptErr: return "kXR_DecryptErr";
+            case kXR_Overloaded: return "kXR_Overloaded";
+            case kXR_fsReadOnly: return "kXR_fsReadOnly";
+            case kXR_BadPayload: return "kXR_BadPayload";
+            case kXR_AttrNotFound: return "kXR_AttrNotFound";
+            case kXR_TLSRequired: return "kXR_TLSRequired";
+            case kXR_noReplicas: return "kXR_noReplicas";
+            case kXR_AuthFailed: return "kXR_AuthFailed";
+            case kXR_Impossible: return "kXR_Impossible";
+            case kXR_Conflict: return "kXR_Conflict";
+            case kXR_noErrorYet: return "kXR_noErrorYet";
+            default:
+                return "unrecognized server error";
+        }
+    }
 }
