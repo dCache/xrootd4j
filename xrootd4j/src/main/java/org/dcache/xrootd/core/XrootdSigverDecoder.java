@@ -44,16 +44,14 @@ import org.dcache.xrootd.security.BufferDecrypter;
 import org.dcache.xrootd.security.SigningPolicy;
 
 /**
- * A FrameDecoder decoding xrootd frames into AbstractRequestMessage
- * objects. Provides signed hash verification capabilities.</p>
- *
- * Maintains the last seqno used on this TCP connection, as
- *    well as the last sigver request.  When the next request
- *    arrives, verifies that its hash matches the signature of
- *    the sigver request.  If the protocol requires generalized
- *    encryption (session key), the signature is first decrypted
- *    using the provided module.</p>
- *
+ * A FrameDecoder decoding xrootd frames into AbstractRequestMessage objects. Provides signed hash
+ * verification capabilities.</p>
+ * <p>
+ * Maintains the last seqno used on this TCP connection, as well as the last sigver request.  When
+ * the next request arrives, verifies that its hash matches the signature of the sigver request.  If
+ * the protocol requires generalized encryption (session key), the signature is first decrypted
+ * using the provided module.</p>
+ * <p>
  * Must be substituted for the vanilla message decoder.</p>
  */
 public class XrootdSigverDecoder extends AbstractXrootdDecoder {
@@ -112,9 +110,7 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder {
                       ctx);
             }
         } catch (XrootdException e) {
-            ErrorResponse<?> response
-                  = new ErrorResponse<>(request,
-                  e.getError(),
+            ErrorResponse<?> response = new ErrorResponse<>(ctx, request, e.getError(),
                   Strings.nullToEmpty(e.getMessage()));
             ctx.writeAndFlush(response)
                   .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
@@ -270,14 +266,11 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder {
     }
 
     /**
-     *  A signature consists of a SHA-256 hash of
-     *    1. an unsigned 64-bit sequence number,
-     *    2. the request header, and
-     *    3. the request payload,
-     *  in that exact order.
-     *
-     *  In this case, 2 + 3 are given in order by the frame buffer, which
-     *  contains the raw bytes of the request.
+     * A signature consists of a SHA-256 hash of 1. an unsigned 64-bit sequence number, 2. the
+     * request header, and 3. the request payload, in that exact order.
+     * <p>
+     * In this case, 2 + 3 are given in order by the frame buffer, which contains the raw bytes of
+     * the request.
      */
     private byte[] generateHash(long seqno,
           byte[] payload,
