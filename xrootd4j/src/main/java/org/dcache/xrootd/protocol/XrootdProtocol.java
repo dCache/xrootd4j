@@ -511,7 +511,7 @@ public interface XrootdProtocol {
             case kXR_NotFile: return "kXR_NotFile";
             case kXR_isDirectory: return "kXR_isDirectory";
             case kXR_Cancelled: return "kXR_Cancelled";
-            case kXR_ItExists: return "kXR_ItExists";
+            case kXR_ChkLenErr: return "kXR_ChkLenErr";
             case kXR_ChkSumErr: return "kXR_ChkSumErr";
             case kXR_inProgress: return "kXR_inProgress";
             case kXR_overQuota: return "kXR_overQuota";
@@ -523,9 +523,7 @@ public interface XrootdProtocol {
             case kXR_AttrNotFound: return "kXR_AttrNotFound";
             case kXR_TLSRequired: return "kXR_TLSRequired";
             case kXR_noReplicas: return "kXR_noReplicas";
-            case kXR_AuthFailed: return "kXR_AuthFailed";
-            case kXR_Impossible: return "kXR_Impossible";
-            case kXR_Conflict: return "kXR_Conflict";
+            case kXR_ERRFENCE: return "kXR_ERRFENCE";
             case kXR_noErrorYet: return "kXR_noErrorYet";
             default:
                 return "unrecognized server error";
