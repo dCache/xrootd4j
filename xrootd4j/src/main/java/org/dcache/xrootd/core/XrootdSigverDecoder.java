@@ -18,15 +18,16 @@
  */
 package org.dcache.xrootd.core;
 
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_DecryptErr;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_SigVerErr;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_write;
+import static org.dcache.xrootd.protocol.messages.SigverRequest.SIGVER_VERSION;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_nodata;
+
 import com.google.common.base.Strings;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
@@ -35,18 +36,14 @@ import java.security.NoSuchProviderException;
 import java.util.Arrays;
 import java.util.Formatter;
 import java.util.List;
-
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import org.dcache.xrootd.protocol.messages.ErrorResponse;
 import org.dcache.xrootd.protocol.messages.SigverRequest;
 import org.dcache.xrootd.protocol.messages.XrootdRequest;
 import org.dcache.xrootd.security.BufferDecrypter;
 import org.dcache.xrootd.security.SigningPolicy;
-
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_DecryptErr;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_SigVerErr;
-import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_write;
-import static org.dcache.xrootd.protocol.messages.SigverRequest.SIGVER_VERSION;
-import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXR_nodata;
 
 /**
  * <p>A FrameDecoder decoding xrootd frames into AbstractRequestMessage
@@ -121,7 +118,8 @@ public class XrootdSigverDecoder extends AbstractXrootdDecoder
             }
         } catch (XrootdException e) {
             ErrorResponse<?> response
-                            = new ErrorResponse<>(request,
+                            = new ErrorResponse<>(ctx,
+                                                  request,
                                                   e.getError(),
                                                   Strings.nullToEmpty(e.getMessage()));
             ctx.writeAndFlush(response)
