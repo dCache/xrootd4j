@@ -46,7 +46,6 @@ import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.FutureListener;
 import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.plugins.tls.SSLHandlerFactory;
-import org.dcache.xrootd.tpc.XrootdTpcInfo;
 import org.dcache.xrootd.util.ServerProtocolFlags;
 import org.dcache.xrootd.util.ServerProtocolFlags.TlsMode;
 import org.slf4j.Logger;
@@ -76,10 +75,10 @@ public class TLSSessionInfo {
         }
     }
 
-    enum ClientTls {
+    public enum ClientTls {
         REQUIRES, ABLE, NONE;
 
-        static ClientTls getMode(int version, int options) {
+        public static ClientTls getMode(int version, int options) {
             if (version < PROTOCOL_TLS_VERSION) {
                 return NONE;
             }
@@ -423,8 +422,8 @@ public class TLSSessionInfo {
          */
         protected final boolean requiresTLS;
 
-        protected ClientTlsSession(XrootdTpcInfo info) {
-            requiresTLS = info.isTls();
+        protected ClientTlsSession(boolean requiresTLS) {
+            this.requiresTLS = requiresTLS;
         }
 
         protected void configure() {
@@ -610,8 +609,8 @@ public class TLSSessionInfo {
         return response;
     }
 
-    public void createClientSession(XrootdTpcInfo info) {
-        tpcClientSession = new ClientTlsSession(info);
+    public void createClientSession(boolean isTls) {
+        tpcClientSession = new ClientTlsSession(isTls);
         tpcClientSession.configure();
     }
 

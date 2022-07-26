@@ -261,8 +261,9 @@ public class XrootdTpcClient {
               });
 
         try {
-            channelFuture = b.connect(info.getSrcHost(),
-                  info.getSrcPort()).sync();
+            LOGGER.info("Third-party client trying to connect to host '{}', port '{}'.",
+                  info.getSrcHost(), info.getSrcPort());
+            channelFuture = b.connect(info.getSrcHost(), info.getSrcPort()).sync();
         } catch (Exception t) {
             /*
              *  For some reason, doing the following:
@@ -710,7 +711,7 @@ public class XrootdTpcClient {
          *  Create the client's tls session.
          *  It will be configured when the protocol response is received.
          */
-        tlsSessionInfo.createClientSession(getInfo());
+        tlsSessionInfo.createClientSession(getInfo().isTls());
 
         LOGGER.debug("sendHandshakeRequest to {}, channel {}, stream {}.",
               info.getSrc(), ctx.channel().id(), streamId);
