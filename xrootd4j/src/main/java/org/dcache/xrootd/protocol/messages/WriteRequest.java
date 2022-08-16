@@ -38,8 +38,7 @@ public class WriteRequest extends AbstractXrootdRequest implements ByteBuffersPr
         fhandle = buffer.getInt(4);
         offset = buffer.getLong(8);
         dlen = buffer.getInt(20);
-        data = buffer.alloc().ioBuffer(dlen); // Most likely this will be written to disk
-        buffer.getBytes(24, data);
+        data = buffer.retainedSlice(24, dlen);
     }
 
     public int getFileHandle() {
