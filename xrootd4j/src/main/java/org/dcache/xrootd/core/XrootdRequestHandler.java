@@ -22,6 +22,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_close;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_dirlist;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_endsess;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_fattr;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_locate;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mkdir;
@@ -55,6 +56,7 @@ import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
 import org.dcache.xrootd.protocol.messages.DirListRequest;
 import org.dcache.xrootd.protocol.messages.EndSessionRequest;
+import org.dcache.xrootd.protocol.messages.FattrRequest;
 import org.dcache.xrootd.protocol.messages.ErrorResponse;
 import org.dcache.xrootd.protocol.messages.LocateRequest;
 import org.dcache.xrootd.protocol.messages.LoginRequest;
@@ -226,7 +228,9 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter {
                 return doOnSet(ctx, (SetRequest) req);
             case kXR_endsess:
                 return doOnEndSession(ctx, (EndSessionRequest) req);
-            default:
+            case kXR_fattr:
+            	return doOnFattr(ctx, (FattrRequest) req);
+             default:
                 return unsupported(ctx, req);
         }
     }
@@ -270,6 +274,12 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter {
           throws XrootdException {
         return unsupported(ctx, msg);
     }
+
+    protected Object doOnFattr(ChannelHandlerContext ctx,
+      	  FattrRequest msg)
+      	  throws XrootdException {
+      	return unsupported(ctx, msg);
+      }
 
     protected Object doOnStat(ChannelHandlerContext ctx,
           StatRequest msg)
