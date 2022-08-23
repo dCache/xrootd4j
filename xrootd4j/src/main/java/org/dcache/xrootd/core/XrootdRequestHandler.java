@@ -22,6 +22,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_close;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_dirlist;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_endsess;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_fattr;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_locate;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mkdir;
