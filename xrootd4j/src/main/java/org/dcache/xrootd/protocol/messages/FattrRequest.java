@@ -25,6 +25,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_fattrSet;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_fattr_aData;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_fattr_isNew;
 import java.util.Arrays;
+import com.google.common.base.Preconditions;
 import io.netty.buffer.ByteBuf;
 
 /**
@@ -70,6 +71,7 @@ public class FattrRequest extends AbstractXrootdRequest {
         pos += len;
       }
     }
+    Preconditions.checkState(nattr == nvec.length);
     options = buffer.getUnsignedByte(10);
   }
 
