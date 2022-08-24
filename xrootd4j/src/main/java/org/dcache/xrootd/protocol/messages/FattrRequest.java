@@ -127,6 +127,6 @@ public class FattrRequest extends AbstractXrootdRequest {
     @Override
     public String toString() {
         return String.format("fattr[%d,%d,%d,%d,%s]", subcode, fhandle, nattr, options,
-              Arrays.asList(nvec).toString());
+              Arrays.toString(nvec));
     }
 }
