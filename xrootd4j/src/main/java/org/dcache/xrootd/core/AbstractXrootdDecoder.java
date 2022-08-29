@@ -61,8 +61,20 @@ public abstract class AbstractXrootdDecoder extends ByteToMessageDecoder
     protected static final Logger LOGGER =
                     LoggerFactory.getLogger(AbstractXrootdDecoder.class);
 
-    protected XrootdRequest getRequest(ByteBuf frame)
-    {
+    /**
+     *   The default XRD_CPCHUNKSIZE is 8 MiB.  This is configurable via
+     *   env variable, but we cannot accept arbitrarily large frame sizes
+     *   (for writes) because a single client could then bring down the pool.
+     *
+     *   The boundary at 16 MiB should be sufficient to guard against this
+     *   IF the number of concurrent movers (the I/O queue for xrootd) on
+     *   the pool is sufficiently throttled.  The limit only really guarantees
+     *   that a single client cannot cause an OOM under normal JVM direct memory
+     *   allocation (128 MiB or greater).
+     */
+    private static final int MAX_FRAME_SIZE = 16 * 1024 * 1024;
+
+    protected XrootdRequest getRequest(ByteBuf frame) {
         int requestId = frame.getUnsignedShort(2);
 
         switch (requestId) {
@@ -129,7 +141,7 @@ public abstract class AbstractXrootdDecoder extends ByteToMessageDecoder
         int pos = in.readerIndex();
         int headerFrameLength = in.getInt(pos + 20);
 
-        if (headerFrameLength < 0) {
+        if (headerFrameLength < 0 || headerFrameLength > MAX_FRAME_SIZE) {
             LOGGER.error("Received illegal frame length in xrootd header: {}."
                                           + " Closing channel.", headerFrameLength);
             return -1;
