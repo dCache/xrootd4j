@@ -38,6 +38,11 @@ public class AbstractXrootdRequest implements XrootdRequest {
         requestId = buffer.getUnsignedShort(2);
     }
 
+    public AbstractXrootdRequest(int streamId, int requestId) {
+        this.streamId = streamId;
+        this.requestId = requestId;
+    }
+
     @Override
     public int getStreamId() {
         return streamId;

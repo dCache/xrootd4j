@@ -31,6 +31,7 @@ import static org.dcache.xrootd.security.TLSSessionInfo.isTLSOn;
 
 import com.google.common.collect.Maps;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPipeline;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
@@ -279,8 +280,13 @@ public class XrootdSessionHandler extends XrootdRequestHandler {
                  * hence the check that the handler is not the NOP placeholder.
                  */
                 BufferDecrypter decrypter = authHandler.getDecrypter();
+                ChannelPipeline pipeline = ctx.pipeline();
+                XrootdDecoder decoder = (XrootdDecoder) pipeline.get("decoder");
+                XrootdSigverDecoder sigverDecoder = new XrootdSigverDecoder(signingPolicy,
+                      decrypter);
+                sigverDecoder.setMaxWriteBufferSize(decoder.getMaxWriteBufferSize());
                 ctx.pipeline().addAfter("decoder", "sigverDecoder",
-                      new XrootdSigverDecoder(signingPolicy, decrypter));
+                      sigverDecoder);
                 ctx.pipeline().remove("decoder");
                 LOGGER.debug("switched decoder to sigverDecoder, decrypter {}.", decrypter);
             }

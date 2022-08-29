@@ -17,6 +17,7 @@
 package org.dcache.xrootd.core;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.dcache.xrootd.util.ByteBuffersProvider.logMetrics;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -53,5 +54,9 @@ public class XrootdDecoder extends AbstractXrootdDecoder {
         }
 
         out.add(getRequest(in.readSlice(length)));
+
+        if (LOGGER.isTraceEnabled()) {
+            logMetrics("decode", ctx.alloc(), LOGGER, "TRACE");
+        }
     }
 }

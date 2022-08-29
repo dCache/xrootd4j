@@ -31,14 +31,16 @@ public class WriteRequest extends AbstractXrootdRequest implements ByteBuffersPr
     private final long offset;
     private final int dlen;
     private final ByteBuf data;
+    private final int remainder;
 
-    public WriteRequest(ByteBuf buffer) {
-        super(buffer, kXR_write);
-
-        fhandle = buffer.getInt(4);
-        offset = buffer.getLong(8);
-        dlen = buffer.getInt(20);
-        data = buffer.retainedSlice(24, dlen);
+    public WriteRequest(int streamId, int fhandle, long offset, int dlen, ByteBuf data,
+          int remainder) {
+        super(streamId, kXR_write);
+        this.fhandle = fhandle;
+        this.offset = offset;
+        this.dlen = dlen;
+        this.data = data;
+        this.remainder = remainder;
     }
 
     public int getFileHandle() {
@@ -63,6 +65,10 @@ public class WriteRequest extends AbstractXrootdRequest implements ByteBuffersPr
             index += written;
             len -= written;
         }
+    }
+
+    public boolean isComplete() {
+        return remainder == 0;
     }
 
     /**

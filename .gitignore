@@ -1,6 +1,7 @@
 /target/
 /*/target/
 *~
+.DS_Store
 .idea
 *.iml
 *.class

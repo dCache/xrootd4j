@@ -41,6 +41,9 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_statx;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_sync;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_write;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.ByteToMessageDecoder;
+import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
 import org.dcache.xrootd.protocol.messages.DirListRequest;
@@ -69,21 +72,36 @@ import org.dcache.xrootd.protocol.messages.XrootdRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.ByteToMessageDecoder;
-
 /**
  * Base class for frame decoders.
  *
- * TODO: Implement zero-copy handling of write requests by splitting
- * the request into fragments.
+ * Modified to handle (serial) segmentation of write requests
+ * such that the amount of data written never exceeds a maximum
+ * direct I/O buffer size.
  */
 public abstract class AbstractXrootdDecoder extends ByteToMessageDecoder {
 
     protected static final Logger LOGGER =
           LoggerFactory.getLogger(AbstractXrootdDecoder.class);
 
+    private int maxWriteBufferSize = Integer.MAX_VALUE;
+
+    private WriteRequest lastWrite;
+    private int remainingDataLength;
+
+    public int getMaxWriteBufferSize() {
+        return maxWriteBufferSize;
+    }
+
+    public void setMaxWriteBufferSize(int maxFrameSize) {
+        this.maxWriteBufferSize = maxFrameSize;
+    }
+
     protected XrootdRequest getRequest(ByteBuf frame) {
+        if (lastWrite != null) {
+            return getWriteRequest(frame);
+        }
+
         int requestId = frame.getUnsignedShort(2);
 
         switch (requestId) {
@@ -104,7 +122,7 @@ public abstract class AbstractXrootdDecoder extends ByteToMessageDecoder {
             case kXR_readv:
                 return new ReadVRequest(frame);
             case kXR_write:
-                return new WriteRequest(frame);
+                return getWriteRequest(frame);
             case kXR_sync:
                 return new SyncRequest(frame);
             case kXR_close:
@@ -141,28 +159,110 @@ public abstract class AbstractXrootdDecoder extends ByteToMessageDecoder {
     protected int verifyMessageLength(ByteBuf in) {
         int readable = in.readableBytes();
 
-        /* All other requests have a common framing format with a
-         * fixed length header.
+        /*
+         *  This is a partial write subsequent to the first segment.
+         */
+        if (remainingDataLength > 0) {
+            int desiredChunk = Math.min(maxWriteBufferSize, remainingDataLength);
+            LOGGER.trace("verifyMessageLength: remaining {}, desired {}, readable {}",
+                  remainingDataLength, desiredChunk, readable);
+            if (readable < desiredChunk) {
+                return 0;
+            } else {
+                remainingDataLength -= desiredChunk;
+                return desiredChunk;
+            }
+        }
+
+        /*
+         *  All other requests have a common framing format with a
+         *  fixed length header.
          */
         if (readable < CLIENT_REQUEST_LEN) {
             return 0;
         }
 
+        /*
+         *  Reading from a potentially accumulating buffer.
+         */
         int pos = in.readerIndex();
-        int headerFrameLength = in.getInt(pos + 20);
 
-        if (headerFrameLength < 0) {
-            LOGGER.error("Received illegal frame length in xrootd header: {}."
-                  + " Closing channel.", headerFrameLength);
+        int requestId = in.getUnsignedShort(pos + 2);
+        int frameLength = in.getInt(pos + 20);
+
+        if (frameLength < 0) {
+            /*
+             * disconnect
+             */
             return -1;
         }
 
-        int length = CLIENT_REQUEST_LEN + headerFrameLength;
+        LOGGER.trace("verifyMessageLength: {}, frame length: {}",
+              XrootdProtocol.getClientRequest(requestId), frameLength);
+
+        int length = CLIENT_REQUEST_LEN + Math.min(frameLength, maxWriteBufferSize);
 
         if (readable < length) {
             return 0;
         }
 
+        /*
+         *  It is only feasible to segment the data payload of a write request;
+         *  should any other request exceed the max buffer size, we disconnect.
+         */
+        if (frameLength > maxWriteBufferSize) {
+            if (requestId != kXR_write) {
+                /*
+                 * disconnect
+                 */
+                return -1;
+            }
+            remainingDataLength = frameLength - maxWriteBufferSize;
+            LOGGER.trace("verifyMessageLength: write request data length: {}", frameLength);
+        } else {
+            remainingDataLength = 0;
+        }
+
         return length;
+    }
+
+    private WriteRequest getWriteRequest(ByteBuf frame) {
+        int streamId;
+        int fhandle;
+        long offset;
+        int length;
+        ByteBuf data;
+
+        if (lastWrite == null) {
+            streamId = frame.getUnsignedShort(0);
+            fhandle = frame.getInt(4);
+            offset = frame.getLong(8);
+            /*
+             *  The full frame size is in the header of this buffer, so we need to
+             *  compare to the max size and take the lesser.
+             */
+            length = Math.min(frame.getInt(20), maxWriteBufferSize);
+            data = frame.retainedSlice(24, length);
+        } else {
+            streamId = lastWrite.getStreamId();
+            fhandle = lastWrite.getFileHandle();
+            offset = lastWrite.getWriteOffset() + lastWrite.getDataLength();
+            length = frame.readableBytes();
+            data = frame.retainedSlice(0, length);
+        }
+
+        WriteRequest request = new WriteRequest(streamId, fhandle, offset, length, data,
+              remainingDataLength);
+
+        LOGGER.trace("getWriteRequest, fhandle {}, offset {}, data length {}; remaining: {}.",
+              fhandle, offset, length, remainingDataLength);
+
+        if (remainingDataLength > 0) {
+            lastWrite = request;
+        } else {
+            lastWrite = null;
+        }
+
+        return request;
     }
 }

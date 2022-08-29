@@ -16,8 +16,12 @@
  */
 package org.dcache.xrootd.util;
 
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufAllocatorMetricProvider;
 import io.netty.util.ReferenceCounted;
 import java.nio.ByteBuffer;
+import java.util.Locale;
+import org.slf4j.Logger;
 
 /**
  * This interface pulls out the two methods necessary to support the write. </p>
@@ -26,6 +30,35 @@ import java.nio.ByteBuffer;
  *    in translating a ThirdParty read request response into a write request.</p>
  */
 public interface ByteBuffersProvider extends ReferenceCounted {
+
+    /**
+     * For monitoring memory usage by Netty allocators.  This method is best
+     * guarded by a conditional checking logger level activation.
+     *
+     * @param when info concerning the site of the call
+     * @param allocator e.g., from the context
+     * @param logger to use
+     * @param level to log at (only supports "INFO", "DEBUG", "TRACE")
+     */
+    static void logMetrics(String when, ByteBufAllocator allocator, Logger logger, String level) {
+        if (allocator instanceof ByteBufAllocatorMetricProvider) {
+            ByteBufAllocatorMetricProvider provider = (ByteBufAllocatorMetricProvider) allocator;
+            switch (level.toUpperCase(Locale.ROOT)) {
+                case "INFO":
+                    logger.info("allocator {}.{} –– {}: {}", allocator.getClass().getSimpleName(),
+                          allocator.hashCode(), when, provider.metric());
+                    break;
+                case "DEBUG":
+                    logger.debug("allocator {}.{} –– {}: {}", allocator.getClass().getSimpleName(),
+                          allocator.hashCode(), when, provider.metric());
+                    break;
+                case "TRACE":
+                    logger.trace("allocator {}.{} –– {}: {}", allocator.getClass().getSimpleName(),
+                          allocator.hashCode(), when, provider.metric());
+                    break;
+            }
+        }
+    }
 
     /**
      * @return NIO buffer array produced from the Netty ByteBuf.
