@@ -109,12 +109,8 @@ public class XrootdAuthenticationHandler extends XrootdRequestHandler {
                     ReferenceCountUtil.release(req);
                 }
             default:
-                try {
-                    ctx.fireChannelRead(req);
-                    return null;
-                } finally {
-                    ReferenceCountUtil.release(req);
-                }
+                ctx.fireChannelRead(req);
+                return null;
         }
     }
 
