@@ -120,6 +120,11 @@ public abstract class AbstractZTNAuthenticationHandler
     }
 
     @Override
+    public String getProtocolName() {
+        return PROTOCOL;
+    }
+
+    @Override
     public Subject getSubject() {
         return subject;
     }
