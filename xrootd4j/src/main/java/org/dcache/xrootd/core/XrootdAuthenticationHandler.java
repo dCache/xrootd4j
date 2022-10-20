@@ -47,22 +47,22 @@ public class XrootdAuthenticationHandler extends XrootdRequestHandler {
     private static final Logger LOGGER =
           LoggerFactory.getLogger(XrootdAuthenticationHandler.class);
 
-    private final String protocol;
     private final ProxyDelegationClient proxyDelegationClient;
     private final AuthenticationHandler authenticationHandler;
 
     private XrootdSessionHandler sessionHandler;
 
-    public XrootdAuthenticationHandler(String protocol,
-          AuthenticationFactory authenticationFactory,
+    /*
+     *  NOTE:  we maintain the now unused first String parameter for backward compatibility.
+     */
+    public XrootdAuthenticationHandler(String name, AuthenticationFactory authenticationFactory,
           ProxyDelegationClient proxyDelegationClient) {
-        this.protocol = protocol;
         this.proxyDelegationClient = proxyDelegationClient;
         authenticationHandler = authenticationFactory.createHandler(proxyDelegationClient);
     }
 
     public String getProtocol() {
-        return protocol;
+        return authenticationHandler.getProtocolName();
     }
 
     public AuthenticationHandler getHandler() {
