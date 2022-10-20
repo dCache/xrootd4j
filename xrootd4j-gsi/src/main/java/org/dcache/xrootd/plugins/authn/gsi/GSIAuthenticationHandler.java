@@ -161,6 +161,11 @@ public class GSIAuthenticationHandler implements AuthenticationHandler {
     }
 
     @Override
+    public String getProtocolName() {
+        return PROTOCOL;
+    }
+
+    @Override
     public Subject getSubject() {
         return subject;
     }
