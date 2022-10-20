@@ -34,6 +34,7 @@ import org.dcache.xrootd.core.XrootdAuthenticationHandlerProvider;
 import org.dcache.xrootd.core.XrootdAuthorizationHandlerProvider;
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
 import org.dcache.xrootd.plugins.ChannelHandlerProvider;
+import org.dcache.xrootd.plugins.tls.TLSHandlerProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,6 +131,9 @@ public class DataServerConfiguration {
           throws Exception {
         Properties properties = getPluginProperties();
         for (ChannelHandlerProvider provider : _channelHandlerProviders) {
+            if (provider.getClass() == TLSHandlerProvider.class) {
+                continue;
+            }
             ChannelHandlerFactory factory =
                   provider.createFactory(plugin, properties);
             if (factory != null) {

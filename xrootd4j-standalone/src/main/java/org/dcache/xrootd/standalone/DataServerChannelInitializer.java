@@ -18,15 +18,21 @@ package org.dcache.xrootd.standalone;
 
 import static org.dcache.xrootd.protocol.XrootdProtocol.DATA_SERVER;
 
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.logging.LoggingHandler;
+import org.dcache.xrootd.core.XrootdAuthenticationHandler;
 import org.dcache.xrootd.core.XrootdDecoder;
 import org.dcache.xrootd.core.XrootdEncoder;
 import org.dcache.xrootd.core.XrootdHandshakeHandler;
+import org.dcache.xrootd.core.XrootdSessionHandler;
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
+import org.dcache.xrootd.security.SigningPolicy;
+import org.dcache.xrootd.security.TLSSessionInfo;
 import org.dcache.xrootd.stream.ChunkedResponseWriteHandler;
+import org.dcache.xrootd.util.ServerProtocolFlags;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,11 +57,42 @@ public class DataServerChannelInitializer extends ChannelInitializer<SocketChann
             pipeline.addLast("logger", new LoggingHandler(DataServerChannelInitializer.class));
         }
 
+        /*
+         *  Placeholders, no Sigver and no TLS support yet.
+         */
+        SigningPolicy signingPolicy = new SigningPolicy();
+        ServerProtocolFlags flags = new ServerProtocolFlags(0);
+        TLSSessionInfo tlsSessionInfo = new TLSSessionInfo(flags);
+
+        XrootdSessionHandler sessionHandler = new XrootdSessionHandler();
+        /*
+         *  Support security level/signed hash verification or for TLS.
+         */
+        sessionHandler.setTlsSessionInfo(tlsSessionInfo);
+        sessionHandler.setSigningPolicy(signingPolicy);
+        pipeline.addLast(XrootdSessionHandler.SESSION_HANDLER, sessionHandler);
+
         for (ChannelHandlerFactory factory : _options.channelHandlerFactories) {
-            pipeline.addLast("plugin:" + factory.getName(), factory.createHandler());
+            ChannelHandler handler = factory.createHandler();
+            if (handler instanceof XrootdAuthenticationHandler) {
+                XrootdAuthenticationHandler authn = (XrootdAuthenticationHandler) handler;
+                logger.debug("adding {} to {}.", authn, sessionHandler);
+                /*
+                 * Add this handler to the session handler, not the pipeline.
+                 * The session handler will select the requested handler from
+                 * its internal map and add it to the pipeline just at the time
+                 * of the authentication request.
+                 */
+                authn.setSessionHandler(sessionHandler);
+                sessionHandler.add(authn);
+            } else {
+                pipeline.addLast("plugin:" + factory.getName(), handler);
+            }
         }
 
         pipeline.addLast("chunk-writer", new ChunkedResponseWriteHandler());
-        pipeline.addLast("data-server", new DataServerHandler(_options));
+        DataServerHandler dataServerHandler = new DataServerHandler(_options, tlsSessionInfo,
+              signingPolicy);
+        pipeline.addLast("data-server", dataServerHandler);
     }
 }

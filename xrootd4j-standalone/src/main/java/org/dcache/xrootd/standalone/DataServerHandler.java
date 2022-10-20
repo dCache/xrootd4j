@@ -16,7 +16,6 @@
  */
 package org.dcache.xrootd.standalone;
 
-import static org.dcache.xrootd.protocol.XrootdProtocol.DATA_SERVER;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ArgInvalid;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ArgMissing;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_FileNotOpen;
@@ -51,7 +50,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.io.FilenameUtils;
 import org.dcache.xrootd.core.XrootdException;
-import org.dcache.xrootd.core.XrootdRequestHandler;
+import org.dcache.xrootd.core.XrootdProtocolRequestHandler;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
 import org.dcache.xrootd.protocol.messages.DirListRequest;
 import org.dcache.xrootd.protocol.messages.DirListResponse;
@@ -64,8 +63,6 @@ import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.dcache.xrootd.protocol.messages.OpenRequest;
 import org.dcache.xrootd.protocol.messages.OpenResponse;
 import org.dcache.xrootd.protocol.messages.PrepareRequest;
-import org.dcache.xrootd.protocol.messages.ProtocolRequest;
-import org.dcache.xrootd.protocol.messages.ProtocolResponse;
 import org.dcache.xrootd.protocol.messages.QueryRequest;
 import org.dcache.xrootd.protocol.messages.QueryResponse;
 import org.dcache.xrootd.protocol.messages.ReadRequest;
@@ -81,13 +78,15 @@ import org.dcache.xrootd.protocol.messages.StatxResponse;
 import org.dcache.xrootd.protocol.messages.SyncRequest;
 import org.dcache.xrootd.protocol.messages.WriteRequest;
 import org.dcache.xrootd.protocol.messages.ZeroCopyReadResponse;
+import org.dcache.xrootd.security.SigningPolicy;
+import org.dcache.xrootd.security.TLSSessionInfo;
 import org.dcache.xrootd.stream.ChunkedFileChannelReadResponse;
 import org.dcache.xrootd.stream.ChunkedFileReadvResponse;
 import org.dcache.xrootd.util.FileStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DataServerHandler extends XrootdRequestHandler {
+public class DataServerHandler extends XrootdProtocolRequestHandler {
 
     private static final Logger _log =
           LoggerFactory.getLogger(DataServerHandler.class);
@@ -103,8 +102,11 @@ public class DataServerHandler extends XrootdRequestHandler {
 
     private final DataServerConfiguration _configuration;
 
-    public DataServerHandler(DataServerConfiguration configuration) {
+    public DataServerHandler(DataServerConfiguration configuration, TLSSessionInfo tlsSessionInfo,
+          SigningPolicy signingPolicy) {
         _configuration = configuration;
+        setTlsSessionInfo(tlsSessionInfo);
+        setSigningPolicy(signingPolicy);
     }
 
     @Override
@@ -119,12 +121,6 @@ public class DataServerHandler extends XrootdRequestHandler {
         }
         // TODO: If not already closed, we should probably close the
         // channel.
-    }
-
-    @Override
-    protected ProtocolResponse doOnProtocolRequest(
-          ChannelHandlerContext ctx, ProtocolRequest msg) {
-        return new ProtocolResponse(msg, DATA_SERVER);
     }
 
     @Override
