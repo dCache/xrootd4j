@@ -36,10 +36,15 @@ public interface AuthenticationHandler {
           throws XrootdException;
 
     /**
-     * @return the protocol that is implemented by the authentication
+     * @return the full protocol string (xrootd) that is implemented by the authentication
      * handler
      */
     public String getProtocol();
+
+    /**
+     * @return the name of the protocol
+     */
+    public String getProtocolName();
 
     /**
      * Get the subject containing the credentials/principals found
