@@ -18,12 +18,15 @@
  */
 package org.dcache.xrootd.protocol.messages;
 
-import com.google.common.base.Joiner;
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_prefname;
+
 import com.google.common.net.InetAddresses;
 import io.netty.buffer.ByteBuf;
 
 import java.net.InetSocketAddress;
-
+import java.util.Arrays;
+import java.util.Iterator;
 import org.dcache.xrootd.protocol.XrootdProtocol;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -32,20 +35,14 @@ public class LocateResponse extends AbstractXrootdResponse<LocateRequest>
 {
     private final String encoded;
 
-    public LocateResponse(LocateRequest request, InfoElement... info)
-    {
-        this(request, encode(info));
+    public LocateResponse(LocateRequest request, InfoElement... info) {
+        this(request, encode(request, info));
     }
 
     private LocateResponse(LocateRequest request, String encoded)
     {
         super(request, XrootdProtocol.kXR_ok);
         this.encoded = encoded;
-    }
-
-    public static String encode(InfoElement[] info)
-    {
-        return Joiner.on(" ").join(info);
     }
 
     @Override
@@ -104,11 +101,34 @@ public class LocateResponse extends AbstractXrootdResponse<LocateRequest>
         {
             return node.value + access.value + InetAddresses.toUriString(address.getAddress()) + ":" + address.getPort();
         }
+
+        void append(StringBuilder builder, boolean preferName) {
+            builder.append(node.value).append(access.value).append(
+                        preferName ? address.getHostName()
+                              : InetAddresses.toUriString(address.getAddress()))
+                  .append(":").append(address.getPort());
+        }
     }
 
     @Override
     public String toString()
     {
         return "locate-reponse[" + encoded + "]";
+    }
+
+    private static String encode(LocateRequest request, InfoElement[] info) {
+        boolean prefName = (request.getOptions() & kXR_prefname) == kXR_prefname;
+        StringBuilder builder = new StringBuilder();
+        Iterator<InfoElement> it = Arrays.stream(info).iterator();
+        if (it.hasNext()) {
+            it.next().append(builder, prefName);
+        }
+
+        while (it.hasNext()) {
+            builder.append(" ");
+            it.next().append(builder, prefName);
+        }
+
+        return builder.toString();
     }
 }
