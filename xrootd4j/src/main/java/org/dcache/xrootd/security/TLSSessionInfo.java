@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2022 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2023 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -38,6 +38,7 @@ import static org.dcache.xrootd.security.TLSSessionInfo.TlsActivation.NONE;
 import static org.dcache.xrootd.security.TLSSessionInfo.TlsActivation.TPC;
 import static org.dcache.xrootd.util.ServerProtocolFlags.TlsMode.OFF;
 import static org.dcache.xrootd.util.ServerProtocolFlags.TlsMode.OPTIONAL;
+import static org.dcache.xrootd.util.ServerProtocolFlags.TlsMode.STRICT;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -102,6 +103,10 @@ public class TLSSessionInfo {
         public static TlsActivation valueOf(ServerProtocolFlags flags) {
             if (flags.getMode() == OFF) {
                 return NONE;
+            }
+
+            if (flags.getMode() == STRICT) {
+                return LOGIN;
             }
 
             if (flags.requiresTLSForLogin()) {
@@ -388,6 +393,7 @@ public class TLSSessionInfo {
             }
 
             if (activate) {
+                serverFlags.setGoToTLS(true);
                 sslHandler = (SslHandler) serverSslHandlerFactory.createHandler();
                 sslHandler.engine().setNeedClientAuth(false);
                 sslHandler.engine().setWantClientAuth(false);
