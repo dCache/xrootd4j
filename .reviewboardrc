@@ -1,0 +1,3 @@
+REVIEWBOARD_URL = "https://rb.dcache.org"
+REPOSITORY = "xrootd4j"
+REPOSITORY_TYPE = "git"
