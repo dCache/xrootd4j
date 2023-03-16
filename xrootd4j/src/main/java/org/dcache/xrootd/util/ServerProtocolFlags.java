@@ -36,6 +36,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_tlsLogin;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_tlsSess;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_tlsTPC;
 import static org.dcache.xrootd.util.ServerProtocolFlags.TlsMode.OFF;
+import static org.dcache.xrootd.util.ServerProtocolFlags.TlsMode.OPTIONAL;
 import static org.dcache.xrootd.util.ServerProtocolFlags.TlsMode.STRICT;
 
 import org.slf4j.Logger;
@@ -80,14 +81,12 @@ public class ServerProtocolFlags {
      */
     public ServerProtocolFlags(int flags) {
         this.flags = flags;
-        if (!requiresTLSForData() &&
-              !requiresTLSForGPF() &&
-              !requiresTLSForLogin() &&
-              !requiresTLSForSession() &&
-              !requiresTLSForTPC()) {
-            mode = OFF;
-        } else {
+        if ((flags & kXR_gotoTLS) == kXR_gotoTLS) {
             mode = STRICT;
+        } else if ((flags & kXR_haveTLS) == kXR_haveTLS) {
+            mode = OPTIONAL;
+        } else {
+            mode = OFF;
         }
     }
 
