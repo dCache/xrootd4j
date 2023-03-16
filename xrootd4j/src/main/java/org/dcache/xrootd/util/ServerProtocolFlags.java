@@ -18,6 +18,29 @@
  */
 package org.dcache.xrootd.util;
 
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_DataServer;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_LBalServer;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_anongpf;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_attrMeta;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_attrProxy;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_attrSuper;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_gotoTLS;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_haveTLS;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_isManager;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_isServer;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_supgpf;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_suppgrw;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_supposc;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_tlsData;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_tlsGPF;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_tlsGPFA;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_tlsLogin;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_tlsSess;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_tlsTPC;
+import static org.dcache.xrootd.util.ServerProtocolFlags.TlsMode.OFF;
+import static org.dcache.xrootd.util.ServerProtocolFlags.TlsMode.OPTIONAL;
+import static org.dcache.xrootd.util.ServerProtocolFlags.TlsMode.STRICT;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,14 +90,12 @@ public class ServerProtocolFlags
     public ServerProtocolFlags(int flags)
     {
         this.flags = flags;
-        if (!requiresTLSForData() &&
-                        !requiresTLSForGPF() &&
-                        !requiresTLSForLogin() &&
-                        !requiresTLSForSession() &&
-                        !requiresTLSForTPC()) {
-            mode = OFF;
-        } else {
+        if ((flags & kXR_gotoTLS) == kXR_gotoTLS) {
             mode = STRICT;
+        } else if ((flags & kXR_haveTLS) == kXR_haveTLS) {
+            mode = OPTIONAL;
+        } else {
+            mode = OFF;
         }
     }
 
