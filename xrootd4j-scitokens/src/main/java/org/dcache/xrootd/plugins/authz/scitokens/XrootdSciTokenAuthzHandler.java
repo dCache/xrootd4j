@@ -59,8 +59,7 @@ public class XrootdSciTokenAuthzHandler implements AuthorizationHandler, Require
      * The xroot protocol states that the server can specify supporting
      * different authentication protocols via a list which the client
      * should try in order.  The xrootd4j library allows for the chaining
-     * of multiple such handlers on the Netty pipeline (though currently
-     * dCache only supports one protocol, either GSI or none, at a time).
+     * of multiple such handlers on the Netty pipeline.
      *
      * Authorization, on the other hand, takes place after the authentication
      * phase; the xrootd4j authorization handler assumes that the module it
