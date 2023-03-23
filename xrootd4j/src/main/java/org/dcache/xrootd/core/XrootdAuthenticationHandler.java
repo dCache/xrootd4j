@@ -31,6 +31,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ping;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
 import static org.dcache.xrootd.security.TLSSessionInfo.isTLSOn;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.ZTN;
 
 import com.google.common.collect.Maps;
 import io.netty.channel.ChannelHandlerContext;
@@ -289,9 +290,13 @@ public class XrootdAuthenticationHandler extends ChannelInboundHandlerAdapter
                                 + "for " + _authenticationHandler.getProtocol());
             }
 
+            String protocolString = _authenticationHandler.getProtocol();
+            if (protocolString.contains(ZTN) && !_tlsSessionInfo.serverUsesTls()) {
+                protocolString = "";
+            }
+
             LoginResponse response =
-                            new LoginResponse(request, _sessionId,
-                                              _authenticationHandler.getProtocol());
+                  new LoginResponse(request, _sessionId, protocolString);
 
             if (_authenticationHandler.isCompleted()) {
                 authenticated(context, _authenticationHandler.getSubject());

@@ -51,7 +51,6 @@ import org.dcache.xrootd.core.XrootdException;
 import org.dcache.xrootd.plugins.tls.SSLHandlerFactory;
 import org.dcache.xrootd.tpc.XrootdTpcInfo;
 import org.dcache.xrootd.util.ServerProtocolFlags;
-import org.dcache.xrootd.util.ServerProtocolFlags.TlsMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -221,25 +220,13 @@ public class TLSSessionInfo
                 LOGGER.debug("Client NOT TLS capable.");
 
                 /*
-                 *  Two cases of failure for non-capable clients.
+                 *  If the client does not support TLS, we turn it off.
+                 *  The login response will check this and if TLS is off, ZTN authentication
+                 *  will not be included as an *authentication* protocol.
                  *
-                 *  (1) the source server mode is strict, not optional;
-                 *
-                 *  (2) this is the destination server,
-                 *      TLS is required for TPC and the client intends
-                 *      to do TPC.
-                 *
-                 *  The latter check cannot be done here, because
-                 *      we do not know the protocol used to connect
-                 *      to the source yet (an opaque data element
-                 *      passed on the first path query).
+                 *  NOTE: Scitoken *authorization* will fail in this case if strict=true,
+                 *        so support of pre-TLS clients requires strict = false.
                  */
-                if (serverFlags.getMode() == TlsMode.STRICT) {
-                    throw new XrootdException(kXR_TLSRequired,
-                                              "Server accepts only secure "
-                                                    + "connections.");
-                }
-
                 serverFlags.setMode(OFF);
                 LOGGER.debug("TLS is OFF.");
                 return;
