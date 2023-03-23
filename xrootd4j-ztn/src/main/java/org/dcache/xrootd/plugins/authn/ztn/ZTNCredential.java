@@ -16,6 +16,8 @@
  */
 package org.dcache.xrootd.plugins.authn.ztn;
 
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.ZTN;
+
 /**
  *  According to the xroot ztn protocol, the credential sent on the
  *  request method by the client has this structure:
@@ -29,7 +31,7 @@ package org.dcache.xrootd.plugins.authn.ztn;
  */
 public class ZTNCredential {
 
-    public static final String PROTOCOL = "ztn";
+    public static final String PROTOCOL = ZTN;
 
     private int version;
     private byte opr;
