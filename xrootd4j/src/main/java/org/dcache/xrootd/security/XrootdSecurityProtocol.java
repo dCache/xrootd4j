@@ -24,6 +24,7 @@ public interface XrootdSecurityProtocol {
 
     String SEC_PROTOCOL_PREFIX = "P=";
     String AUTHN_PROTOCOL_PREFIX = "&" + SEC_PROTOCOL_PREFIX;
+    String ZTN = "ztn";
 
     /**
      *  _______________________________________________________________________
