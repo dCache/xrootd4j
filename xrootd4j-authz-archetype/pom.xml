@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.dcache</groupId>
         <artifactId>xrootd4j-parent</artifactId>
-        <version>4.4.7</version>
+        <version>4.4.8-SNAPSHOT</version>
     </parent>
 
     <artifactId>xrootd4j-authz-plugin-archetype</artifactId>
