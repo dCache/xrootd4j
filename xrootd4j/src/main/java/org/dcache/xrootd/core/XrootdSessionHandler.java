@@ -28,6 +28,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ping;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
 import static org.dcache.xrootd.security.TLSSessionInfo.isTLSOn;
+import static org.dcache.xrootd.security.XrootdSecurityProtocol.ZTN;
 
 import com.google.common.collect.Maps;
 import io.netty.channel.ChannelHandlerContext;
@@ -314,6 +315,7 @@ public class XrootdSessionHandler extends XrootdRequestHandler {
     private String protocolString() {
         String protocols =
               handlerMap.values().stream().map(h -> h.getHandler())
+                    .filter(h-> tlsSessionInfo.serverUsesTls() || !h.getProtocolName().equals(ZTN))
                     .map(AuthenticationHandler::getProtocol)
                     .collect(Collectors.joining());
         LOGGER.debug("protocols: {}.", protocols);
