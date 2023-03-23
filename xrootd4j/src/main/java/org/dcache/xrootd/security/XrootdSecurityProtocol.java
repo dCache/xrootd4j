@@ -22,10 +22,11 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 
-public interface XrootdSecurityProtocol
-{
-    String SEC_PROTOCOL_PREFIX="P=";
-    String AUTHN_PROTOCOL_PREFIX="&" + SEC_PROTOCOL_PREFIX;
+public interface XrootdSecurityProtocol {
+
+    String SEC_PROTOCOL_PREFIX = "P=";
+    String AUTHN_PROTOCOL_PREFIX = "&" + SEC_PROTOCOL_PREFIX;
+    String ZTN = "ztn";
 
     /**
      *  _______________________________________________________________________
