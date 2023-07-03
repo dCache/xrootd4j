@@ -60,7 +60,8 @@ public class ZTNCredentialUtils
          *  Reserved.  Currently put here for the purpose of word-boundary
          *  alignment in the C++ server.
          */
-        buffer.readBytes(2);
+        buffer.readByte();
+        buffer.readByte();
 
         int len = buffer.readShort();
         if (len <= 1) {
