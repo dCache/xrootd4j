@@ -16,6 +16,7 @@
  */
 package org.dcache.xrootd.core;
 
+import static org.dcache.xrootd.core.AbstractXrootdDecoder.createException;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ServerError;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_Unsupported;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
@@ -51,13 +52,15 @@ import io.netty.handler.codec.haproxy.HAProxyProxiedProtocol;
 import io.netty.handler.ssl.SslHandshakeCompletionEvent;
 import io.netty.util.ReferenceCountUtil;
 import java.net.InetSocketAddress;
+import java.nio.channels.ClosedChannelException;
 import java.util.Objects;
+import javax.net.ssl.SSLException;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
 import org.dcache.xrootd.protocol.messages.DirListRequest;
 import org.dcache.xrootd.protocol.messages.EndSessionRequest;
-import org.dcache.xrootd.protocol.messages.FattrRequest;
 import org.dcache.xrootd.protocol.messages.ErrorResponse;
+import org.dcache.xrootd.protocol.messages.FattrRequest;
 import org.dcache.xrootd.protocol.messages.LocateRequest;
 import org.dcache.xrootd.protocol.messages.LoginRequest;
 import org.dcache.xrootd.protocol.messages.MkDirRequest;
@@ -101,6 +104,8 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter {
     private InetSocketAddress _destinationAddress;
 
     private InetSocketAddress _sourceAddress;
+
+    private String sessionToken;
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -149,12 +154,24 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter {
         }
     }
 
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        if (cause instanceof SSLException) {
+            super.exceptionCaught(ctx, createException(ctx, (SSLException) cause, sessionToken));
+        } else {
+            super.exceptionCaught(ctx, cause);
+        }
+    }
+
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        if (evt instanceof SslHandshakeCompletionEvent) {
+        if (evt instanceof SSLException) {
+            _log.error("userEvent {}.", createException(ctx, (SSLException) evt, sessionToken));
+        } else if (evt instanceof SslHandshakeCompletionEvent) {
             if (!((SslHandshakeCompletionEvent) evt).isSuccess()) {
                 Throwable t = ((SslHandshakeCompletionEvent) evt).cause();
-                _log.error("TLS handshake failed: {}.",
-                      t == null ? "no cause reported" : t.toString());
+                if (!(t instanceof ClosedChannelException)) {
+                    _log.error("TLS handshake failed: {}.",
+                          t == null ? "no cause reported" : t.toString());
+                }
             }
         } else {
             super.userEventTriggered(ctx, evt);
@@ -189,7 +206,9 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter {
             case kXR_auth:
                 return doOnAuthentication(ctx, (AuthenticationRequest) req);
             case kXR_login:
-                return doOnLogin(ctx, (LoginRequest) req);
+                LoginRequest loginRequest = (LoginRequest) req;
+                sessionToken = loginRequest.getToken();
+                return doOnLogin(ctx, loginRequest);
             case kXR_open:
                 return doOnOpen(ctx, (OpenRequest) req);
             case kXR_stat:
@@ -229,8 +248,8 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter {
             case kXR_endsess:
                 return doOnEndSession(ctx, (EndSessionRequest) req);
             case kXR_fattr:
-            	return doOnFattr(ctx, (FattrRequest) req);
-             default:
+                return doOnFattr(ctx, (FattrRequest) req);
+            default:
                 return unsupported(ctx, req);
         }
     }
@@ -276,10 +295,10 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter {
     }
 
     protected Object doOnFattr(ChannelHandlerContext ctx,
-      	  FattrRequest msg)
-      	  throws XrootdException {
-      	return unsupported(ctx, msg);
-      }
+          FattrRequest msg)
+          throws XrootdException {
+        return unsupported(ctx, msg);
+    }
 
     protected Object doOnStat(ChannelHandlerContext ctx,
           StatRequest msg)
