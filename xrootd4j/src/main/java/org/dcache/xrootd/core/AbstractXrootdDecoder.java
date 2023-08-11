@@ -21,6 +21,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_close;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_dirlist;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_endsess;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_error;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_fattr;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_locate;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
@@ -41,8 +42,11 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_statx;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_sync;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_write;
 
+import com.google.common.base.Throwables;
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
+import javax.net.ssl.SSLException;
 import org.dcache.xrootd.protocol.XrootdProtocol;
 import org.dcache.xrootd.protocol.messages.AuthenticationRequest;
 import org.dcache.xrootd.protocol.messages.CloseRequest;
@@ -84,10 +88,19 @@ public abstract class AbstractXrootdDecoder extends ByteToMessageDecoder {
     protected static final Logger LOGGER =
           LoggerFactory.getLogger(AbstractXrootdDecoder.class);
 
+    static XrootdException createException(ChannelHandlerContext ctx, SSLException e, String sessionToken) {
+        String message = String.format("SSL failure on channel (%s), session token (%s), caused by (%s: root cause %s).",
+              ctx.channel(), sessionToken, e.getMessage(), Throwables.getRootCause(e).toString());
+        LOGGER.error("{}", message);
+        return new XrootdException(kXR_error, message);
+    }
+
     private int maxWriteBufferSize = Integer.MAX_VALUE;
 
     private WriteRequest lastWrite;
     private int remainingDataLength;
+
+    private String sessionToken;
 
     public int getMaxWriteBufferSize() {
         return maxWriteBufferSize;
@@ -95,6 +108,14 @@ public abstract class AbstractXrootdDecoder extends ByteToMessageDecoder {
 
     public void setMaxWriteBufferSize(int maxFrameSize) {
         this.maxWriteBufferSize = maxFrameSize;
+    }
+
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        if (cause instanceof SSLException) {
+            super.exceptionCaught(ctx, createException(ctx, (SSLException) cause, sessionToken));
+        } else {
+            super.exceptionCaught(ctx, cause);
+        }
     }
 
     protected XrootdRequest getRequest(ByteBuf frame) {
@@ -108,7 +129,9 @@ public abstract class AbstractXrootdDecoder extends ByteToMessageDecoder {
             case kXR_sigver:
                 return new SigverRequest(frame);
             case kXR_login:
-                return new LoginRequest(frame);
+                LoginRequest request = new LoginRequest(frame);
+                sessionToken = request.getToken();
+                return request;
             case kXR_prepare:
                 return new PrepareRequest(frame);
             case kXR_open:
