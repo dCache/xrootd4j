@@ -20,7 +20,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.util.ReferenceCountUtil;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import org.dcache.xrootd.protocol.messages.ReadRequest;
 
@@ -39,18 +38,15 @@ public class ChunkedFileChannelReadResponse extends AbstractChunkedReadResponse 
           throws IOException {
         ByteBuf chunk = alloc.ioBuffer(length);
         try {
-            chunk.writerIndex(length);
-            ByteBuffer buffer = chunk.nioBuffer();
             while (length > 0) {
                 /* use position independent thread safe call */
-                int bytes = channel.read(buffer, position);
+                int bytes = chunk.writeBytes(channel, position, length);
                 if (bytes < 0) {
                     break;
                 }
                 position += bytes;
                 length -= bytes;
             }
-            chunk.writerIndex(chunk.writerIndex() - length);
             return chunk;
         } catch (RuntimeException | IOException e) {
             ReferenceCountUtil.release(chunk);
