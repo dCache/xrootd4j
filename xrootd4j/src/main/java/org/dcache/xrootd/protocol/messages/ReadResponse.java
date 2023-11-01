@@ -62,8 +62,7 @@ public class ReadResponse implements XrootdResponse<ReadRequest>, ReferenceCount
         header.writeShort(stat);
         header.writeInt(data.readableBytes());
 
-        ctx.write(ctx.alloc().compositeBuffer(2).addComponents(header, data)
-              .writerIndex(8 + data.readableBytes()), promise);
+        ctx.write(ctx.alloc().compositeBuffer(2).addComponents(true, header, data), promise);
     }
 
     public ByteBuf getData() {
