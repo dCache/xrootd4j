@@ -21,6 +21,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_auth;
 import static org.dcache.xrootd.protocol.messages.LoginResponse.AUTHN_PROTOCOL_TYPE_LEN;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 /**
  *  The structure of the authentication request according to the protocol:
@@ -59,7 +60,7 @@ public class AuthenticationRequest extends AbstractXrootdRequest {
             return;
         }
 
-        credential = buffer.alloc().ioBuffer(credLen);
+        credential = Unpooled.buffer(credLen);
         credential.writeBytes(buffer);
     }
 
