@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2023 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2024 dCache.org <support@dcache.org>
  * 
  * This file is part of xrootd4j.
  * 
@@ -21,6 +21,8 @@ import io.netty.channel.ChannelHandler;
 import io.netty.handler.ssl.SslContext;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.Supplier;
+
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
 
 /**
@@ -45,14 +47,14 @@ public abstract class SSLHandlerFactory implements ChannelHandlerFactory {
               .findFirst().orElse(null);
     }
 
-    protected SslContext sslContext;
+    protected Supplier<SslContext> sslContextSupplier;
     protected boolean startTls;
     protected String name;
 
     public void initialize(Properties properties, boolean startTls) throws Exception {
         this.startTls = startTls;
         name = startTls ? SERVER_TLS : CLIENT_TLS;
-        sslContext = buildContext(properties);
+        sslContextSupplier = buildContextSupplier(properties);
     }
 
     @Override
@@ -67,11 +69,11 @@ public abstract class SSLHandlerFactory implements ChannelHandlerFactory {
 
     @Override
     public ChannelHandler createHandler() {
-        return sslContext.newHandler(ByteBufAllocator.DEFAULT);
+        return sslContextSupplier.get().newHandler(ByteBufAllocator.DEFAULT);
     }
 
     /**
      * Called by the provider during initialization.
      */
-    protected abstract SslContext buildContext(Properties properties) throws Exception;
+    protected abstract Supplier<SslContext> buildContextSupplier(Properties properties) throws Exception;
 }
