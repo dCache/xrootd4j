@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2023 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2024 dCache.org <support@dcache.org>
  * 
  * This file is part of xrootd4j.
  * 
@@ -38,8 +38,8 @@ public class PrepareRequest extends AbstractXrootdRequest {
     public PrepareRequest(ByteBuf buffer) {
         super(buffer, kXR_prepare);
 
-        options = buffer.getUnsignedShort(4);
-        priority = buffer.getUnsignedShort(5);
+        options = buffer.getByte(4);
+        priority = buffer.getByte(5);
 
         int plen = buffer.getInt(20);
         int end = 24 + plen;
