@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2023 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2024 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -27,6 +27,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_Qconfig;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_Unsupported;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_isDir;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_isDirectory;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ok;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_other;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_readable;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_writable;
@@ -63,6 +64,7 @@ import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.dcache.xrootd.protocol.messages.OpenRequest;
 import org.dcache.xrootd.protocol.messages.OpenResponse;
 import org.dcache.xrootd.protocol.messages.PrepareRequest;
+import org.dcache.xrootd.protocol.messages.PrepareResponse;
 import org.dcache.xrootd.protocol.messages.QueryRequest;
 import org.dcache.xrootd.protocol.messages.QueryResponse;
 import org.dcache.xrootd.protocol.messages.ReadRequest;
@@ -280,9 +282,9 @@ public class DataServerHandler extends XrootdProtocolRequestHandler {
     }
 
     @Override
-    protected OkResponse<PrepareRequest> doOnPrepare(ChannelHandlerContext ctx,
-          PrepareRequest msg) {
-        return withOk(msg);
+    protected PrepareResponse doOnPrepare(ChannelHandlerContext ctx,
+          PrepareRequest msg) throws XrootdException {
+        return new PrepareResponse(msg, kXR_ok, new byte[0]);
     }
 
     /**
