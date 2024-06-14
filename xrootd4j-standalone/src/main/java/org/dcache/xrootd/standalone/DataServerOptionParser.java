@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2023 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2024 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -30,6 +30,9 @@ public class DataServerOptionParser extends OptionParser {
     public final OptionSpec<String> handlerPlugins;
     public final OptionSpec<File> pluginPath;
     public final OptionSpec<Void> zeroCopy;
+    public final OptionSpec<Void> withTls;
+    public final OptionSpec<String> hostCert;
+    public final OptionSpec<String> hostKey;
 
     {
         port = acceptsAll(asList("p", "port"))
@@ -55,5 +58,16 @@ public class DataServerOptionParser extends OptionParser {
               .describedAs("url")
               .ofType(File.class);
         zeroCopy = acceptsAll(asList("z", "zerocopy"), "Use zero copy reads");
+        withTls = acceptsAll(asList("tls"), "Enable TLS for session and data protection");
+        hostCert = acceptsAll(asList("hostcert"), "Path to the host certificate file")
+              .withRequiredArg()
+              .describedAs("path")
+              .ofType(String.class)
+              .defaultsTo("hostcert.pem");
+        hostKey = acceptsAll(asList("hostkey"), "Path to the host key file")
+              .withRequiredArg()
+              .describedAs("path")
+              .ofType(String.class)
+              .defaultsTo("hostkey.pem");
     }
 }

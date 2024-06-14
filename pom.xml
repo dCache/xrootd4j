@@ -42,6 +42,7 @@
 
   <properties>
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+      <ssl-kickstart.version>8.2.0</ssl-kickstart.version>
   </properties>
 
   <scm>
@@ -195,6 +196,16 @@
           <groupId>org.apache.maven.archetype</groupId>
           <artifactId>archetype-packaging</artifactId>
           <version>2.4</version>
+      </dependency>
+      <dependency>
+          <groupId>io.github.hakky54</groupId>
+          <artifactId>sslcontext-kickstart</artifactId>
+          <version>${ssl-kickstart.version}</version>
+      </dependency>
+      <dependency>
+          <groupId>io.github.hakky54</groupId>
+          <artifactId>sslcontext-kickstart-for-pem</artifactId>
+          <version>${ssl-kickstart.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

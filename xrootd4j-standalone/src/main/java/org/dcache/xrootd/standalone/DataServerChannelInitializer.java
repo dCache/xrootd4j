@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2023 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2024 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -23,18 +23,28 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.logging.LoggingHandler;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import nl.altindag.ssl.pem.util.PemUtils;
 import org.dcache.xrootd.core.XrootdAuthenticationHandler;
 import org.dcache.xrootd.core.XrootdDecoder;
 import org.dcache.xrootd.core.XrootdEncoder;
 import org.dcache.xrootd.core.XrootdHandshakeHandler;
 import org.dcache.xrootd.core.XrootdSessionHandler;
 import org.dcache.xrootd.plugins.ChannelHandlerFactory;
+import org.dcache.xrootd.plugins.tls.SSLHandlerFactory;
 import org.dcache.xrootd.security.SigningPolicy;
 import org.dcache.xrootd.security.TLSSessionInfo;
 import org.dcache.xrootd.stream.ChunkedResponseWriteHandler;
 import org.dcache.xrootd.util.ServerProtocolFlags;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLException;
+import javax.net.ssl.X509ExtendedKeyManager;
+import java.nio.file.Paths;
+import java.util.Properties;
+import java.util.function.Supplier;
 
 public class DataServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 
@@ -60,9 +70,25 @@ public class DataServerChannelInitializer extends ChannelInitializer<SocketChann
         /*
          *  Placeholders, no Sigver and no TLS support yet.
          */
+
         SigningPolicy signingPolicy = new SigningPolicy();
         ServerProtocolFlags flags = new ServerProtocolFlags(0);
+
+        SSLHandlerFactory tlsFactory = null;
+        if (_options.withTls) {
+            tlsFactory = new LocalPemTlsHandler(_options.hostCert, _options.hostKey);
+            tlsFactory.initialize(new Properties(), true);
+
+            flags.setMode(ServerProtocolFlags.TlsMode.OPTIONAL);
+            flags.setRequiresTLSForSession(true);
+            flags.setRequiresTLSForLogin(true);
+            flags.setRequiresTLSForData(true);
+            flags.setSupportsTLS(true);
+        }
+
+
         TLSSessionInfo tlsSessionInfo = new TLSSessionInfo(flags);
+        tlsSessionInfo.setServerSslHandlerFactory(tlsFactory);
 
         XrootdSessionHandler sessionHandler = new XrootdSessionHandler();
         /*
@@ -95,4 +121,35 @@ public class DataServerChannelInitializer extends ChannelInitializer<SocketChann
               signingPolicy);
         pipeline.addLast("data-server", dataServerHandler);
     }
+
+    private static class LocalPemTlsHandler extends SSLHandlerFactory {
+
+        /**
+         * Netty SSL context for the TLS handler.
+         */
+        private final SslContext sslContext;
+
+        /**
+         * Create a new instance of the TLS handler.
+         * @param hostcert Path to host certificate file.
+         * @param hostkey Path to host key file.
+         * @throws SSLException
+         */
+        LocalPemTlsHandler(String hostcert, String hostkey) throws SSLException {
+            X509ExtendedKeyManager keyManager =
+                    PemUtils.loadIdentityMaterial(Paths.get(hostcert), Paths.get(hostkey));
+            sslContext = SslContextBuilder.forServer(keyManager).startTls(true).build();
+        }
+
+        @Override
+        protected Supplier<SslContext> buildContextSupplier(Properties properties) {
+            return () -> sslContext;
+        }
+
+        @Override
+        public String getName() {
+            return SERVER_TLS;
+        }
+    }
+
 }

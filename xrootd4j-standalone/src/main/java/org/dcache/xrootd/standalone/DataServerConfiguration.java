@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2023 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2024 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -58,6 +58,10 @@ public class DataServerConfiguration {
     public final List<String> channelHandlerPlugins;
     public final boolean useZeroCopy;
 
+    public final boolean withTls;
+    public final String hostCert;
+    public final String hostKey;
+
     public final List<ChannelHandlerFactory> channelHandlerFactories;
 
     public DataServerConfiguration(DataServerOptionParser parser, OptionSet options)
@@ -67,6 +71,9 @@ public class DataServerConfiguration {
         pluginPath = options.valuesOf(parser.pluginPath);
         channelHandlerPlugins = options.valuesOf(parser.handlerPlugins);
         useZeroCopy = options.has(parser.zeroCopy);
+        withTls = options.has(parser.withTls);
+        hostCert = options.valueOf(parser.hostCert);
+        hostKey = options.valueOf(parser.hostKey);
 
         _pluginDefaults = loadDefaultProperties(pluginPath);
 
