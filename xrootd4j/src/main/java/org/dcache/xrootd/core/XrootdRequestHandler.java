@@ -271,7 +271,7 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter {
     protected <T extends XrootdRequest> XrootdResponse<T> unsupported(ChannelHandlerContext ctx,
           T msg)
           throws XrootdException {
-        _log.warn("Unsupported request: " + msg);
+        _log.debug("Unsupported request: " + msg);
         throw new XrootdException(kXR_Unsupported,
               "Request " + msg.getRequestId() + " not supported");
     }
