@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2023 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2026 dCache.org <support@dcache.org>
  * 
  * This file is part of xrootd4j.
  * 
@@ -17,12 +17,14 @@
 package org.dcache.xrootd.protocol.messages;
 
 import io.netty.buffer.ByteBuf;
+import java.util.Arrays;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class GenericReadRequestMessage extends AbstractXrootdRequest {
 
-    public static class EmbeddedReadRequest {
+    public static class EmbeddedReadRequest implements Comparable<EmbeddedReadRequest> {
 
         private final int fh;
         private final int len;
@@ -49,6 +51,31 @@ public abstract class GenericReadRequestMessage extends AbstractXrootdRequest {
         @Override
         public String toString() {
             return String.format("(%d,%d,%d)", fh, len, offs);
+        }
+
+        @Override
+        public int compareTo(EmbeddedReadRequest o) {
+             // Comparator, that sorts low file handles and low offsets within the same file handle first.
+            int r = Integer.compare(fh, o.fh);
+            if  (r != 0) {
+                return r;
+            }
+
+            return Long.compare(offs, o.offs);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            EmbeddedReadRequest that = (EmbeddedReadRequest) o;
+            return fh == that.fh && len == that.len && offs == that.offs;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(fh, len, offs);
         }
     }
 
@@ -89,6 +116,8 @@ public abstract class GenericReadRequestMessage extends AbstractXrootdRequest {
                       buffer.getInt(j + 4),
                       buffer.getLong(j + 8));
             }
+            // ensure, that read requests are sorted by file and offset to reduce disk seeks.
+            Arrays.sort(readList);
         }
     }
 
