@@ -1,6 +1,6 @@
 <!--
 
-    Copyright (C) 2011-2024 dCache.org <support@dcache.org>
+    Copyright (C) 2011-2026 dCache.org <support@dcache.org>
 
     This file is part of xrootd4j.
 
@@ -41,6 +41,7 @@
   </organization>
 
   <properties>
+      <java.version>17</java.version>
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
       <ayza.version>10.0.0</ayza.version>
   </properties>
@@ -124,7 +125,7 @@
       <dependency>
           <groupId>org.mockito</groupId>
           <artifactId>mockito-core</artifactId>
-          <version>1.9.5</version>
+          <version>3.6.0</version>
           <scope>test</scope>
       </dependency>
       <dependency>
@@ -250,10 +251,9 @@
           <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-compiler-plugin</artifactId>
-              <version>3.2</version>
+              <version>3.8.1</version>
               <configuration>
-                  <source>1.8</source>
-                  <target>1.8</target>
+                <release>${java.version}</release>
               </configuration>
           </plugin>
 
