@@ -199,7 +199,7 @@ public class ChunkedFileChannelReadvResponseTest {
 
         public FileDescriptorMaker withSize(final long length) throws IOException {
             when(channel.size()).thenReturn(length);
-            when(channel.read(any(ByteBuffer.class), anyInt())).thenAnswer(new Answer() {
+            when(channel.read(any(ByteBuffer.class), anyLong())).thenAnswer(new Answer() {
                 @Override
                 public Object answer(InvocationOnMock invocation) {
                     Object[] args = invocation.getArguments();
