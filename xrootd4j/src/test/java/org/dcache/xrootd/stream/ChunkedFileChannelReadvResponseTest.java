@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2023 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2026 dCache.org <support@dcache.org>
  * 
  * This file is part of xrootd4j.
  * 
@@ -21,7 +21,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
