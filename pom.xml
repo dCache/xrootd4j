@@ -278,6 +278,7 @@
                       <exclude>.idea/**</exclude>
                       <exclude>*.releaseBackup</exclude>
                       <exclude>release-pom.xml</exclude>
+                      <exclude>**/pom.xml</exclude>
                   </excludes>
               </configuration>
               <dependencies>
