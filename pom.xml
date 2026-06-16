@@ -35,6 +35,19 @@
       </license>
   </licenses>
 
+  <description>
+    Implementation of the xrootd data access protocol in Java.
+    The project provides a library for integration and a standalone xrootd data server.
+  </description>
+
+  <developers>
+    <developer>
+      <name>The dCache project</name>
+      <organization>dCache</organization>
+      <organizationUrl>https://dcache.org</organizationUrl>
+    </developer>
+  </developers>
+
   <organization>
     <name>dCache.org</name>
     <url>http://www.dcache.org/</url>
