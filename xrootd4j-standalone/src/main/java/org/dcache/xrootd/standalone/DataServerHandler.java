@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2024 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2026 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -63,6 +63,8 @@ import org.dcache.xrootd.protocol.messages.MvRequest;
 import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.dcache.xrootd.protocol.messages.OpenRequest;
 import org.dcache.xrootd.protocol.messages.OpenResponse;
+import org.dcache.xrootd.protocol.messages.PingRequest;
+import org.dcache.xrootd.protocol.messages.PingResponse;
 import org.dcache.xrootd.protocol.messages.PrepareRequest;
 import org.dcache.xrootd.protocol.messages.PrepareResponse;
 import org.dcache.xrootd.protocol.messages.QueryRequest;
@@ -279,6 +281,12 @@ public class DataServerHandler extends XrootdProtocolRequestHandler {
         } catch (IOException e) {
             throw new XrootdException(kXR_IOError, "IO Error: " + dir);
         }
+    }
+
+    @Override
+    protected PingResponse doOnPing(ChannelHandlerContext ctx,
+          PingRequest msg) throws XrootdException {
+        return new PingResponse(msg, kXR_ok);
     }
 
     @Override
