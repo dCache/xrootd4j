@@ -67,13 +67,6 @@
     <tag>HEAD</tag>
   </scm>
 
-  <repositories>
-    <repository>
-        <id>dcache.repository</id>
-        <url>https://download.dcache.org/nexus/content/groups/public</url>
-    </repository>
-  </repositories>
-
   <distributionManagement>
     <downloadUrl>https://download.dcache.org/nexus/content/repositories/releases/</downloadUrl>
 
