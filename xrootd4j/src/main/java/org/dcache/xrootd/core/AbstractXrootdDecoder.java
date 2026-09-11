@@ -1,16 +1,16 @@
 /**
- * Copyright (C) 2011-2023 dCache.org <support@dcache.org>
- * 
+ * Copyright (C) 2011-2026 dCache.org <support@dcache.org>
+ *
  * This file is part of xrootd4j.
- * 
+ *
  * xrootd4j is free software: you can redistribute it and/or modify it under the terms of the GNU
  * Lesser General Public License as published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
- * 
+ *
  * xrootd4j is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
  * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License along with xrootd4j.  If
  * not, see http://www.gnu.org/licenses/.
  */
@@ -28,6 +28,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mkdir;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mv;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_open;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ping;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_prepare;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_query;
@@ -58,6 +59,7 @@ import org.dcache.xrootd.protocol.messages.LoginRequest;
 import org.dcache.xrootd.protocol.messages.MkDirRequest;
 import org.dcache.xrootd.protocol.messages.MvRequest;
 import org.dcache.xrootd.protocol.messages.OpenRequest;
+import org.dcache.xrootd.protocol.messages.PingRequest;
 import org.dcache.xrootd.protocol.messages.PrepareRequest;
 import org.dcache.xrootd.protocol.messages.ProtocolRequest;
 import org.dcache.xrootd.protocol.messages.QueryRequest;
@@ -132,6 +134,8 @@ public abstract class AbstractXrootdDecoder extends ByteToMessageDecoder {
                 LoginRequest request = new LoginRequest(frame);
                 sessionToken = request.getToken();
                 return request;
+            case kXR_ping:
+                return new PingRequest(frame);
             case kXR_prepare:
                 return new PrepareRequest(frame);
             case kXR_open:

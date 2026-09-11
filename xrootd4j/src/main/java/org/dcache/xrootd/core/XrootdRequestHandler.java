@@ -29,6 +29,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_login;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mkdir;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_mv;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_open;
+import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_ping;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_prepare;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_protocol;
 import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_query;
@@ -67,6 +68,7 @@ import org.dcache.xrootd.protocol.messages.MkDirRequest;
 import org.dcache.xrootd.protocol.messages.MvRequest;
 import org.dcache.xrootd.protocol.messages.OkResponse;
 import org.dcache.xrootd.protocol.messages.OpenRequest;
+import org.dcache.xrootd.protocol.messages.PingRequest;
 import org.dcache.xrootd.protocol.messages.PrepareRequest;
 import org.dcache.xrootd.protocol.messages.ProtocolRequest;
 import org.dcache.xrootd.protocol.messages.QueryRequest;
@@ -237,6 +239,8 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter {
                 return doOnMv(ctx, (MvRequest) req);
             case kXR_dirlist:
                 return doOnDirList(ctx, (DirListRequest) req);
+            case kXR_ping:
+                return doOnPing(ctx, (PingRequest) req);
             case kXR_prepare:
                 return doOnPrepare(ctx, (PrepareRequest) req);
             case kXR_locate:
@@ -374,6 +378,12 @@ public class XrootdRequestHandler extends ChannelInboundHandlerAdapter {
 
     protected Object doOnDirList(ChannelHandlerContext ctx,
           DirListRequest msg)
+          throws XrootdException {
+        return unsupported(ctx, msg);
+    }
+
+    protected Object doOnPing(ChannelHandlerContext ctx,
+          PingRequest msg)
           throws XrootdException {
         return unsupported(ctx, msg);
     }
