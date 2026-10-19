@@ -33,6 +33,7 @@ import java.util.Arrays;
 public class PrepareRequest extends AbstractXrootdRequest {
 
     private final int options;
+    private final int optionx;
     private final int priority;
     private String[] paths;
     private String[] opaques;
@@ -42,6 +43,7 @@ public class PrepareRequest extends AbstractXrootdRequest {
 
         options = buffer.getByte(4);
         priority = buffer.getByte(5);
+        optionx = buffer.getUnsignedShort(8);
 
         int plen = buffer.getInt(20);
         int end = 24 + plen;
@@ -61,6 +63,10 @@ public class PrepareRequest extends AbstractXrootdRequest {
 
     public int getOptions() {
         return options;
+    }
+
+    public int getOptionX() {
+        return optionx;
     }
 
     public int getPriority() {
@@ -108,12 +114,12 @@ public class PrepareRequest extends AbstractXrootdRequest {
     }
 
     public boolean isEvict() {
-        return (getOptions() & kXR_evict) == kXR_evict;
+        return (getOptionX() & kXR_evict) == kXR_evict;
     }
 
     @Override
     public String toString() {
-        return String.format("prepare[%d,%d,%s]", options, priority,
+        return String.format("prepare[%d,%d,%d,%s]", options, optionx, priority,
               Arrays.toString(paths));
     }
 }
