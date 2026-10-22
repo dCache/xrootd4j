@@ -37,6 +37,7 @@ import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_cert;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGC_sigpxy;
 import static org.dcache.xrootd.security.XrootdSecurityProtocol.kXGS_pxyreq;
 
+import eu.emi.security.authn.x509.ValidationResult;
 import eu.emi.security.authn.x509.impl.CertificateUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -493,7 +494,29 @@ public abstract class GSIRequestHandler {
                     + "previous key to match? {}.",
               toMatch.isPresent());
         X509Certificate[] proxyCertChain = extractChain(nestedBuckets);
-        credentialManager.getCertChainValidator().validate(proxyCertChain);
+
+        /*
+         *  The validator reports problems in the result, it does not throw,
+         *  but some malformed chains make canl fail internally.
+         */
+        ValidationResult result;
+        try {
+            result = credentialManager.getCertChainValidator().validate(proxyCertChain);
+        } catch (RuntimeException e) {
+            LOGGER.warn("Certificate chain of {} could not be validated: {}",
+                  proxyCertChain[0].getSubjectX500Principal(), e.toString());
+            throw new XrootdException(kGSErrError,
+                  "certificate chain verification failed");
+        }
+        if (!result.isValid()) {
+            LOGGER.warn("Certificate chain of {} failed validation: {}",
+                  proxyCertChain[0].getSubjectX500Principal(),
+                  result.toShortString());
+            throw new XrootdException(kGSErrError,
+                  "certificate chain verification failed: "
+                        + result.toShortString());
+        }
+
         X509Certificate certificate = proxyCertChain[0];
         if (toMatch.isPresent() &&
               !toMatch.get().equals(certificate.getPublicKey())) {
