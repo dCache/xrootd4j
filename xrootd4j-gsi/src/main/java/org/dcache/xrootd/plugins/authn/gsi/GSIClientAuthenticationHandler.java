@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2023 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2026 dCache.org <support@dcache.org>
  * 
  * This file is part of xrootd4j.
  * 
@@ -240,6 +240,8 @@ public class GSIClientAuthenticationHandler extends AbstractClientAuthnHandler {
             throw new XrootdException(kGSErrError, "proxy delegation required "
                   + "but not available.");
         }
+
+        handler.setRemoteVersion(versionToMatch);
 
         LOGGER.info("Server protocol version was {}; "
                     + "delegated proxy exists? {}; using {}.",

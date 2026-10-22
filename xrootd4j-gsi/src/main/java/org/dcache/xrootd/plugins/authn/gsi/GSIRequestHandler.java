@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2023 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2026 dCache.org <support@dcache.org>
  * 
  * This file is part of xrootd4j.
  * 
@@ -45,6 +45,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PublicKey;
@@ -73,9 +74,15 @@ public abstract class GSIRequestHandler {
 
     public static final String PROTOCOL = "gsi";
 
+    /**
+     * Version at which the peers sign the context bound digest of the random
+     * tag instead of the tag itself.  It implies cert/key only authentication
+     * (10600) which needs no special handling on our side.
+     */
+    public static final int PROTO_RTAG_HASH = 10700;
     public static final int PROTO_WITH_DELEGATION = 10400;
     public static final int PROTO_PRE_DELEGATION = 10300;
-    public static final int PROTOCOL_VERSION = PROTO_WITH_DELEGATION;
+    public static final int PROTOCOL_VERSION = PROTO_RTAG_HASH;
 
     public static final String CRYPTO_MODE = "ssl";
     public static final String CRYPTO_MODE_NO_PAD = "sslnopad";
@@ -113,6 +120,17 @@ public abstract class GSIRequestHandler {
      */
     public static final int SYNC_CIPHER_BLOCKSIZE = 16;
     public static final int CHALLENGE_BYTES = 8;
+
+    /**
+     * The random tag is signed with RSA PKCS#1 v1.5 and no digest, so we
+     * must never sign a value chosen by the peer.  We sign only well formed
+     * tags (as produced by XrdSutRndm::GetRndmTag) and, from PROTO_RTAG_HASH
+     * on, the context bound digest of the tag.  See GHSA-4mfc-9mxv-2cf6.
+     */
+    public static final String RTAG_ALPHABET =
+          "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./";
+    public static final String RTAG_CONTEXT = "XRD-GSI-RTAG-v1";
+    public static final String RTAG_DIGEST = "SHA-256";
 
     /**
      * Maximum request time skew.  Request is considered invalid if it
@@ -156,13 +174,12 @@ public abstract class GSIRequestHandler {
         byte[] challengeBytes = new byte[CHALLENGE_BYTES];
 
         /*
-         * RANDOM.nextBytes(...) can not be used, since this generates
-         * signed bytes. Upon encoding as string, Java will map negative bytes
-         * to 63 (ASCII 'A'). As this would affect the randomness of the
-         * challenge string, use the following loop instead.
+         * The peer refuses to sign a tag with characters outside of
+         * RTAG_ALPHABET.
          */
         for (int i = 0; i < CHALLENGE_BYTES; i++) {
-            challengeBytes[i] = (byte) RANDOM.nextInt(Byte.MAX_VALUE);
+            challengeBytes[i] = (byte) RTAG_ALPHABET.charAt(
+                  RANDOM.nextInt(RTAG_ALPHABET.length()));
         }
 
         String challenge = new String(challengeBytes, US_ASCII);
@@ -170,6 +187,41 @@ public abstract class GSIRequestHandler {
         LOGGER.debug("Generated new challenge string: {}.", challenge);
 
         return challenge;
+    }
+
+    /**
+     * @return true if rtag is exactly CHALLENGE_BYTES characters from
+     *         RTAG_ALPHABET.  Every ASN.1 DigestInfo is at least 34 bytes,
+     *         so none can pass.
+     */
+    public static boolean isValidRtag(byte[] rtag) {
+        if (rtag == null || rtag.length != CHALLENGE_BYTES) {
+            return false;
+        }
+
+        for (byte b : rtag) {
+            if (b < 0 || RTAG_ALPHABET.indexOf(b) < 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @return SHA-256(RTAG_CONTEXT || rtag), the value signed from
+     *         PROTO_RTAG_HASH on.  A bare digest is not a DigestInfo, so no
+     *         PKCS#1 v1.5 verifier accepts a signature over it.
+     */
+    public static byte[] rtagDigest(byte[] rtag) {
+        try {
+            MessageDigest md = MessageDigest.getInstance(RTAG_DIGEST);
+            md.update(RTAG_CONTEXT.getBytes(US_ASCII));
+            md.update(rtag);
+            return md.digest();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(RTAG_DIGEST + " not available", e);
+        }
     }
 
     protected final GSICredentialManager credentialManager;
@@ -181,15 +233,33 @@ public abstract class GSIRequestHandler {
     protected long lastRequest;
     protected boolean noPadding;
 
+    /**
+     * GSI protocol version of the peer; 0 if unknown.
+     */
+    protected int remoteVersion;
+
     protected GSIRequestHandler(GSICredentialManager credentialManager) {
         this.credentialManager = credentialManager;
         rsaSession = new RSASession();
     }
 
     /*
-     *  Will be either PROTO_WITH_DELEGATION or PROTO_PRE_DELEGATION.
+     *  Will be either PROTOCOL_VERSION or PROTO_PRE_DELEGATION.
      */
     public abstract int getProtocolVersion();
+
+    public void setRemoteVersion(int remoteVersion) {
+        this.remoteVersion = remoteVersion;
+    }
+
+    /**
+     * Both sides decide on the same pair of versions, so the signer and the
+     * verifier always agree whether the tag or its digest is signed.
+     */
+    protected boolean useRtagHash() {
+        return getProtocolVersion() >= PROTO_RTAG_HASH
+              && remoteVersion >= PROTO_RTAG_HASH;
+    }
 
     /*
      *  Will be either SYNC_CIPHER_MODE_PADDED or SYNC_CIPHER_MODE_UNPADDED
@@ -520,21 +590,23 @@ public abstract class GSIRequestHandler {
         byte[] signedRTag = ((RawBucket) signedRTagBucket).getContent();
 
         byte[] rTag = rsaSession.decrypt(signedRTag);
-        String rTagString = new String(rTag, US_ASCII);
+
+        byte[] expected = challenge.getBytes(US_ASCII);
+        if (useRtagHash()) {
+            expected = rtagDigest(expected);
+        }
 
         // check that the challenge sent in the previous step matches
-        if (!challenge.equals(rTagString)) {
-            LOGGER.error("The challenge is {}, the serialized rTag is {}." +
-                        "signature of challenge tag has been "
-                        + "proven wrong!!",
-                  challenge, rTagString);
+        if (!MessageDigest.isEqual(expected, rTag)) {
+            LOGGER.error("The challenge is {}, signature of challenge tag "
+                        + "has been proven wrong!!", challenge);
             throw new XrootdException(kGSErrBadRndmTag,
                   "Sender did not present correct" +
                         "challenge response!");
         }
 
-        LOGGER.debug("signature of challenge tag ok. Challenge: " +
-              "{}, rTagString: {}", challenge, rTagString);
+        LOGGER.debug("signature of challenge tag ok. Challenge: {}, "
+              + "hashed: {}", challenge, useRtagHash());
     }
 
     /*
@@ -584,13 +656,34 @@ public abstract class GSIRequestHandler {
      * @return the rtag challenge signed using the rsaCipher (assumed to be
      *         initialized with the local private key).
      */
-    private byte[] signRtagChallenge(Map<BucketType, GSIBucket> nestedBuckets)
+    byte[] signRtagChallenge(Map<BucketType, GSIBucket> nestedBuckets)
           throws BadPaddingException, IllegalBlockSizeException,
-          IOException {
-        StringBucket rtagBucket = (StringBucket) nestedBuckets.get(kXRS_rtag);
-        byte[] rtag = rtagBucket.getContent().getBytes();
-        LOGGER.debug("Signing sender's random challenge tag of length {}.",
-              rtag.length);
+          IOException, XrootdException {
+        GSIBucket bucket = nestedBuckets.get(kXRS_rtag);
+        if (!(bucket instanceof StringBucket)) {
+            throw new XrootdException(kGSErrBadRndmTag,
+                  "Sender did not provide a random tag.");
+        }
+
+        byte[] rtag = ((StringBucket) bucket).getContent().getBytes(US_ASCII);
+
+        /*
+         *  The content is chosen by the sender, never sign anything but a
+         *  well formed tag.
+         */
+        if (!isValidRtag(rtag)) {
+            LOGGER.warn("Refusing to sign malformed random tag of length {}.",
+                  rtag.length);
+            throw new XrootdException(kGSErrBadRndmTag,
+                  "Malformed random tag.");
+        }
+
+        if (useRtagHash()) {
+            rtag = rtagDigest(rtag);
+        }
+
+        LOGGER.debug("Signing sender's random challenge tag (hashed: {}).",
+              useRtagHash());
         return rsaSession.encrypt(rtag);
     }
 }

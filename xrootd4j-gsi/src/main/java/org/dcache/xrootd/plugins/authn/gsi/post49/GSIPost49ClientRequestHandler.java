@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2023 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2026 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -66,7 +66,7 @@ public class GSIPost49ClientRequestHandler extends GSIClientRequestHandler {
 
     @Override
     public int getProtocolVersion() {
-        return PROTO_WITH_DELEGATION;
+        return PROTOCOL_VERSION;
     }
 
     @Override
