@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2023 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2026 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -149,15 +149,8 @@ public class UnixClientAuthenticationHandler extends AbstractClientAuthnHandler 
                     + "signing is on? {}; tls ? {}.",
               signingPolicy.isSigningOn(), tlsSessionInfo.getClientTls());
         if (signingPolicy.isSigningOn()) {
-            /*
-             * Insert sigver encoder into pipeline.  Added after the encoder,
-             * but for outbound processing, it gets called before the encoder.
-             */
-            TpcSigverRequestEncoder sigverRequestEncoder =
-                  new TpcSigverRequestEncoder(null, signingPolicy);
-            ctx.pipeline().addAfter("encoder",
-                  "sigverEncoder",
-                  sigverRequestEncoder);
+            TpcSigverRequestEncoder.install(ctx.pipeline(),
+                  new TpcSigverRequestEncoder(null, signingPolicy));
         }
 
         String cred = getCredential(client);

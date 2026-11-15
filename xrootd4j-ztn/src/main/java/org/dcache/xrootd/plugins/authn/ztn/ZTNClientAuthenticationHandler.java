@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2023 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2026 dCache.org <support@dcache.org>
  * 
  * This file is part of xrootd4j.
  * 
@@ -98,26 +98,6 @@ public class ZTNClientAuthenticationHandler extends AbstractClientAuthnHandler {
               + "version 0.");
 
         /*
-         *  ZTN requires TLS.  While we can make the reasonable assumption
-         *  that the source server will not require signed hash verification,
-         *  we check it here anyway just to avoid failure on the off chance
-         *  the source is being perverse.
-         */
-        SigningPolicy signingPolicy = client.getSigningPolicy();
-        TLSSessionInfo tlsSessionInfo = client.getTlsSessionInfo();
-        if (signingPolicy.isSigningOn()) {
-            TpcSigverRequestEncoder sigverRequestEncoder =
-                  new TpcSigverRequestEncoder(null, signingPolicy);
-            ctx.pipeline().addAfter("encoder",
-                  "sigverEncoder",
-                  sigverRequestEncoder);
-            LOGGER.debug("optional signed hash verification encoder has been "
-                        + "added; this is unusual for ZTN:"
-                        + "signing is on? {}; tls ? {}.",
-                  signingPolicy.isSigningOn(), tlsSessionInfo.getClientTls());
-        }
-
-        /*
          *  REVISIT ---------------------------------------------------
          *
          *  It has yet been established precisely how third-party
@@ -140,6 +120,24 @@ public class ZTNClientAuthenticationHandler extends AbstractClientAuthnHandler {
          */
         token = TokenValidator.stripOffPrefix(token);
         LOGGER.debug("sendAuthenticationRequest, source token is {}.", token);
+
+        /*
+         *  ZTN requires TLS.  While we can make the reasonable assumption
+         *  that the source server will not require signed hash verification,
+         *  we check it here anyway just to avoid failure on the off chance
+         *  the source is being perverse.
+         */
+        SigningPolicy signingPolicy = client.getSigningPolicy();
+        TLSSessionInfo tlsSessionInfo = client.getTlsSessionInfo();
+        if (signingPolicy.isSigningOn()) {
+            TpcSigverRequestEncoder sigverRequestEncoder =
+                  new TpcSigverRequestEncoder(null, signingPolicy);
+            TpcSigverRequestEncoder.install(ctx.pipeline(), sigverRequestEncoder);
+            LOGGER.debug("optional signed hash verification encoder has been "
+                        + "added; this is unusual for ZTN:"
+                        + "signing is on? {}; tls ? {}.",
+                  signingPolicy.isSigningOn(), tlsSessionInfo.getClientTls());
+        }
 
         ZTNCredential credential = new ZTNCredential();
         credential.setVersion(VERSION);
