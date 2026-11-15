@@ -54,6 +54,7 @@ import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -93,7 +94,14 @@ public abstract class GSIRequestHandler {
      */
     public static final String SUPPORTED_CIPHER_ALGORITHM = "aes-128-cbc";
 
-    public static final String SUPPORTED_DIGESTS = "sha1:md5";
+    /**
+     * Message digests, in the order a server offers them.  sha256 is the default of XRootD since
+     * 5.6, and XRootD servers with default settings offer nothing else.
+     */
+    public static final String SUPPORTED_DIGESTS = "sha256:sha1:md5";
+
+    private static final List<String> SUPPORTED_DIGEST_NAMES =
+          List.of(SUPPORTED_DIGESTS.split(":"));
 
     /**
      * RSA algorithm, no block chaining mode (not a block-cipher) and PKCS1
@@ -548,7 +556,7 @@ public abstract class GSIRequestHandler {
                 cipher = algorithm;
             }
 
-            if (SUPPORTED_CIPHER_ALGORITHM.contains(cipher)) {
+            if (SUPPORTED_CIPHER_ALGORITHM.equals(cipher)) {
                 selectedCipher = algorithm;
                 break;
             }
@@ -586,7 +594,7 @@ public abstract class GSIRequestHandler {
         LOGGER.debug("Validating cipher digests.");
         String selectedDigest = null;
         for (String digest : digests) {
-            if (SUPPORTED_DIGESTS.contains(digest)) {
+            if (SUPPORTED_DIGEST_NAMES.contains(digest)) {
                 selectedDigest = digest;
                 break;
             }
