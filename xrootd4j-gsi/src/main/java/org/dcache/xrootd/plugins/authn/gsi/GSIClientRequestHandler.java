@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2023 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2026 dCache.org <support@dcache.org>
  * 
  * This file is part of xrootd4j.
  * 
@@ -289,12 +289,7 @@ public abstract class GSIClientRequestHandler extends GSIRequestHandler {
 
             Optional<TpcSigverRequestEncoder> encoder = getSigverEncoder(client);
             if (encoder.isPresent()) {
-                /*
-                 * Insert sigver encoder into pipeline.  Added after the encoder,
-                 * but for outbound processing, it gets called before the encoder.
-                 */
-                ctx.pipeline()
-                      .addAfter("encoder", "sigverEncoder", encoder.get());
+                TpcSigverRequestEncoder.install(ctx.pipeline(), encoder.get());
             }
 
             X509Credential clientCredential = getClientCredential();

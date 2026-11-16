@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011-2023 dCache.org <support@dcache.org>
+ * Copyright (C) 2011-2026 dCache.org <support@dcache.org>
  *
  * This file is part of xrootd4j.
  *
@@ -20,6 +20,7 @@ import static org.dcache.xrootd.protocol.XrootdProtocol.kXR_DecryptErr;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -43,6 +44,32 @@ import org.dcache.xrootd.tpc.protocol.messages.XrootdOutboundRequest;
  * If the encrypter is <code>null</code>, unencrypted hashes are sent.</p>
  */
 public class TpcSigverRequestEncoder extends ChannelOutboundHandlerAdapter {
+
+    /**
+     * Name of this handler in the pipeline of a third-party client channel.
+     */
+    public static final String NAME = "sigverEncoder";
+
+    /**
+     * Installs the encoder in the pipeline, after the request encoder.
+     * <p>
+     * A client may try several authentication protocols on the same channel, and a protocol that
+     * fails may already have installed an encoder.  That encoder is replaced, so that the encoder
+     * of the protocol that is now being used signs the requests.
+     *
+     * @param pipeline of the third-party client channel; must contain a handler named "encoder"
+     * @param encoder to install
+     */
+    public static void install(ChannelPipeline pipeline, TpcSigverRequestEncoder encoder) {
+        if (pipeline.get(NAME) == null) {
+            /*
+             * Added after the encoder, but for outbound processing it is called before the encoder.
+             */
+            pipeline.addAfter("encoder", NAME, encoder);
+        } else {
+            pipeline.replace(NAME, NAME, encoder);
+        }
+    }
 
     private final BufferEncrypter encrypter;
     private final SigningPolicy signingLevel;
